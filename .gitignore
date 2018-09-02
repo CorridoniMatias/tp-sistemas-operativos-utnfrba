@@ -1,6 +1,8 @@
 # Prerequisites
 *.d
 
+*.log
+
 # Object files
 *.o
 *.ko
@@ -50,3 +52,4 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+/.metadata/
