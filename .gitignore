@@ -1,6 +1,7 @@
 # Prerequisites
 *.d
 
+*/.gitignore
 *.log
 
 # Object files
