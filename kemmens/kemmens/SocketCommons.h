@@ -9,6 +9,12 @@
 #include <sys/socket.h> // Para crear sockets, enviar, recibir, etc
 #include <netdb.h> // Para getaddrinfo
 
+/**
+ * 		Estructura que representa el encabezado de un mensaje, para ser interpretada segun el protocolo
+ * 		CAMPOS:
+ * 			body_length: Largo del mensaje, en bytes
+ * 			message_type: Tipo de mensaje a enviar/recibir; ver en SocketMessageTypes.h
+ */
 typedef struct {
 	uint32_t body_length;
 	uint32_t message_type;
