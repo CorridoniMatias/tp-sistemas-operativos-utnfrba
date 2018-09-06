@@ -83,7 +83,7 @@ bool archivoConfigIncompleto(t_config* archivoConfig, char** campos) {
 	int indice;
 	for(indice = 0; indice < archivoConfigCantidadCampos(archivoConfig); indice++)
 	{
-		if(archivoConfigFaltaCampo(archivoConfig, campos[indice]))
+		if(!archivoConfigTieneCampo(archivoConfig, campos[indice]))
 		{
 			return true;
 		}
