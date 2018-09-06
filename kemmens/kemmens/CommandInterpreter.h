@@ -42,6 +42,8 @@ struct
 	char* commandline;
 	char* separator;
 	void* data;
+	//free_data indica como se deberia hacer un free de la memoria en void* data
+	void (*free_data)(void* data);
 	void (*postDo)(char* cmd, char* sep, void* args, bool actionFired);
 } typedef ThreadableDoStructure;
 
@@ -101,6 +103,12 @@ void* CommandInterpreter_DoThreaded(void* arg);
  *		Crea estructura del interpretador para thredear el Do.
  */
 ThreadableDoStructure* CommandInterpreter_MallocThreadableStructure();
+
+/*
+ * 		Funcion para liberar la estructura de ThreadableDoStructure correctamente.
+ * 		Observar el funcionamiento de la funcion para ver como hace las cosas!
+ */
+void CommandInterpreter_FreeThreadableDoStructure(void* threadableDoStructure);
 
 
 #endif /* KEMMENS_COMMANDINTERPRETER_H_ */

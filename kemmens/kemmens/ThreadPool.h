@@ -15,8 +15,9 @@
  */
 struct ThreadPool_func_s
 {
-	//should_free_data nos indica si deberiamos hacer un free(data) en caso que se llame a la funcion para limpiar todos los trabajos, esto es porque si lo que esta en data no es algo del heap -> seg fault.
-	bool should_free_data;
+	/*free_data nos indica como deberiamos hacer un free(data) en caso que se llame a la funcion para limpiar todos los trabajos, esto es porque si lo que esta en data no es algo del heap -> seg fault.
+	en caso que free_data != NULL => se va a ejecutar esta funcion para liberar data. De lo contrario no se hace nada*/
+	void (*free_data)(void* data);
 	void* data;
 	void (*runnable)(void* args);
 } typedef ThreadPoolRunnable;
