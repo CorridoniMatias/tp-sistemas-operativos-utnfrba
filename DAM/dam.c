@@ -1,6 +1,6 @@
 #include "kemmens/megekemmen.h"
 #include "kemmens/logger.h"
-
+#include "kemmens/SocketServer.h"
 
 int main(int argc, char **argv)
 {

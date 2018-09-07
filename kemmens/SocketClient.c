@@ -1,7 +1,7 @@
 #include "kemmens/megekemmen.h"
 #include "kemmens/SocketClient.h"
 
-int SocketClient_ConnectToServer(char* port)
+int SocketClient_ConnectToServer(char* ip, char* port)
 {
 	struct addrinfo hints;
 	struct addrinfo *server_info;
@@ -10,7 +10,7 @@ int SocketClient_ConnectToServer(char* port)
 	hints.ai_family = AF_UNSPEC;    // Permite que la maquina se encargue de verificar si usamos IPv4 o IPv6
 	hints.ai_socktype = SOCK_STREAM;  // Indica que usaremos el protocolo TCP
 
-	getaddrinfo(SERVER_IP, port, &hints, &server_info);  // habria que poner una ip dinamica?
+	getaddrinfo(ip, port, &hints, &server_info);  // habria que poner una ip dinamica?
 
 	// 2. Creemos el socket con el nombre "server_socket" usando la "server_info" que creamos anteriormente
 	int server_socket = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);

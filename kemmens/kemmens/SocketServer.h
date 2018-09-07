@@ -86,9 +86,10 @@ void SocketServer_ListenForConnection(SocketServer_ActionsListeners actions);
  * 		ACCION: Crea el servidor, definiendo el socket y bindeandolo a la conexion especificada
  * 		PARAMETROS:
  * 			name: Nombre del servidor, en forma de cadena (no mas de 4 caracteres)
- * 			port: Puerto de la SERVER_IP a traves del cual quiero escuchar
+ * 			port: Puerto a traves del cual quiero escuchar
+ * 			ip: Ip del servidor que queremos iniciar
  */
-void SocketServer_Start(char name[5], int port);
+void SocketServer_Start(char name[5], char* ip,int port);
 
 /**
  * 		ACCION: Pone el flag de clausura en 1 (indicando que es propicio cerrar toda conexion)

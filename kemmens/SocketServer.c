@@ -18,7 +18,7 @@ int sock = -1;
 int closeAll = 0;
 fd_set descriptores_clientes;
 
-void SocketServer_Start(char name[5], int port)
+void SocketServer_Start(char name[5],char* ip, int port)
 {
 	//Guardar el nombre para logs.
 	memcpy(alias, name, 5);
@@ -37,7 +37,7 @@ void SocketServer_Start(char name[5], int port)
 
 
 	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	serv_addr.sin_addr.s_addr = inet_addr(ip);
 	serv_addr.sin_port = htons(port);
 
 	if( bind(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
