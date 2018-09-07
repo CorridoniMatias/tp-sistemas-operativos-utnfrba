@@ -1,18 +1,17 @@
 #include "kemmens/megekemmen.h"
 #include "kemmens/logger.h"
 #include "kemmens/SocketClient.h"
+#include "bibliotecaCPU.h"
 
 
 int main(int argc, char **argv)
 {
+	//Configuracion* settings = (Configuracion*)malloc(sizeof(Configuracion));
 	Logger_CreateLog("./CPU.log", "CPU", true);
 	Logger_Log(LOG_INFO, "Proceso CPU iniciado...");
-	int socket = SocketClient_ConnectToServer("192.168.1.1","8000");
-	SocketClient_ConnectToServer("192.168.1.2","8001");
-
-	if(socket < 0){
-		printf("no me pude conectar /0");
-	}
+	//conectarAProceso(settings->ipSAFA,settings->puertoSAFA,"SAFA");
+	//conectarAProceso(settings->ipDIEGO,settings->puertoDIEGO,"DIEGO");
+    //TODO Arreglar las ip y los puertos de los procesos. Se tienen varios puertos o no?
 	exit_gracefully(0);
 
 }

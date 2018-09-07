@@ -89,7 +89,7 @@ void SocketServer_ListenForConnection(SocketServer_ActionsListeners actions);
  * 			port: Puerto a traves del cual quiero escuchar
  * 			ip: Ip del servidor que queremos iniciar
  */
-void SocketServer_Start(char name[5], char* ip,int port);
+void SocketServer_Start(char name[5],int port);
 
 /**
  * 		ACCION: Pone el flag de clausura en 1 (indicando que es propicio cerrar toda conexion)

@@ -96,7 +96,7 @@ void StartServer()
 
 	CommandInterpreter_RegisterCommand("iam", (void*)CommandIAm);
 
-	SocketServer_Start("SAFA","192.168.1.1",8000);
+	SocketServer_Start("SAFA", 8080);
 	SocketServer_ActionsListeners actions = INIT_ACTION_LISTENER;
 
 	actions.OnConsoleInputReceived = (void*)processLineInput;
