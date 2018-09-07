@@ -64,4 +64,11 @@ void* SocketCommons_ReceiveData(int socket, int* message_type, int* error_status
  */
 int SocketCommons_SendData(int socket, int message_type, void* data, int dataLength);
 
+/*
+ * 	ACCION: Cierra un socket; loguea el exito o fracaso en la clausura
+ * 	PARAMETROS:
+ * 		descriptorSocket: Descriptor numerico o fd del socket a cerrar
+ */
+void cerrarSocket(int descriptorSocket);
+
 #endif /* SOCKETCOMMONS_H_ */

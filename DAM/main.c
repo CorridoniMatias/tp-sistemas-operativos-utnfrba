@@ -4,18 +4,32 @@
 
 int main(int argc, char **argv)
 {
-	//TODO: Terminar, en duda con funciones a threadear
-	Configuracion* settings = (Configuracion*)malloc(sizeof(Configuracion));
-	configurar(settings);
 	Logger_CreateLog("./DAM.log", "DAM", true);
 	Logger_Log(LOG_INFO, "Proceso DAM iniciado; escuchando en el puerto %d", settings->puertoEscucha);
-	CommandInterpreter_Init();
-	pozoDeHilos = ThreadPool_CreatePool(10, false);
-	conectarAProceso(settings->ipSAFA, settings->puertoSAFA, "S-AFA");
-	conectarAProceso(settings->ipFM9, settings->puertoFM9, "FM9");
-	conectarAProceso(settings->ipMDJ, settings->puertoMDJ, "MDJ");
-	free(settings);
-	ThreadPool_FreeGracefully(pozoDeHilos);
+	inicializarVariablesGlobales();
+
+	int socketSAFA, socketFM9, socketMDJ; 		//Sockets para conectarme a los procesos, como CLIENTE
+	int socketCPUs;								//Socket para recibir los CPUs, como SERVIDOR
+
+	pthread_t hebraSAFA, hebraFM9, hebraMDJ;	//Hebras para manejar la comunicacion a traves de cada socket en paralelo
+
+	//Me conecto a SAFA, FM9 y MDJ, y levanto el servidor de CPUs
+	socketSAFA = conectarAProceso(settings->ipSAFA, settings->puertoSAFA, "S-AFA");
+	socketFM9 = conectarAProceso(settings->ipFM9, settings->puertoFM9, "FM9");
+	socketMDJ = conectarAProceso(settings->ipMDJ, settings->puertoMDJ, "MDJ");
+	levantarServidor();
+
+	//Levanto la funcion esperarRespuesta en tres hilos distintos, uno por socket; TEMPORAL, solo para probar la conexion basica
+	ThreadManager_CreateThread(&hebraSAFA, esperarRespuesta, (void*) socketSAFA);
+	ThreadManager_CreateThread(&hebraFM9, esperarRespuesta, (void*) socketFM9);
+	ThreadManager_CreateThread(&hebraMDJ, esperarRespuesta, (void*) socketMDJ);
+
+	//Espero a que los hilos terminen
+	pthread_join(hebraSAFA, NULL);
+	pthread_join(hebraFM9, NULL);
+	pthread_join(hebraMDJ, NULL);
+
+	liberarVariablesGlobales();					//Libero la memoria de las variables globales
 	exit_gracefully(0);
 }
 
