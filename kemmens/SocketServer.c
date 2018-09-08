@@ -146,10 +146,10 @@ void SocketServer_ListenForConnection(SocketServer_ActionsListeners actions)
 					{
 						if(error_code == 0)
 						{
-							free(list_remove(connections, i));
-
 							if(actions.OnClientDisconnect != NULL)
 									actions.OnClientDisconnect(currconn);
+
+							free(list_remove(connections, i)); //Lo ultimo que hacemos es el free por si algun otro recurso hace referencia al espacio de memoria del int malloceado que representa al descriptor del socket.
 						} else
 						{
 							if(actions.OnReceiveError != NULL)

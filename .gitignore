@@ -1,6 +1,13 @@
 # Prerequisites
 *.d
 
+#EJECUTABLES
+SAFA
+MDJ
+FM9
+DAM
+CPU
+
 */.gitignore
 *.log
 
