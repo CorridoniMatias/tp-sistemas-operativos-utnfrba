@@ -2,11 +2,11 @@
 *.d
 
 #EJECUTABLES
-SAFA
-MDJ
-FM9
-DAM
-CPU
+/SAFA/Debug/SAFA
+/MDJ/Debug/MDJ
+/FM9/Debug/FM9
+/DAM/Debug/DAM
+/CPU/Debug/CPU
 
 */.gitignore
 *.log
