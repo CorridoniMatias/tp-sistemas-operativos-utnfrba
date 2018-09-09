@@ -9,12 +9,6 @@
 #include <sys/socket.h> // Para crear sockets, enviar, recibir, etc
 #include <netdb.h> // Para getaddrinfo
 
-/**
- * 		Estructura que representa el encabezado de un mensaje, para ser interpretada segun el protocolo
- * 		CAMPOS:
- * 			body_length: Largo del mensaje, en bytes
- * 			message_type: Tipo de mensaje a enviar/recibir; ver en SocketMessageTypes.h
- */
 typedef struct {
 	uint32_t body_length;
 	uint32_t message_type;
@@ -25,6 +19,11 @@ typedef struct {
  *	retorna el estado del send, -2
  */
 int SocketCommons_SendMessageString(int socket, char* message);
+
+/*
+ * 		Permite enviar un string serializado indicando el tipo de dato serializado en serialized_content_type
+ */
+int SocketCommons_SendSerializedContent(int socket, char* serialized, int serialized_content_type);
 
 /* Recibe el header por el socket indicado.
  *
@@ -44,12 +43,6 @@ int SocketCommons_SendHeader(int socket, int length, int message_type);
  */
 ContentHeader* SocketCommons_CreateHeader();
 
-/* Recibe un string por el socket indicado. El tamaño se debe pasar por parametro. No se deberia usar, ver SocketCommons_ReceiveData(...)
- *
- *	retorna el string. HACER FREE DESPUES DE USAR.
- */
-char* SocketCommons_ReceiveStringWithLength(int socket, int length);
-
 
 /*		Recibe datos por el socket indicado. El tipo recibido se almacena en message_type. Los tipos soportados se pueden encontrar en SocketMessageTypes.h
  *
@@ -63,12 +56,5 @@ void* SocketCommons_ReceiveData(int socket, int* message_type, int* error_status
  * 		retorna el estado de envio.
  */
 int SocketCommons_SendData(int socket, int message_type, void* data, int dataLength);
-
-/*
- * 	ACCION: Cierra un socket; loguea el exito o fracaso en la clausura
- * 	PARAMETROS:
- * 		descriptorSocket: Descriptor numerico o fd del socket a cerrar
- */
-void cerrarSocket(int descriptorSocket);
 
 #endif /* SOCKETCOMMONS_H_ */
