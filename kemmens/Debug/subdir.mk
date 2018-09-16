@@ -8,6 +8,7 @@ C_SRCS += \
 ../SocketClient.c \
 ../SocketCommons.c \
 ../SocketServer.c \
+../StringUtils.c \
 ../ThreadManager.c \
 ../ThreadPool.c \
 ../config.c \
@@ -19,6 +20,7 @@ OBJS += \
 ./SocketClient.o \
 ./SocketCommons.o \
 ./SocketServer.o \
+./StringUtils.o \
 ./ThreadManager.o \
 ./ThreadPool.o \
 ./config.o \
@@ -30,6 +32,7 @@ C_DEPS += \
 ./SocketClient.d \
 ./SocketCommons.d \
 ./SocketServer.d \
+./StringUtils.d \
 ./ThreadManager.d \
 ./ThreadPool.d \
 ./config.d \

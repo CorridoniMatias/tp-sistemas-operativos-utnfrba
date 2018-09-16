@@ -55,6 +55,13 @@ struct
 	void (*OnConsoleInputReceived)(char* line);
 } typedef SocketServer_ActionsListeners;
 
+struct
+{
+	int calling_SocketID;
+	void* receivedData;
+} typedef OnArrivedData;
+
+
 /**
  * 		Lista de conexiones activas del servidor
  */
@@ -107,6 +114,12 @@ t_list* SocketServer_GetConnectedClients();
  * 		ES FUNDAMENTAL CHECKEAR ESTO ANTES DE HACER UN SEND!
  */
 bool SocketServer_IsClientConnected(int socket);
+
+
+/**
+ * 		Mallocea la estructura del tipo que devuelve.
+ */
+OnArrivedData* SocketServer_CreateOnArrivedData();
 
 
 #endif

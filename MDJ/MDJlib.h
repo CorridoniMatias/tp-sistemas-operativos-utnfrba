@@ -6,28 +6,36 @@
 #include "kemmens/CommandInterpreter.h"
 #include "kemmens/SocketClient.h"
 #include "kemmens/SocketServer.h"
+#include <stdio.h>
+#include <string.h>
 
+ThreadPool* threadPool;
 //Macros
 
-#define RUTA_CONFIG "MDJ.config"
-#define MAXPORTLENGTH 6				//se cuenta el /0
-#define MAXIPLENGTH 20				//se cuenta el /0
+#define RUTA_CONFIG "mdj.config"
+#define RUTA_METADATA "/Metadata/Metadata.bin"
+#define MAXPATHLENGTH 50				//se cuenta el /0
 
 struct Configuracion_s
 {
-	char puertoEscucha[MAXPORTLENGTH];
-	char ipDiego[MAXIPLENGTH];
-	char puertoDiego[MAXPORTLENGTH];
+	int tamanioBloque;
+	int cantidadBloques;
+	char* puntoMontaje;
+	int puertoEscucha;
 	int delay;
 } typedef Configuracion;
 
 Configuracion* config;
 
-void configurar(Configuracion* configuracion);
+void configurar();
+
+void freeGlobals();
 
 void startServer();
 
-void* commandIam (int argc, char** args, char* comando, void* datos);
+void initGlobals();
+
+void* CommandIAm (int argc, char** args, char* comando, void* datos);
 
 void clientConnected(int socket);
 
