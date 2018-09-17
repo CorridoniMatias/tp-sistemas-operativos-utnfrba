@@ -8,6 +8,7 @@
 
 #define RUTA_CONFIG "CPU.config"
 
+
 #define TAMMAXPUERTO 6
 #define TAMMAXIP 20
 
@@ -21,8 +22,12 @@ struct Configuracion_s
 
 } typedef Configuracion;
 
-void configurar(Configuracion* configuracion);
-void conectarAProceso(char* ip, char* puerto, char* nombreProceso); // Funcion creada por PEPE
+
+Configuracion* settings;
+
+
+void configurar();
+int conectarAProceso(char* ip, char* puerto, char* nombreProceso); // Funcion creada por PEPE
 
 
 #endif /* BIBLIOTECACPU_H_ */
