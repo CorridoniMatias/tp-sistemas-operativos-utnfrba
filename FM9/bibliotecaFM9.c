@@ -1,6 +1,6 @@
 #include "bibliotecaFM9.h"
 
-void configurar()
+void Configurar()
 {
 	settings = (Configuracion*)malloc(sizeof(Configuracion));
 
@@ -14,7 +14,8 @@ void configurar()
 
 	t_config* archivoConfig = archivoConfigCrear(RUTA_CONFIG, campos);
 
-	strcpy(settings->puertoEscucha, archivoConfigSacarStringDe(archivoConfig, "PUERTO_ESCUCHA"));
+	//strcpy(settings->puertoEscucha, archivoConfigSacarStringDe(archivoConfig, "PUERTO_ESCUCHA"));
+	settings->puertoEscucha= atoi(archivoConfigSacarStringDe(archivoConfig, "PUERTO_ESCUCHA"));
 	strcpy(settings->modo, archivoConfigSacarStringDe(archivoConfig, "MODO"));
 	settings->tamanio = archivoConfigSacarIntDe(archivoConfig, "TAMANIO");
 	settings->max_linea = archivoConfigSacarIntDe(archivoConfig, "MAX_LINEA");
