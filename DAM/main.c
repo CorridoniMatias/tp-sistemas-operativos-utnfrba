@@ -5,11 +5,11 @@
 int main(int argc, char **argv)
 {
 	Logger_CreateLog("./DAM.log", "DAM", true);
-	Logger_Log(LOG_INFO, "Proceso DAM iniciado; escuchando en el puerto %d", settings->puertoEscucha);
 	inicializarVariablesGlobales();
+	Logger_Log(LOG_INFO, "Proceso DAM iniciado; escuchando en el puerto %d", settings->puertoEscucha);
+	printf("Loggee lo primero LOL\n");
 
 	int socketSAFA, socketFM9, socketMDJ; 		//Sockets para conectarme a los procesos, como CLIENTE
-	int socketCPUs;								//Socket para recibir los CPUs, como SERVIDOR
 
 	pthread_t hebraSAFA, hebraFM9, hebraMDJ;	//Hebras para manejar la comunicacion a traves de cada socket en paralelo
 
@@ -20,9 +20,9 @@ int main(int argc, char **argv)
 	levantarServidor();
 
 	//Levanto la funcion esperarRespuesta en tres hilos distintos, uno por socket; TEMPORAL, solo para probar la conexion basica
-	ThreadManager_CreateThread(&hebraSAFA, esperarRespuesta, (void*) socketSAFA);
-	ThreadManager_CreateThread(&hebraFM9, esperarRespuesta, (void*) socketFM9);
-	ThreadManager_CreateThread(&hebraMDJ, esperarRespuesta, (void*) socketMDJ);
+	ThreadManager_CreateThread(&hebraSAFA, (void*) esperarRespuesta, (void*) socketSAFA);
+	ThreadManager_CreateThread(&hebraFM9, (void*) esperarRespuesta, (void*) socketFM9);
+	ThreadManager_CreateThread(&hebraMDJ, (void*) esperarRespuesta, (void*) socketMDJ);
 
 	//Espero a que los hilos terminen
 	pthread_join(hebraSAFA, NULL);

@@ -19,12 +19,20 @@
 
 /*
  * Estructura para almacenar los datos de configuracion
- * CAMPOS: A documentar...
+ * CAMPOS:
+ * 		puertoEscucha: Puerto a traves del cual se escucharan las conexiones entrantes de CPUs
+ * 		ipSAFA:	IP del proceso S-AFA, al cual me conectare como cliente
+ * 		puertoSAFA: Puerto de la IP del S-AFA al cual me conectare
+ * 		ipMDJ: IP del proceso MDJ, al cual me conectare como cliente
+ * 		puertoMDJ: Puerto de la IP del MDJ al cual me conectare
+ * 		ipFM9: IP del proceso FM9, al cual me conectare como cliente
+ * 		puertoFM9: Puerto de la IP del FM9 al cual me conectare
+ * 		transferSize: Tamanio maximo de transferencia al interactuar con el FM9 y el MDJ
  */
 
 struct Configuracion_s
 {
-	char puertoEscucha[TAMMAXPUERTO];
+	int puertoEscucha;
 	char ipSAFA[TAMMAXIP];
 	char puertoSAFA[TAMMAXPUERTO];
 	char ipMDJ[TAMMAXIP];
@@ -35,7 +43,7 @@ struct Configuracion_s
 } typedef Configuracion;
 
 t_list* cpus;					//Lista de CPUs conectadas
-Configuracion* settings;
+Configuracion* settings;		//Variable que representa los datos de configuracion de la ejecucion actual
 ThreadPool* pozoDeHebras;		//"ThreadPool" para encolar tareas e hilos
 
 
@@ -80,16 +88,41 @@ void levantarServidor();
 
 /*
  * 	ACCION: Funcion a realizar ante la lectura del comando iam, para el Command Interpreter
- * 	PARAMETROS: A documentar...
+ * 	PARAMETROS:
+ * 		argc: Cantidad de argumentos del comando, sin contar el nombre del mismo
+ * 		args: Array de cadenas con los argumentos; args[0] es el comando en si
+ * 		comando: Linea entera de comando, literal
+ * 		datos: Datos extra, miscelanea
  */
 void* comandoIAm (int argc, char** args, char* comando, void* datos);
 
+/*
+ * 	ACCION: Funcion a realizar al conectarse un cliente (CPU) al servidor levantado; logea y muestra por pantalla
+ * 	PARAMETROS:
+ * 		socket: Socket a traves del cual se establecio la comunicacion con el CPU (por el cual se hizo el accept)
+ */
 void clienteConectado(int socket);
 
+/*
+ * 	ACCION: Funcion a realizar al desconectarse un cliente (CPU) del servidor levantado; logea y muestra por pantalla
+ * 	PARAMETROS:
+ * 		unSocket: Socket a traves del cual se llevaba a cabo la comunicacion con el CPU desconectado
+ */
 void clienteDesconectado(int unSocket);
 
+/*
+ * 	ACCION: Funcion a realizar al recibir un cierto mensaje a traves de un cierto socket; segun el tipo de mensaje,
+ * 			toma distintas medidas (e incluso lo encola en el PoolThread)
+ * 	PARAMETROS:
+ * 		socket: Socket a traves del cual llega el paquete
+ * 		tipoMensaje: Tipo de mensaje del paquete que recien llego; determina las acciones a tomar
+ * 		datos: Paquete recibido, como linea de comando entera
+ */
 void llegoUnPaquete(int socket, int tipoMensaje, void* datos);
 
+/*
+ *
+ */
 void* aRealizar(char* cmd, char* sep, void* args, bool fired);
 
 #endif /* BIBLIOTECADAM_H_ */
