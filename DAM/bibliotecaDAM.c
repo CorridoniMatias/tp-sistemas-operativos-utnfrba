@@ -22,7 +22,7 @@ void configurar()
 	t_config* archivoConfig = archivoConfigCrear(RUTA_CONFIG, campos);
 
 	//Copio los valores de los campos leidos al struct de configuracion
-	strcpy(settings->puertoEscucha, archivoConfigSacarStringDe(archivoConfig, "PUERTO_ESCUCHA"));
+	settings->puertoEscucha = archivoConfigSacarIntDe(archivoConfig, "PUERTO_ESCUCHA");
 	strcpy(settings->ipSAFA, archivoConfigSacarStringDe(archivoConfig, "IP_SAFA"));
 	strcpy(settings->puertoSAFA, archivoConfigSacarStringDe(archivoConfig, "PUERTO_SAFA"));
 	strcpy(settings->ipMDJ, archivoConfigSacarStringDe(archivoConfig, "IP_MDJ"));
@@ -31,8 +31,12 @@ void configurar()
 	strcpy(settings->puertoFM9, archivoConfigSacarStringDe(archivoConfig, "PUERTO_FM9"));
 	settings->transferSize = archivoConfigSacarIntDe(archivoConfig, "TRANSFER_SIZE");
 
-	//Libero memoria, para no mandarnos cagadas;
-	free(campos);
+	//LoS dejo aca por si vuelvo a usarlos
+	//strcpy(settings->puertoEscucha, archivoConfigSacarStringDe(archivoConfig, "PUERTO_ESCUCHA"));
+	//settings->puertoSAFA = archivoConfigSacarIntDe(archivoConfig, "PUERTO_SAFA");
+	//settings->puertoMDJ = archivoConfigSacarIntDe(archivoConfig, "PUERTO_MDJ");
+	//settings->puertoFM9 = archivoConfigSacarIntDe(archivoConfig, "PUERTO_FM9");
+
 	archivoConfigDestruir(archivoConfig);
 
 }
@@ -107,7 +111,7 @@ void esperarRespuesta(void* socket)
 void levantarServidor()
 {
 
-	SocketServer_Start("SAFA", settings->puertoEscucha);
+	SocketServer_Start("DAM", settings->puertoEscucha);
 	SocketServer_ActionsListeners acciones = INIT_ACTION_LISTENER;
 	CommandInterpreter_RegisterCommand("iam", (void*)comandoIAm);
 
@@ -152,7 +156,7 @@ void clienteDesconectado(int unSocket)
 {
 
 	Logger_Log(LOG_INFO, "Desconexion con el cliente que estaba en el socket %d", socket);
-	printf("Se desconecto el cliente del socket %d :(", socket);
+	printf("Se desconecto el cliente del socket %d :(", (int) socket);
 	return;
 
 }
