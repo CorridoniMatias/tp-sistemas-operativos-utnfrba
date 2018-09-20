@@ -10,8 +10,6 @@
 #include <sys/socket.h> // Para crear sockets, enviar, recibir, etc
 #include <netdb.h> // Para getaddrinfo
 
-//------ESTRUCTURAS EMPLEADAS------//
-
 /**
  * 		Estructura que representa el encabezado de un mensaje, para ser interpretada segun el protocolo
  * 		CAMPOS:
@@ -22,72 +20,6 @@ typedef struct {
 	uint32_t body_length;
 	uint32_t message_type;
 } __attribute__((packed)) ContentHeader;
-
-/**
- *		Estructura que sirve como paquete para agrupar dos campos de datos, sus tamanios, y el tamanio total.
- *		La idea de los paquetes es guardar los datos a enviar ahi, serializarlos y enviar la cadena serializada
- *		CAMPOS:
- *			f1_length: Longitud del primer campo, en bytes (sin contar el \0 final)
- *			field1: Cadena de datos del primer campo
- *			f2_length: Longitud del segundo campo, en bytes (sin contar el \0 final)
- *			field2: Cadena de datos del segundo campo
- *			totalSize: Longitud total del paquete, en bytes (suma los largos de los campos, y el tamanio de sus lengths)
- */
-typedef struct {
-	uint32_t f1_length;
-	char* field1;
-	uint32_t f2_length;
-	char* field2;
-	uint32_t totalSize;
-} TwoFieldedPackage;
-
-/**
- *		Estructura que sirve como paquete para agrupar tres campos de datos, sus tamanios, y el tamanio total.
- *		La idea de los paquetes es guardar los datos a enviar ahi, serializarlos y enviar la cadena serializada
- *		CAMPOS:
- *			f1_length: Longitud del primer campo, en bytes (sin contar el \0 final)
- *			field1: Cadena de datos del primer campo
- *			f2_length: Longitud del segundo campo, en bytes (sin contar el \0 final)
- *			field2: Cadena de datos del segundo campo
- *			f3_length: Longitud del tercer campo, en bytes (sin contar el \0 final)
- *			field3: Cadena de datos del tercer campo
- *			totalSize: Longitud total del paquete, en bytes (suma los largos de los campos, y el tamanio de sus lengths)
- */
-typedef struct {
-	uint32_t f1_length;
-	char* field1;
-	uint32_t f2_length;
-	char* field2;
-	uint32_t f3_length;
-	char* field3;
-	uint32_t totalSize;
-} ThreeFieldedPackage;
-
-/**
- *		Estructura que sirve como paquete para agrupar cuatro campos de datos, sus tamanios, y el tamanio total.
- *		La idea de los paquetes es guardar los datos a enviar ahi, serializarlos y enviar la cadena serializada
- *		CAMPOS:
- *			f1_length: Longitud del primer campo, en bytes (sin contar el \0 final)
- *			field1: Cadena de datos del primer campo
- *			f2_length: Longitud del segundo campo, en bytes (sin contar el \0 final)
- *			field2: Cadena de datos del segundo campo
- *			f3_length: Longitud del tercer campo, en bytes (sin contar el \0 final)
- *			field3: Cadena de datos del tercer campo
- *			f4_length: Longitud del cuarto campo, en bytes (sin contar el \0 final)
- *			field4: Cadena de datos del cuarto campo
- *			totalSize: Longitud total del paquete, en bytes (suma los largos de los campos, y el tamanio de sus lengths)
- */
-typedef struct {
-	uint32_t f1_length;
-	char* field1;
-	uint32_t f2_length;
-	char* field2;
-	uint32_t f3_length;
-	char* field3;
-	uint32_t f4_length;
-	char* field4;
-	uint32_t totalSize;
-} FourFieldedPackage;
 
 //------FUNCIONES DEFINIDAS------//
 
@@ -133,15 +65,6 @@ void* SocketCommons_ReceiveData(int socket, int* message_type, int* error_status
  * 		retorna el estado de envio.
  */
 int SocketCommons_SendData(int socket, int message_type, void* data, int dataLength);
-
-/*
- * 	ACCION: Deserializar los campos de la cadena serializada que recibi con el getData y guardarlos en un array
- * 			NOTA: Esta funcion debe llamarse luego de recibir el ContentHeader
- * 	PARAMETROS:
- * 		serializedContent: Cadena serializada que quiero deserializar
- * 		dataArray: Array donde ir guardando los campos que voy deserializando (sin su longitud)
- */
-void SocketCommons_DeserializeContent(char* serializedContent, void** dataArray);
 
 /*
  * 	ACCION: Cierra un socket; loguea el exito o fracaso en la clausura
