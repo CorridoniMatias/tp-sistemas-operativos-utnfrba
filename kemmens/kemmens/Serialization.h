@@ -135,8 +135,25 @@ void* Serialization_Serialize(int fieldCount, ...);
  * 	PARAMETROS:
  * 		serializedPacket: Paquete serializado que pretendo deserializar, leyendo partes y tamanios
  * 		dest: Estructura donde guardare las partes leidas (en un array) y la cantidad de estas
+ *
  * 	!!!!!!!!NOTA!!!!!!!!: Por algun motivo, copia mal los ints; revisar esto
  */
 void Serialization_Deserialize(void* serializedPacket, DeserializedData* dest);
+
+/*
+ * 	ACCION: Recorrer todas las partes de una estructura de deserializacion e imprimirlas; PARA DEBUGGEAR
+ * 	PARAMETROS:
+ * 		showable: Estructura cuyos datos o partes quiero mostrar
+ *
+ * 	!!!!!!!!NOTA!!!!!!!!: Muestra todos las partes como cadenas; a revisar
+ */
+void Serialization_ShowDeserializedParts(DeserializedData* showable);
+
+/*
+ * 	ACCION: Liberar la memoria de una estructura de deserializacion por completo (junto con la de sus partes)
+ * 	PARAMETROS:
+ * 		cleanable: Estructura de deserializacion a limpiar, cuya memoria quiero liberar
+ */
+void Serialization_CleanupDeserializationStruct(DeserializedData* cleanable);
 
 #endif /* KEMMENS_SERIALIZATION_H_ */

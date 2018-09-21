@@ -67,7 +67,9 @@ void Serialization_Deserialize(void* serializedPacket, DeserializedData* dest)
 	while(partSize > 0)
 	{
 
-		//Reasigno memoria al void** de dest, y asigno memoria al elemento de ese array donde voy a guardar
+		//Reasigno memoria dest (tener en cuenta count), a su void**, y
+		//asigno memoria al elemento de ese array donde voy a guardar
+		dest = realloc(dest, requiredSize + sizeof(int));
 		dest->parts = realloc(dest->parts, requiredSize);
 		dest->parts[partsCount] = malloc(partSize);
 
@@ -89,6 +91,40 @@ void Serialization_Deserialize(void* serializedPacket, DeserializedData* dest)
 
 	//Grabo la cantidad de partes leidas en el struct
 	dest->count = partsCount;
+
+	return;
+
+}
+
+void Serialization_ShowDeserializedParts(DeserializedData* showable)
+{
+
+	int i;
+	int amount = showable->count;
+
+	for(i = 0; i < amount; i++)
+	{
+		printf("Parte %d: %s\n", i + 1, (char*) showable->parts[i]);
+	}
+
+	return;
+
+}
+
+void Serialization_CleanupDeserializationStruct(DeserializedData* cleanable)
+{
+
+	int i;
+	int amount = cleanable->count;
+
+	//Primero, libero la memoria reservada por todas sus partes, una por una
+	for(i = 0; i < amount; i++)
+	{
+		free(cleanable->parts[i]);
+	}
+
+	free(cleanable->parts);				//Libero la memoria reservada por el array de partes en si
+	free(cleanable);					//Libero la memoria reservada por el struct en si
 
 	return;
 
