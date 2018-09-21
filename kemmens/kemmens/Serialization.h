@@ -17,6 +17,18 @@ struct
 	void* data;
 } typedef SerializedPart;
 
+/*
+ * 		Estructura para almacenar los datos de una deserializacion de paquete
+ * 		CAMPOS:
+ * 			parts: Array de partes (que, al poder ser de cualquier tipo, son todas void*)
+ * 				   donde guardare todo lo que vaya leyendo del packet serializado a deserializar
+ * 			count: Cantidad de partes leidas y guardadas
+ */
+struct
+{
+	void** parts;
+	int count;
+} typedef DeserializedData;
 
 /**
  *		Estructura que sirve como paquete para agrupar dos campos de datos, sus tamanios, y el tamanio total.
@@ -87,15 +99,6 @@ typedef struct {
 //------FUNCIONES DEFINIDAS------//
 
 /*
- * 	ACCION: Deserializar los campos de la cadena serializada que recibi con el getData y guardarlos en un array
- * 			NOTA: Esta funcion debe llamarse luego de recibir el ContentHeader
- * 	PARAMETROS:
- * 		serializedContent: Cadena serializada que quiero deserializar
- * 		dataArray: Array donde ir guardando los campos que voy deserializando (sin su longitud)
- */
-void SocketCommons_DeserializeContent(char* serializedContent, void** dataArray);
-
-/*
  * 		Permite serializar cualquier tipo de datos.
  *
  * 		Params:
@@ -126,5 +129,14 @@ void SocketCommons_DeserializeContent(char* serializedContent, void** dataArray)
  *
  */
 void* Serialization_Serialize(int fieldCount, ...);
+
+/*
+ * 	ACCION: Deserializa un paquete serializado y guarda sus partes en una estructura, junto con la cantidad de las mismas
+ * 	PARAMETROS:
+ * 		serializedPacket: Paquete serializado que pretendo deserializar, leyendo partes y tamanios
+ * 		dest: Estructura donde guardare las partes leidas (en un array) y la cantidad de estas
+ * 	!!!!!!!!NOTA!!!!!!!!: Por algun motivo, copia mal los ints; revisar esto
+ */
+void Serialization_Deserialize(void* serializedPacket, DeserializedData* dest);
 
 #endif /* KEMMENS_SERIALIZATION_H_ */
