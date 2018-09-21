@@ -5,6 +5,7 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../CommandInterpreter.c \
+../Serialization.c \
 ../SocketClient.c \
 ../SocketCommons.c \
 ../SocketServer.c \
@@ -17,6 +18,7 @@ C_SRCS += \
 
 OBJS += \
 ./CommandInterpreter.o \
+./Serialization.o \
 ./SocketClient.o \
 ./SocketCommons.o \
 ./SocketServer.o \
@@ -29,6 +31,7 @@ OBJS += \
 
 C_DEPS += \
 ./CommandInterpreter.d \
+./Serialization.d \
 ./SocketClient.d \
 ./SocketCommons.d \
 ./SocketServer.d \

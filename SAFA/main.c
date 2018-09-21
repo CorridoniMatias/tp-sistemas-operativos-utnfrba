@@ -5,6 +5,7 @@
 #include "kemmens/SocketServer.h"
 #include "incs/CPUsManager.h"
 #include "incs/ConsoleHandler.h"
+#include "bibliotecaSAFA.h"
 
 bool corrupt = true;
 int elDiego = -1;
@@ -91,7 +92,7 @@ void StartServer()
 	CommandInterpreter_RegisterCommand("metricas", (void*)CommandMetricas);
 	CommandInterpreter_RegisterCommand("quit", (void*)CommandQuit);
 
-	SocketServer_Start("SAFA", 8080);
+	SocketServer_Start("SAFA", settings->puerto);
 	SocketServer_ActionsListeners actions = INIT_ACTION_LISTENER;
 
 	actions.OnConsoleInputReceived = (void*)ProcessLineInput;
@@ -110,6 +111,7 @@ int main(int argc, char **argv)
 {
 	Logger_CreateLog("./SAFA.log", "SAFA", true);
 	Logger_Log(LOG_INFO, "Proceso SAFA iniciado...");
+	configurar();
 	StartServer();
 	ThreadPool_FreeGracefully(threadPool);
 	exit_gracefully(0);

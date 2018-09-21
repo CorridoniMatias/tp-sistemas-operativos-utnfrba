@@ -13,6 +13,7 @@ int main(int argc, char **argv)
 	configurar();
 	conectarAProceso(settings->ipSAFA,settings->puertoSAFA,"SAFA");
 	conectarAProceso(settings->ipDIEGO,settings->puertoDIEGO,"DIEGO");
+	conectarAProceso(settings->ipFM9,settings->puertoFM9,"FM9");
 	exit_gracefully(0);
 
 }

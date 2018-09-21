@@ -9,6 +9,8 @@ void configurar()
 			"PUERTO_SAFA",
 			"IP_DIEGO",
 			"PUERTO_DIEGO",
+			"IP_FM9",
+			"PUERTO_FM9"
 			"RETARDO"
 	};
 
@@ -18,9 +20,11 @@ void configurar()
 	strcpy(settings->puertoSAFA, archivoConfigSacarStringDe(archivoConfig, "PUERTO_SAFA"));
 	strcpy(settings->ipDIEGO, archivoConfigSacarStringDe(archivoConfig, "IP_DIEGO"));
 	strcpy(settings->puertoDIEGO, archivoConfigSacarStringDe(archivoConfig, "PUERTO_DIEGO"));
+	strcpy(settings->ipFM9, archivoConfigSacarStringDe(archivoConfig, "IP_FM9"));
+	strcpy(settings->puertoFM9, archivoConfigSacarStringDe(archivoConfig, "PUERTO_FM9"));
 	settings->retardo = archivoConfigSacarIntDe(archivoConfig, "RETARDO");
 
-	free(campos);
+
 	archivoConfigDestruir(archivoConfig);
 
 }

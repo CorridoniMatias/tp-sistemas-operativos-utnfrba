@@ -18,6 +18,8 @@ struct Configuracion_s
 	char puertoSAFA[TAMMAXPUERTO];
 	char ipDIEGO[TAMMAXIP];
 	char puertoDIEGO[TAMMAXPUERTO];
+	char ipFM9[TAMMAXIP];
+	char puertoFM9[TAMMAXPUERTO];
 	int retardo;
 
 } typedef Configuracion;

@@ -4,12 +4,15 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../bibliotecaFM9.c \
 ../main.c 
 
 OBJS += \
+./bibliotecaFM9.o \
 ./main.o 
 
 C_DEPS += \
+./bibliotecaFM9.d \
 ./main.d 
 
 
