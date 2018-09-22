@@ -60,6 +60,29 @@ void liberarVariablesGlobales()
 
 }
 
+int conectarAProceso(char* puerto, char* nombreProceso)
+{
+
+	int socket;
+	socket = SocketClient_ConnectToServerIP(SERVER_IP, puerto);	//Me conecto al servidor que me dijeron
+
+	if(socket == -1)
+	{
+		Logger_Log(LOG_ERROR, "Error al conectar el DAM al proceso %s!", nombreProceso);
+		return -1;
+	}
+
+	Logger_Log(LOG_INFO, "DAM conectado al proceso %s!", nombreProceso);	//Logueo que me conecte
+	SocketCommons_SendMessageString(socket, "iam ElDiego");
+
+	free(nombreProceso);				//Anti-memory leak
+
+	return socket;
+
+}
+
+/* Version con IP por parametro; por ahora no la usamos, la dejo aca
+ *
 int conectarAProceso(char* ip, char* puerto, char* nombreProceso)
 {
 
@@ -80,6 +103,7 @@ int conectarAProceso(char* ip, char* puerto, char* nombreProceso)
 	return socket;
 
 }
+*/
 
 void esperarRespuesta(void* socket)
 {
@@ -96,12 +120,12 @@ void esperarRespuesta(void* socket)
 	}
 	else if(bytesRecibidos == 0)
 	{
-		cerrarSocket(socketPosta);
+		SocketCommons_CloseSocket(socketPosta);
 	}
 	else if(bytesRecibidos > 0)
 	{
 		printf("\nA traves del socket descripto por %d llego el mensaje \"%s\" \n", socketPosta, mensaje);
-		cerrarSocket(socketPosta);
+		SocketCommons_CloseSocket(socketPosta);
 		printf("Se va a cerrar el hilo... :(\n");
 	}
 	return;

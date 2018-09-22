@@ -14,9 +14,9 @@ int main(int argc, char **argv)
 	pthread_t hebraSAFA, hebraFM9, hebraMDJ;	//Hebras para manejar la comunicacion a traves de cada socket en paralelo
 
 	//Me conecto a SAFA, FM9 y MDJ, y levanto el servidor de CPUs
-	socketSAFA = conectarAProceso(settings->ipSAFA, settings->puertoSAFA, "S-AFA");
-	socketFM9 = conectarAProceso(settings->ipFM9, settings->puertoFM9, "FM9");
-	socketMDJ = conectarAProceso(settings->ipMDJ, settings->puertoMDJ, "MDJ");
+	socketSAFA = conectarAProceso(/*settings->ipSAFA, */settings->puertoSAFA, "S-AFA");
+	socketFM9 = conectarAProceso(/*settings->ipFM9, */settings->puertoFM9, "FM9");
+	socketMDJ = conectarAProceso(/*settings->ipMDJ, */settings->puertoMDJ, "MDJ");
 	levantarServidor();
 
 	//Levanto la funcion esperarRespuesta en tres hilos distintos, uno por socket; TEMPORAL, solo para probar la conexion basica

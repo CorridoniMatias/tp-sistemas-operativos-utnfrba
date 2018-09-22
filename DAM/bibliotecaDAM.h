@@ -71,7 +71,10 @@ void liberarVariablesGlobales();
  * 		puerto: Puerto del proceso al cual me quiero conectar
  * 		nombreProceso: Nombre informal del proceso, para loguearlo
  */
-int conectarAProceso(char* ip, char* puerto, char* nombreProceso);
+int conectarAProceso(char* puerto, char* nombreProceso);
+
+//Version a futuro:
+//int conectarAProceso(char* ip, char* puerto, char* nombreProceso);
 
 /*
  * 	ACCION: Funcion threadeable para quedarme esperando un mensaje como respuesta
