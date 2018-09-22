@@ -9,23 +9,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "Config.h"
+
 ThreadPool* threadPool;
 //Macros
-
-#define RUTA_CONFIG "mdj.config"
-#define RUTA_METADATA "/Metadata/Metadata.bin"
-#define MAXPATHLENGTH 50				//se cuenta el /0
-
-struct Configuracion_s
-{
-	int tamanioBloque;
-	int cantidadBloques;
-	char* puntoMontaje;
-	int puertoEscucha;
-	int delay;
-} typedef Configuracion;
-
-Configuracion* config;
 
 void configurar();
 

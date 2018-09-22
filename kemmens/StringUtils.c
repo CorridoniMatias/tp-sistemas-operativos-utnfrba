@@ -17,3 +17,39 @@ char* StringUtils_Format(char* plain, ...)
 	return formatted;
 }
 
+int StringUtils_ArrayContains(char** array, char* needle)
+{
+	int i = 0;
+	while (array[i] != NULL) {
+		if(strcmp(array[i], needle) == 0)
+			return 1;
+
+		i++;
+	}
+
+	return 0;
+}
+
+int StringUtils_ArrayIndexOf(char** array, char* needle)
+{
+	int i = 0;
+	while (array[i] != NULL) {
+		if(strcmp(array[i], needle) == 0)
+			return i;
+
+		i++;
+	}
+
+	return -1;
+}
+
+int StringUtils_ArraySize(char** array)
+{
+	int i = 0;
+	while (array[i] != NULL) {
+		i++;
+	}
+
+	return i;
+}
+

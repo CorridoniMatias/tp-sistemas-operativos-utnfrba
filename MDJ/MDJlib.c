@@ -1,8 +1,8 @@
-#include "MDJlib.h"
+#include "headers/MDJlib.h"
 #include "kemmens/StringUtils.h"
 #include "kemmens/SocketMessageTypes.h"
 #include "kemmens/SocketServer.h"
-#include "MDJInterface.h"
+#include "headers/MDJInterface.h"
 
 void configurar()
 {
@@ -17,6 +17,7 @@ void configurar()
 	t_config* archivoConfig = archivoConfigCrear(RUTA_CONFIG, campos);
 
 	config->puertoEscucha = archivoConfigSacarIntDe(archivoConfig, "PUERTO");
+
 	config->delay = archivoConfigSacarIntDe(archivoConfig, "RETARDO");
 
 	char* montaje = archivoConfigSacarStringDe(archivoConfig, "PUNTO_MONTAJE");
@@ -33,9 +34,25 @@ void configurar()
 			"MAGIC_NUMBER"
 	};
 
+	char* bitmap = StringUtils_Format("%s%s", config->puntoMontaje, RUTA_BITMAP);
+	config->bitmapFile = malloc(strlen(bitmap) + 1);
+	strcpy(config->bitmapFile, bitmap);
+
+	char* files = StringUtils_Format("%s%s", config->puntoMontaje, RUTA_ARCHIVOS);
+	config->filesPath = malloc(strlen(files) + 1);
+	strcpy(config->filesPath, files);
+
+
+	char* blocks = StringUtils_Format("%s%s", config->puntoMontaje, RUTA_BLOQUES);
+	config->blocksPath = malloc(strlen(blocks) + 1);
+	strcpy(config->blocksPath, blocks);
+
 	//metadata:
 
 	char* metadata = StringUtils_Format("%s%s", config->puntoMontaje, RUTA_METADATA);
+	config->metadataFile = malloc(strlen(metadata) + 1);
+	strcpy(config->metadataFile, metadata);
+
 	Logger_Log(LOG_DEBUG, "Levantando METADATA desde %s", metadata);
 
 	archivoConfig = archivoConfigCrear(metadata, campos2);
@@ -43,7 +60,15 @@ void configurar()
 	config->cantidadBloques = archivoConfigSacarIntDe(archivoConfig, "CANTIDAD_BLOQUES");
 	config->tamanioBloque = archivoConfigSacarIntDe(archivoConfig, "TAMANIO_BLOQUES");
 	archivoConfigDestruir(archivoConfig);
+
+	Logger_Log(LOG_DEBUG, "Configuracion Leida: \n\t Puerto de escucha: %d \n\t Delay: %d \n\t Mnt: '%s' \n\t Cant. bloques: %d \n\t Tam. Bloques: %d\n",
+							config->puertoEscucha, config->delay, config->puntoMontaje, config->cantidadBloques, config->tamanioBloque);
+
+
 	free(metadata);
+	free(bitmap);
+	free(blocks);
+	free(files);
 }
 
 void initGlobals()
@@ -55,6 +80,9 @@ void initGlobals()
 void freeGlobals()
 {
 	free(config->puntoMontaje);
+	free(config->bitmapFile);
+	free(config->blocksPath);
+	free(config->metadataFile);
 	free(config);
 }
 
