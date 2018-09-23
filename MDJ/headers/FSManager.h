@@ -25,4 +25,6 @@ bool FIFA_IsBlockUsed(int blockNum);
 
 void FSManager_WriteFile(char* path, int offset, int size, void* data);
 
+char* FIFA_ReadFile(char* path, int offset, int size);
+
 #endif /* FSMANAGER_H_ */

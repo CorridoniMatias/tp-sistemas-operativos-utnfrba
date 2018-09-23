@@ -8,12 +8,17 @@
 int main(int argc, char **argv)
 {
 
-	printf("%f", ((9/(float)4) - 1) * 4);
 
-	return 0;
 	Logger_CreateLog("./DMJ.log", "DMJ", true);
 	Logger_Log(LOG_INFO, "Proceso DMJ iniciado...");
 	initGlobals();
+
+
+	char* cont = FIFA_ReadFile("/testfile", 5, 4);
+
+	printf("\nCONTENIDO: '%s'\n", cont);
+
+	return 0;
 
 	FIFA_Init();
 
