@@ -13,12 +13,20 @@ int main(int argc, char **argv)
 	Logger_Log(LOG_INFO, "Proceso DMJ iniciado...");
 	initGlobals();
 
+	int tam = 15;
+	int cop = 0;
 
-	char* cont = FIFA_ReadFile("/testfile", 5, 4);
+	char* cont = FIFA_ReadFile("/testfile", 0, 278, &cop);
 
-	printf("\nCONTENIDO: '%s'\n", cont);
+	cont = realloc(cont, cop + 1);
 
-	return 0;
+	cont[cop] = '\0';
+
+	printf("\nCONTENIDO: '%s' tamanio = %d\n", cont, cop);
+
+	free(cont);
+
+	exit_gracefully_custom((void*)freeGlobals, 0);
 
 	FIFA_Init();
 
@@ -31,7 +39,7 @@ int main(int argc, char **argv)
 
 	printf("b1: %d \t b2: %d \t b3: %d \t b4:%d\n", b1, b2, b3, b4);
 
-	FIFA_SetUsedBlock(1);
+	FIFA_SetUsedBlock(0);
 	FIFA_SetUsedBlock(3);
 
 	b1 = FIFA_IsBlockUsed(0);
@@ -40,6 +48,8 @@ int main(int argc, char **argv)
 	b4 = FIFA_IsBlockUsed(3);
 
 	 printf("b1: %d \t b2: %d \t b3: %d \t b4:%d\n", b1, b2, b3, b4);
+
+
 
 	FIFA_FlushBitmap();
 

@@ -83,6 +83,7 @@ void freeGlobals()
 	free(config->bitmapFile);
 	free(config->blocksPath);
 	free(config->metadataFile);
+	free(config->filesPath);
 	free(config);
 }
 

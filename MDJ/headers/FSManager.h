@@ -4,6 +4,7 @@
 #include <commons/bitarray.h>
 #include <commons/config.h>
 #include "kemmens/StringUtils.h"
+#include "kemmens/logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -23,8 +24,10 @@ void FIFA_FlushBitmap();
 
 bool FIFA_IsBlockUsed(int blockNum);
 
-void FSManager_WriteFile(char* path, int offset, int size, void* data);
+void FIFA_WriteFile(char* path, int offset, int size, void* data);
 
-char* FIFA_ReadFile(char* path, int offset, int size);
+char* FIFA_ReadFile(char* path, int offset, int size, int* amountCopied);
+
+bool FIFA_IsFileValid(char* path);
 
 #endif /* FSMANAGER_H_ */

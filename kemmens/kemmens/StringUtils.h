@@ -14,4 +14,6 @@ int StringUtils_ArrayContains(char** array, char* needle);
 
 int StringUtils_ArraySize(char** array);
 
+void StringUtils_FreeArray(char** array);
+
 #endif /* KEMMENS_STRINGUTILS_H_ */

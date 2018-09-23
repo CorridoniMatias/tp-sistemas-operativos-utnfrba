@@ -2,6 +2,22 @@
 #include <string.h>
 t_bitarray* FSBitMap = NULL;
 
+static int FIFA_GetNextFreeBlock()
+{
+	for(int i = 0 ; i < FSBitMap->size;i++)
+	{
+		if(!FIFA_IsBlockUsed(i))
+			return i;
+	}
+
+	return -1;
+}
+
+static char* FIFA_GetFullPath(char* path)
+{
+	return StringUtils_Format("%s%s%s", config->filesPath, path, ".bin");
+}
+
 void FIFA_Init()
 {
 	mkdir(config->blocksPath, 0700);
@@ -52,24 +68,75 @@ void FIFA_FlushBitmap()
 	fclose(fp);
 }
 
-void FSManager_WriteFile(char* path, int offset, int size, void* data)
+void FIFA_WriteFile(char* path, int offset, int size, void* data)
 {
 
 }
 
-char* FIFA_ReadFile(char* path, int offset, int size)
+bool FIFA_CreateFile(char* path, int newLines)
 {
-	printf("\nFilesPath: '%s'\n path = '%s'\n", config->filesPath, path);
-	char* fullPath = StringUtils_Format("%s%s%s", config->filesPath, path, ".bin");
-	printf("\nFULLPATH: '%s'\n", fullPath);
+	char* fullPath = FIFA_GetFullPath(path);
 
+	int cantBloques = ceil(newLines / (float)config->tamanioBloque);
+
+	int bloques[cantBloques];
+
+	int tmp;
+	for(int i = 0 ; i < cantBloques;i++)
+	{
+		//TODO: Hacer un mutex para el acceso a bitmap.
+		//TODO: Posible bug: si se intenta crear un archivo que necesita X bloques pero solo hay Y libres (Y < X) los Y bloques se van a reservar pero la creacion va a fallar poque no hay X.
+		tmp = FIFA_GetNextFreeBlock();
+		if(tmp == -1) // no hay mas bloques
+		{
+			free(fullPath);
+			return false;
+		}
+
+		FIFA_SetUsedBlock(tmp);
+		bloques[i] = tmp;
+	}
+
+	//TODO: Hacer que el array de ints se pase a array de chars y guardarlo en el archivo.bin
+	//TODO: Crear los archivos de los bloques y llenarlos con \n
+
+	free(fullPath);
+
+	return true;
+}
+
+static t_config* FIFA_OpenFile(char* path)
+{
+	char* fullPath = FIFA_GetFullPath(path);
 	t_config* metadata = config_create(fullPath);
+	free(fullPath);
 
 	if(metadata == NULL)
 	{
-		free(fullPath);
+		Logger_Log(LOG_DEBUG, "FIFA: Attempt to open '%s' failed. File may not exist.", fullPath);
 		return NULL;
 	}
+
+	return metadata;
+}
+
+bool FIFA_IsFileValid(char* path)
+{
+	t_config* metadata = FIFA_OpenFile(path);
+
+	if(metadata == NULL)
+		return false;
+
+	config_destroy(metadata);
+	return true;
+}
+
+char* FIFA_ReadFile(char* path, int offset, int size, int* amountCopied)
+{
+	t_config* metadata = FIFA_OpenFile(path);
+
+	if(metadata == NULL)
+		return NULL;
 
 	/*
 	 * +------------+-----------+
@@ -92,11 +159,12 @@ char* FIFA_ReadFile(char* path, int offset, int size)
 
 	int cantBloques = StringUtils_ArraySize(bloques);
 
-	printf("\nFILE ACCESS \n\t FilesPath: '%s'\n\t path = '%s' \n\t primerBloqueIndex = %d \n\t primerByte = %d \n\t cantBloques = %d \n\t size = %d" ,
+	Logger_Log(LOG_DEBUG, "\nFILE SYSTEM ACCESS \n\t FilesPath: '%s'\n\t path = '%s' \n\t primerBloqueIndex = %d \n\t primerByte = %d \n\t cantBloques = %d \n\t size = %d" ,
 			config->filesPath, path, primerBloqueIndex, primerByte, cantBloques, size);
 
-	char* buffer = malloc(size);
+	char* buffer = malloc(1);
 	int copiado = 0;
+	int realCopiado = 0;
 	int tam;
 	FILE *fp;
 	char* blockFilePath;
@@ -105,7 +173,7 @@ char* FIFA_ReadFile(char* path, int offset, int size)
 	{
 		blockFilePath = StringUtils_Format("%s%s%s", config->blocksPath, bloques[i], ".bin");
 
-		printf("\nFILE ACCESS \n\t blockFilePath = '%s' \n\t" ,
+		Logger_Log(LOG_DEBUG, "\nBLOCK ACCESS \n\t blockFilePath = '%s' \n\t" ,
 					blockFilePath);
 
 
@@ -115,22 +183,30 @@ char* FIFA_ReadFile(char* path, int offset, int size)
 			fseek ( fp , primerByte , SEEK_SET );
 
 		tam = config->tamanioBloque - primerByte;
-		primerByte = 0; //Despues de la primera vuelta el primer byte es siempre 0 porque hay que leer el archivo desde arriba.
+		primerByte = 0; //Despues de la primera vuelta el primer byte es siempre 0 porque hay que leer el archivo desde el inicio.
 		copiado += tam;
 		if(copiado > size)
-			tam = copiado - size;
+			tam = size - realCopiado;
 
-		fread(buffer, tam, 1, fp);
+		buffer = realloc(buffer, realCopiado + tam);
+		fread(buffer + realCopiado, tam, 1, fp);
+
+		realCopiado += tam;
 
 		fclose(fp);
 		free(blockFilePath);
-		if(copiado > size)
+		if(copiado >= size)
 			break;
 	}
 	config_destroy(metadata);
+	StringUtils_FreeArray(bloques);
+
+	if(amountCopied != NULL)
+		*amountCopied = realCopiado;
 
 	return buffer;
 }
+
 
 
 
