@@ -3,8 +3,9 @@
 #include "kemmens/ThreadPool.h"
 #include "kemmens/CommandInterpreter.h"
 #include "kemmens/SocketServer.h"
-/*#include "incs/CPUsManager.h"
-#include "incs/ConsoleHandler.h"*/
+#include "incs/CPUsManager.h"
+#include "incs/ConsoleHandler.h"
+#include "bibliotecaFM9.h"
 
 //int elDiego = -1;
 
@@ -82,8 +83,8 @@ void StartServer()
 
 	CommandInterpreter_RegisterCommand("iam", (void*)CommandIAm);
 
-	SocketServer_Start("FM9", settings->puertoEscucha);
-	Logger_Log(LOG_INFO, "Escuchando en el puerto %d", settings->puertoEscucha);
+	SocketServer_Start("FM9", settings->puerto);
+	Logger_Log(LOG_INFO, "Escuchando en el puerto %d", settings->puerto);
 	SocketServer_ActionsListeners actions = INIT_ACTION_LISTENER;
 
 	//actions.OnConsoleInputReceived = (void*)ProcessLineInput;
@@ -103,7 +104,7 @@ int main(int argc, char **argv)
 {
 	Logger_CreateLog("./FM9.log", "FM9", true);
 	Logger_Log(LOG_INFO, "Proceso FM9 iniciado...");
-	Configurar();
+	configurar();
 	StartServer();
 	ThreadPool_FreeGracefully(threadPool);
 	exit_gracefully(0);

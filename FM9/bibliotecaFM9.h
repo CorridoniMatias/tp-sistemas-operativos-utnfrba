@@ -11,7 +11,7 @@
 
 struct Configuracion_s
 {
-	int puertoEscucha;
+	int puerto;
 	//char puertoEscucha[TAMMAXPUERTO];
 	char modo[3];
 	int tamanio;
@@ -24,6 +24,6 @@ struct Configuracion_s
 Configuracion* settings;
 
 
-void Configurar();
+void configurar();
 
 #endif /* BIBLIOTECAFM9_H_ */

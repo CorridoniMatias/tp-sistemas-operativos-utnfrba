@@ -3,11 +3,11 @@
 t_config* archivoConfigCrear(char* path, char** campos) {
 
 	t_config* archivoConfig = config_create(path);
-	if(archivoConfigInvalido(archivoConfig, campos))
-	{
-		puts("Archivo de configuracion invalido\n");
-		exit(EXIT_FAILURE);
-	}
+//	if(archivoConfigInvalido(archivoConfig, campos))
+//	{
+//		puts("Archivo de configuracion invalido\n");
+//		exit(EXIT_FAILURE);
+//	}
 	return archivoConfig;
 
 }
