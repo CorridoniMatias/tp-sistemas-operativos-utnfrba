@@ -60,11 +60,17 @@ void liberarVariablesGlobales()
 
 }
 
-int conectarAProceso(char* puerto, char* nombreProceso)
+int conectarAProceso(char* ip, char* puerto, char* nombreProceso)
 {
 
 	int socket;
-	socket = SocketClient_ConnectToServerIP(SERVER_IP, puerto);	//Me conecto al servidor que me dijeron
+
+	//printf("Voy a entrar al ConnectToServerIP\n");
+
+	socket = SocketClient_ConnectToServerIP(ip, puerto);	//Me conecto al servidor que me dijeron
+
+	printf("Ya volvi del ConnectToServerIP\n");
+	printf("%d\n", socket);
 
 	if(socket == -1)
 	{
@@ -73,9 +79,8 @@ int conectarAProceso(char* puerto, char* nombreProceso)
 	}
 
 	Logger_Log(LOG_INFO, "DAM conectado al proceso %s!", nombreProceso);	//Logueo que me conecte
-	SocketCommons_SendMessageString(socket, "iam ElDiego");
 
-	free(nombreProceso);				//Anti-memory leak
+	SocketCommons_SendMessageString(socket, "iam ElDiego");
 
 	return socket;
 
