@@ -69,9 +69,6 @@ int conectarAProceso(char* ip, char* puerto, char* nombreProceso)
 
 	socket = SocketClient_ConnectToServerIP(ip, puerto);	//Me conecto al servidor que me dijeron
 
-	printf("Ya volvi del ConnectToServerIP\n");
-	printf("%d\n", socket);
-
 	if(socket == -1)
 	{
 		Logger_Log(LOG_ERROR, "Error al conectar el DAM al proceso %s!", nombreProceso);
