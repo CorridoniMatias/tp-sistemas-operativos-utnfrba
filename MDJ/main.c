@@ -2,13 +2,24 @@
 #include "kemmens/logger.h"
 #include "headers/MDJlib.h"
 #include "headers/FSManager.h"
+#include "commons/string.h"
 
 #include "kemmens/StringUtils.h"
 
 int main(int argc, char **argv)
 {
+	Logger_CreateLog("./DMJ.log", "DMJ", true);
+	initGlobals();
+	FIFA_Init();
+	FIFA_ReadBitmap();
 
+	FIFA_PrintBitmap();
 
+	//FIFA_CreateFile("/scripts/hola.script", 24);
+
+	//FIFA_FlushBitmap();
+
+	return 0;
 	Logger_CreateLog("./DMJ.log", "DMJ", true);
 	Logger_Log(LOG_INFO, "Proceso DMJ iniciado...");
 	initGlobals();

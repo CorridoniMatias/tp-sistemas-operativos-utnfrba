@@ -2,11 +2,38 @@
 #include <string.h>
 t_bitarray* FSBitMap = NULL;
 
-static int FIFA_GetNextFreeBlock()
+/*
+ * 	Comprueba si un bloque no esta usado y lo reserva en forma atomica con un mutex.
+ */
+static bool FIFA_ReserveBlockIfNotUsed(int blockNum)
+{
+	pthread_mutex_lock(&bitmapLock);
+	bool val = bitarray_test_bit(FSBitMap, blockNum);
+
+	//printf("Max bit: %d - Block %d is %d\n", bitarray_get_max_bit(FSBitMap), blockNum, val);
+
+	if(!val)
+		bitarray_set_bit(FSBitMap, blockNum);
+	pthread_mutex_unlock(&bitmapLock);
+	FIFA_PrintBitmap();
+	return !val;
+}
+
+void FIFA_PrintBitmap()
+{
+	for(int i = 0; i < FSBitMap->size; i++)
+	{
+		printf("--------------------------------\n");
+		printf("\t Bit : %d = %d \n", i, FIFA_IsBlockUsed(i));
+		printf("--------------------------------\n");
+	}
+}
+
+static int FIFA_ReserveNextFreeBlock()
 {
 	for(int i = 0 ; i < FSBitMap->size;i++)
 	{
-		if(!FIFA_IsBlockUsed(i))
+		if(FIFA_ReserveBlockIfNotUsed(i))
 			return i;
 	}
 
@@ -22,41 +49,91 @@ void FIFA_Init()
 {
 	mkdir(config->blocksPath, 0700);
 	mkdir(config->filesPath, 0700);
+	pthread_mutex_init(&bitmapLock, NULL);
+}
+
+static void FIFA_InitBitmapFile()
+{
+	char* base = (char*)malloc(config->cantidadBloques);
+
+	memset(base, 0b1, config->cantidadBloques);
+
+	printf("---%s---", base);
+
+	pthread_mutex_lock(&bitmapLock);
+	FSBitMap = bitarray_create(base, config->cantidadBloques);
+	pthread_mutex_unlock(&bitmapLock);
+	FIFA_FlushBitmap();
+
+	free(base);
 }
 
 void FIFA_ReadBitmap()
 {
 	FILE *fp;
-	char* buff = (char*)malloc(config->cantidadBloques + 1);
-
 	fp = fopen(config->bitmapFile, "r");
 
-	fgets(buff, config->cantidadBloques + 1, (FILE*)fp);
+	if(!fp)
+	{
+		printf("!!!!!!!!INIT!!!!!!!!");
+		FIFA_InitBitmapFile();
+		fp = fopen(config->bitmapFile, "r");
+		if(!fp)
+		{
+			Logger_Log(LOG_ERROR, "FIFA -> ERROR AL ABRIR BITMAP DESDE ARCHIVO!");
+			return;
+		}
+	}
+
+	char* buff = (char*)malloc(config->cantidadBloques);
+
+	//fgets(buff, config->cantidadBloques + 1, (FILE*)fp);
+
+	fread(buff, config->cantidadBloques, 1, fp);
 
 	fclose(fp);
 
 	FIFA_FreeBitmap();
 
+	printf("BITMAP BUFFER: '%s'\n", buff);
+
+	pthread_mutex_lock(&bitmapLock);
 	FSBitMap = bitarray_create(buff, config->cantidadBloques);
+	pthread_mutex_unlock(&bitmapLock);
 }
 
 void FIFA_FreeBitmap()
 {
+	pthread_mutex_lock(&bitmapLock);
 	if(FSBitMap != NULL)
 	{
 		free(FSBitMap->bitarray);
 		bitarray_destroy(FSBitMap);
 	}
+	pthread_mutex_unlock(&bitmapLock);
+	pthread_mutex_destroy(&bitmapLock);
 }
 
 void FIFA_SetUsedBlock(int blockNum)
 {
+	pthread_mutex_lock(&bitmapLock);
 	bitarray_set_bit(FSBitMap, blockNum);
+	pthread_mutex_unlock(&bitmapLock);
+}
+
+static void FIFA_FreeBlock(int blockNum)
+{
+	pthread_mutex_lock(&bitmapLock);
+	bitarray_clean_bit(FSBitMap, blockNum);
+	pthread_mutex_unlock(&bitmapLock);
 }
 
 bool FIFA_IsBlockUsed(int blockNum)
 {
-	return bitarray_test_bit(FSBitMap, blockNum);
+	pthread_mutex_lock(&bitmapLock);
+	bool val = bitarray_test_bit(FSBitMap, blockNum);
+	pthread_mutex_unlock(&bitmapLock);
+	return val;
 }
 
 void FIFA_FlushBitmap()
@@ -64,7 +141,10 @@ void FIFA_FlushBitmap()
 	FILE *fp;
 	fp = fopen(config->bitmapFile, "w+");
 
-	fputs(FSBitMap->bitarray, fp);
+	pthread_mutex_lock(&bitmapLock);
+	//fputs(FSBitMap->bitarray, fp);
+	fwrite(FSBitMap->bitarray, config->cantidadBloques, 1, fp);
+	pthread_mutex_unlock(&bitmapLock);
 	fclose(fp);
 }
 
@@ -76,26 +156,48 @@ void FIFA_WriteFile(char* path, int offset, int size, void* data)
 bool FIFA_CreateFile(char* path, int newLines)
 {
 	char* fullPath = FIFA_GetFullPath(path);
-
+	printf("Path: %s\n", fullPath);
 	int cantBloques = ceil(newLines / (float)config->tamanioBloque);
 
 	int bloques[cantBloques];
+	char* blocksCharArray = (char*)malloc(1);
+	strcpy(blocksCharArray, "[");
 
 	int tmp;
 	for(int i = 0 ; i < cantBloques;i++)
 	{
-		//TODO: Hacer un mutex para el acceso a bitmap.
-		//TODO: Posible bug: si se intenta crear un archivo que necesita X bloques pero solo hay Y libres (Y < X) los Y bloques se van a reservar pero la creacion va a fallar poque no hay X.
-		tmp = FIFA_GetNextFreeBlock();
+		//ya arreglado: Posible bug: si se intenta crear un archivo que necesita X bloques pero solo hay Y libres (Y < X) los Y bloques se van a reservar pero la creacion va a fallar poque no hay X.
+		tmp = FIFA_ReserveNextFreeBlock();
 		if(tmp == -1) // no hay mas bloques
 		{
+			Logger_Log(LOG_DEBUG, "FIFA -> Se intento crear un archivo de mas bloques que los dispnibles! La creacion fallo.");
+			if(i > 0) //Ya reservamos al menos un bloque, debemos liberarlo/s porque no lo/s vamos a usar.
+			{
+				Logger_Log(LOG_DEBUG, "FIFA -> Haciendo rollback de intento de creacion... liberando bloques...");
+				for(int j = 0 ; j < i ; j++)
+				{
+					printf("LIberando: %d/%d\n", j,i);
+					//FIFA_FreeBlock( bloques[i] );
+				}
+			}
+
 			free(fullPath);
+			free(blocksCharArray);
 			return false;
 		}
 
-		FIFA_SetUsedBlock(tmp);
 		bloques[i] = tmp;
+		char* temp = string_itoa(tmp);
+		string_append(&blocksCharArray, temp);
+		free(temp);
+
+		if(i < cantBloques - 1)
+			string_append(&blocksCharArray, ",");
 	}
+
+	string_append(&blocksCharArray, "]");
+
+	printf("Bloques: %s\n", blocksCharArray);
 
 	//TODO: Hacer que el array de ints se pase a array de chars y guardarlo en el archivo.bin
 	//TODO: Crear los archivos de los bloques y llenarlos con \n
