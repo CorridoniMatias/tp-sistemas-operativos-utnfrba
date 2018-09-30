@@ -10,18 +10,15 @@ static bool FIFA_ReserveBlockIfNotUsed(int blockNum)
 	pthread_mutex_lock(&bitmapLock);
 	bool val = bitarray_test_bit(FSBitMap, blockNum);
 
-	//printf("Max bit: %d - Block %d is %d\n", bitarray_get_max_bit(FSBitMap), blockNum, val);
-
 	if(!val)
 		bitarray_set_bit(FSBitMap, blockNum);
 	pthread_mutex_unlock(&bitmapLock);
-	FIFA_PrintBitmap();
 	return !val;
 }
 
 void FIFA_PrintBitmap()
 {
-	for(int i = 0; i < FSBitMap->size; i++)
+	for(int i = 0; i < config->cantidadBloques; i++)
 	{
 		printf("--------------------------------\n");
 		printf("\t Bit : %d = %d \n", i, FIFA_IsBlockUsed(i));
@@ -31,7 +28,7 @@ void FIFA_PrintBitmap()
 
 static int FIFA_ReserveNextFreeBlock()
 {
-	for(int i = 0 ; i < FSBitMap->size;i++)
+	for(int i = 0 ; i < config->cantidadBloques;i++)
 	{
 		if(FIFA_ReserveBlockIfNotUsed(i))
 			return i;
@@ -54,30 +51,33 @@ void FIFA_Init()
 
 static void FIFA_InitBitmapFile()
 {
-	char* base = (char*)malloc(config->cantidadBloques);
+	int cantBytes = ceil(config->cantidadBloques / (float)8);
 
-	memset(base, 0b1, config->cantidadBloques);
+	Logger_Log(LOG_DEBUG, "FIFA -> Creando BITMAP con cantidad de bloque (bits): %d, cantidad de bytes: %d, cantidad de bits totales: %d",
+							config->cantidadBloques, cantBytes, cantBytes*8);
 
-	printf("---%s---", base);
+	char* base = (char*)malloc(cantBytes);
+
+	memset(base, 0b000000000, cantBytes);
 
 	pthread_mutex_lock(&bitmapLock);
-	FSBitMap = bitarray_create(base, config->cantidadBloques);
+	FSBitMap = bitarray_create_with_mode(base, cantBytes, MSB_FIRST);
 	pthread_mutex_unlock(&bitmapLock);
-	FIFA_FlushBitmap();
 
-	free(base);
+	Logger_Log(LOG_DEBUG, "FIFA -> BITMAP creado, cantidad total de bits en bitmap: %d", bitarray_get_max_bit(FSBitMap));
+	FIFA_FlushBitmap();
 }
 
 void FIFA_ReadBitmap()
 {
 	FILE *fp;
-	fp = fopen(config->bitmapFile, "r");
+	fp = fopen(config->bitmapFile, "rb");
 
 	if(!fp)
 	{
-		printf("!!!!!!!!INIT!!!!!!!!");
+		Logger_Log(LOG_DEBUG, "FIFA -> BITMAP no encontrado, inicializando...");
 		FIFA_InitBitmapFile();
-		fp = fopen(config->bitmapFile, "r");
+		fp = fopen(config->bitmapFile, "rb");
 		if(!fp)
 		{
 			Logger_Log(LOG_ERROR, "FIFA -> ERROR AL ABRIR BITMAP DESDE ARCHIVO!");
@@ -87,18 +87,14 @@ void FIFA_ReadBitmap()
 
 	char* buff = (char*)malloc(config->cantidadBloques);
 
-	//fgets(buff, config->cantidadBloques + 1, (FILE*)fp);
-
 	fread(buff, config->cantidadBloques, 1, fp);
 
 	fclose(fp);
 
 	FIFA_FreeBitmap();
 
-	printf("BITMAP BUFFER: '%s'\n", buff);
-
 	pthread_mutex_lock(&bitmapLock);
-	FSBitMap = bitarray_create(buff, config->cantidadBloques);
+	FSBitMap = bitarray_create_with_mode(buff, ceil(config->cantidadBloques / (float)8), MSB_FIRST);
 	pthread_mutex_unlock(&bitmapLock);
 }
 
@@ -107,7 +103,9 @@ void FIFA_FreeBitmap()
 	pthread_mutex_lock(&bitmapLock);
 	if(FSBitMap != NULL)
 	{
-		free(FSBitMap->bitarray);
+		if(FSBitMap->bitarray != NULL)
+			free(FSBitMap->bitarray);
+
 		bitarray_destroy(FSBitMap);
 	}
 	pthread_mutex_unlock(&bitmapLock);
@@ -139,11 +137,10 @@ bool FIFA_IsBlockUsed(int blockNum)
 void FIFA_FlushBitmap()
 {
 	FILE *fp;
-	fp = fopen(config->bitmapFile, "w+");
+	fp = fopen(config->bitmapFile, "w+b");
 
 	pthread_mutex_lock(&bitmapLock);
-	//fputs(FSBitMap->bitarray, fp);
-	fwrite(FSBitMap->bitarray, config->cantidadBloques, 1, fp);
+	fwrite(FSBitMap->bitarray, FSBitMap->size, 1, fp);
 	pthread_mutex_unlock(&bitmapLock);
 	fclose(fp);
 }
@@ -153,14 +150,56 @@ void FIFA_WriteFile(char* path, int offset, int size, void* data)
 
 }
 
+void FIFA_MkDir(char* path)
+{
+	Logger_Log(LOG_DEBUG, "FIFA -> mkdir recursivo de %s", path);
+	char** paths = string_split(path, "/");
+	char* tmp = (char*)malloc(string_length(config->filesPath) + 1);
+	strcpy(tmp, config->filesPath);
+
+	int i = 0;
+	while (paths[i] != NULL) {
+		string_append(&tmp, "/");
+		string_append(&tmp, paths[i]);
+
+		Logger_Log(LOG_DEBUG, "FIFA -> mkdir : %s", tmp);
+
+		mkdir(tmp, 0700);
+		free(paths[i]);
+		i++;
+	}
+
+	free(tmp);
+	free(paths);
+}
+
+static t_config* FIFA_OpenFile(char* path)
+{
+	char* fullPath = FIFA_GetFullPath(path);
+	t_config* metadata = config_create(fullPath);
+	free(fullPath);
+
+	if(metadata == NULL)
+	{
+		Logger_Log(LOG_DEBUG, "FIFA: Attempt to open '%s' failed. File may not exist.", fullPath);
+		return NULL;
+	}
+
+	return metadata;
+}
+
 bool FIFA_CreateFile(char* path, int newLines)
 {
 	char* fullPath = FIFA_GetFullPath(path);
-	printf("Path: %s\n", fullPath);
+
+	Logger_Log(LOG_DEBUG, "FIFA -> Petition to create file at '%s'", fullPath);
+
 	int cantBloques = ceil(newLines / (float)config->tamanioBloque);
 
+	Logger_Log(LOG_DEBUG, "FIFA -> Cantidad de bloques requererida para creacion: %d", cantBloques);
+
 	int bloques[cantBloques];
-	char* blocksCharArray = (char*)malloc(1);
+	char* blocksCharArray = (char*)malloc(2);
 	strcpy(blocksCharArray, "[");
 
 	int tmp;
@@ -176,8 +215,7 @@ bool FIFA_CreateFile(char* path, int newLines)
 				Logger_Log(LOG_DEBUG, "FIFA -> Haciendo rollback de intento de creacion... liberando bloques...");
 				for(int j = 0 ; j < i ; j++)
 				{
-					printf("LIberando: %d/%d\n", j,i);
-					//FIFA_FreeBlock( bloques[i] );
+					FIFA_FreeBlock( bloques[j] );
 				}
 			}
 
@@ -197,29 +235,76 @@ bool FIFA_CreateFile(char* path, int newLines)
 
 	string_append(&blocksCharArray, "]");
 
-	printf("Bloques: %s\n", blocksCharArray);
+	Logger_Log(LOG_DEBUG, "FIFA -> Bloques asignados a nuevo archivo: %s", blocksCharArray);
 
-	//TODO: Hacer que el array de ints se pase a array de chars y guardarlo en el archivo.bin
-	//TODO: Crear los archivos de los bloques y llenarlos con \n
+	//Creamos las rutas
+	int last = StringUtils_LastIndexOf(path, '/');
+
+	char* folders = string_substring_until(path, last + 1);
+
+	FIFA_MkDir(folders);
+
+	free(folders);
+
+	FILE* file = fopen(fullPath, "w");
+	if(!file)
+	{
+		free(fullPath);
+		free(blocksCharArray);
+		return false;
+	}
+	fclose(file);
+
+	t_config* metadata = FIFA_OpenFile(path);
+
+	if(metadata == NULL)
+	{
+		Logger_Log(LOG_ERROR, "FIFA -> Error al abrir archivo de metadata para archivo %s", fullPath);
+		free(fullPath);
+		free(blocksCharArray);
+
+		return false;
+	}
+
+	char* size = string_itoa(newLines);
+
+	config_set_value(metadata, "TAMANIO", size);
+
+	free(size);
+
+	config_set_value(metadata, "BLOQUES", blocksCharArray);
+	free(blocksCharArray);
+
+	config_save(metadata);
+	config_destroy(metadata);
+
+	for(int i = 0; i < cantBloques; i++)
+	{
+		//TODO: Crear los archivos de los bloques y llenarlos con \n
+		FIFA_BlockPutContent();
+	}
+
 
 	free(fullPath);
 
 	return true;
 }
 
-static t_config* FIFA_OpenFile(char* path)
+static void FIFA_BlockPutContent(int blockNum, int offset, void* content, int len)
 {
-	char* fullPath = FIFA_GetFullPath(path);
-	t_config* metadata = config_create(fullPath);
-	free(fullPath);
+	Logger_Log(LOG_DEBUG, "FIFA -> Solicitud de escritura al bloque %d", blockNum);
 
-	if(metadata == NULL)
-	{
-		Logger_Log(LOG_DEBUG, "FIFA: Attempt to open '%s' failed. File may not exist.", fullPath);
-		return NULL;
-	}
+	char* blockFile = StringUtils_Format("%s%d.bin", config->blocksPath, blockNum);
 
-	return metadata;
+	FILE* fd = fopen(blockFile, "a+");
+
+	fseek(fd, offset, SEEK_SET);
+
+	fwrite(content, len, 1, fd);
+
+	fclose(fd);
+
+	free(blockFile);
 }
 
 bool FIFA_IsFileValid(char* path)
@@ -279,7 +364,7 @@ char* FIFA_ReadFile(char* path, int offset, int size, int* amountCopied)
 					blockFilePath);
 
 
-		fp = fopen(blockFilePath, "r");
+		fp = fopen(blockFilePath, "rb");
 
 		if(primerByte != 0)
 			fseek ( fp , primerByte , SEEK_SET );

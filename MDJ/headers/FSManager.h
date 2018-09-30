@@ -35,5 +35,6 @@ bool FIFA_IsFileValid(char* path);
 
 bool FIFA_CreateFile(char* path, int newLines);
 void FIFA_PrintBitmap();
+void FIFA_MkDir(char* path);
 
 #endif /* FSMANAGER_H_ */
