@@ -2,21 +2,37 @@
 #include "kemmens/logger.h"
 #include "headers/MDJlib.h"
 #include "headers/FSManager.h"
+#include "commons/string.h"
 
 #include "kemmens/StringUtils.h"
 
-int main(int argc, char **argv)
+void TestBitMapCreateAssignAndFree()
 {
-
-
 	Logger_CreateLog("./DMJ.log", "DMJ", true);
-	Logger_Log(LOG_INFO, "Proceso DMJ iniciado...");
+	initGlobals();
+	FIFA_Init();
+	FIFA_ReadBitmap();
+
+	//FIFA_PrintBitmap();
+
+	FIFA_CreateFile("/scripts/hola.script", 8);
+
+	FIFA_FlushBitmap();
+
+	FIFA_FreeBitmap();
+
+	exit_gracefully_custom((void*)freeGlobals, 0);
+}
+
+void TestFIFAReadFile()
+{
+	Logger_CreateLog("./DMJ.log", "DMJ", true);
 	initGlobals();
 
 	int tam = 15;
 	int cop = 0;
 
-	char* cont = FIFA_ReadFile("/testfile", 0, 278, &cop);
+	char* cont = FIFA_ReadFile("/testfile", 5, 5, &cop);
 
 	cont = realloc(cont, cop + 1);
 
@@ -27,6 +43,24 @@ int main(int argc, char **argv)
 	free(cont);
 
 	exit_gracefully_custom((void*)freeGlobals, 0);
+}
+
+int main(int argc, char **argv)
+{
+	//TestFIFAReadFile();
+	TestBitMapCreateAssignAndFree();
+
+	Logger_CreateLog("./DMJ.log", "DMJ", true);
+	char* path = "/path/to/file.txt";
+	int last = StringUtils_LastIndexOf(path, '/');
+
+	printf("Last = %d\n", last);
+
+	char* tmp = string_substring_until(path, last);
+
+	printf("Path = %s\n", tmp + 1);
+
+	return 0;
 
 	FIFA_Init();
 

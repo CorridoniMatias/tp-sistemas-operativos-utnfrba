@@ -22,7 +22,7 @@ void configurar()
 
 	char* montaje = archivoConfigSacarStringDe(archivoConfig, "PUNTO_MONTAJE");
 
-	config->puntoMontaje = malloc(string_length(montaje));
+	config->puntoMontaje = malloc(string_length(montaje) + 1);
 
 	strcpy(config->puntoMontaje, montaje);
 

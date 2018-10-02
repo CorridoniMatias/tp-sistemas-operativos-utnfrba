@@ -9,8 +9,11 @@
 #include <stdlib.h>
 #include <math.h>
 #include <sys/stat.h>
+#include <pthread.h>
 
 #include "Config.h"
+
+pthread_mutex_t bitmapLock;
 
 void FIFA_Init();
 
@@ -29,5 +32,9 @@ void FIFA_WriteFile(char* path, int offset, int size, void* data);
 char* FIFA_ReadFile(char* path, int offset, int size, int* amountCopied);
 
 bool FIFA_IsFileValid(char* path);
+
+bool FIFA_CreateFile(char* path, int newLines);
+void FIFA_PrintBitmap();
+void FIFA_MkDir(char* path);
 
 #endif /* FSMANAGER_H_ */
