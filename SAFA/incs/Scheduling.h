@@ -2,7 +2,6 @@
 #define INCS_SCHEDULING_H_
 
 #include "commons/collections/queue.h"
-#include "DTBManager.h"
 #include <pthread.h>
 #include <semaphore.h>
 
@@ -57,7 +56,7 @@ struct AssignmentInfo_s
 {
 	int dtbID;
 	int cpuSocket;
-};
+} typedef AssignmentInfo;
 
 ///-------------CONSTANTES DEFINIDAS-------------///
 
@@ -73,6 +72,13 @@ struct AssignmentInfo_s
 #define PCP_TASK_BLOCK_DTB 4					//Desalojar la CPU correspondiente y pasar su DTB de EXEC a BLOCK
 #define PCP_TASK_UNLOCK_DTB 5					//Pasar DTB bloqueado a READY (cuando DAM aviso que termino I/O)
 
+//Estados de los DTB (del diagrama de 5 estados)
+#define DTB_STATUS_NEW 1
+#define DTB_STATUS_READY 2
+#define DTB_STATUS_EXEC 3
+#define DTB_STATUS_BLOCKED 4
+#define DTB_STATUS_EXIT 5
+
 ///-------------VARIABLES GLOBALES-------------///
 
 //No deberian ser globales al programa main?
@@ -83,11 +89,17 @@ sem_t workPLP;									//Semaforo binario, para indicar que es hora de que el PL
 int PLPtask;									//Variable con el codigo actual de la tarea a realizar por el PLP
 int PCPtask;									//Variable con el codigo actual de la tarea a realizar por el PCP
 
-t_queue* scriptsQueue;							//Cola con los scripts cuyos DTB quiero crear (por si hay varios ejecutar)
+int nextID;										//ID a asignarle al proximo DTB que se cree
 
-t_queue* NEWqueue;								//Cola NEW, gestionada por PLP con FIFO
+t_list* NEWqueue;								//"Cola" NEW, gestionada por PLP con FIFO; es lista para ser modificable
 t_queue* READYqueue;							//Cola READY, gestionada por PCP
 t_list* EXECqueue;								//"Cola" EXEC, en realidad es una lista (mas manejable), gestionada por PCP
+t_list* BLOCKEDqueue;							//"Cola" BLOCKED, en realidad es una lista (mas manejable), gest. por PCP
 t_list* EXITqueue;								//"Cola EXIT, en realidad es una lista (mas manejable)
+
+CreatableGDT* toBeCreated;						//Estructura con el path del script cuyo DTB quiero crear, y el ID del
+												//DTB a inicializar al terminar la correspondiente operacion Dummy
+
+AssignmentInfo toBeMoved;						//Estructura con el DTB a mover de cola y el CPU a desalojar (si hace falta)
 
 #endif /* INCS_SCHEDULING_H_ */
