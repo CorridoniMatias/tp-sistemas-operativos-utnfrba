@@ -4,6 +4,12 @@
 #include "stdlib.h"
 #include "commons/collections/list.h"
 
+struct CPU_s
+{
+	int socket;
+	bool busy;
+} typedef CPU;
+
 void InitCPUsHolder();
 
 void AddCPU(int* socketID);

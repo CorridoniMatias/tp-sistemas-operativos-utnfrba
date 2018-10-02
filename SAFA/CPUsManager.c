@@ -9,20 +9,29 @@ void InitCPUsHolder()
 
 void AddCPU(int* socketID)
 {
-	list_add(cpus, socketID);
+
+	CPU* newCPU;
+	newCPU->socket = *socketID;
+	newCPU->busy = false;
+	list_add(cpus, newCPU);
+
 }
 
 void RemoveCPU(int socketID)
 {
+
 	int size = CPUsCount();
-	int sock;
+	CPU* counter;
 	for(int i = 0; i < size; i++)
 	{
-		sock = *((int*)list_get(cpus, i));
-
-		if(sock == socketID)
+		counter = list_get(cpus, i);
+		if(counter->socket == socketID)
+		{
 			list_remove(cpus, i); //No hacemos el free porque el espacio de memoria que guardamos pertenece a SocketServer y es el quien hace el free de esa memoria!.
+			break;			   	  //No hace falta seguir buscando otro con ese ID, salgo del ciclo
+		}
 	}
+
 }
 
 int CPUsCount()

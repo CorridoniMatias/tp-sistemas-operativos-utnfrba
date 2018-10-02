@@ -14,18 +14,18 @@ int main(int argc, char **argv)
 
 	//Me conecto a SAFA, FM9 y MDJ, y levanto el servidor de CPUs
 	socketSAFA = conectarAProceso(settings->ipSAFA, settings->puertoSAFA, "S-AFA");
-	//socketFM9 = conectarAProceso(settings->ipFM9, settings->puertoFM9, "FM9");
+	socketFM9 = conectarAProceso(settings->ipFM9, settings->puertoFM9, "FM9");
 	//socketMDJ = conectarAProceso(settings->ipMDJ, settings->puertoMDJ, "MDJ");
-	//levantarServidor();
+	levantarServidor();
 
 	//Levanto la funcion esperarRespuesta en tres hilos distintos, uno por socket; TEMPORAL, solo para probar la conexion basica
 	ThreadManager_CreateThread(&hebraSAFA, (void*) esperarRespuesta, (void*) socketSAFA);
-	//ThreadManager_CreateThread(&hebraFM9, (void*) esperarRespuesta, (void*) socketFM9);
+	ThreadManager_CreateThread(&hebraFM9, (void*) esperarRespuesta, (void*) socketFM9);
 	//ThreadManager_CreateThread(&hebraMDJ, (void*) esperarRespuesta, (void*) socketMDJ);
 
 	//Espero a que los hilos terminen
 	pthread_join(hebraSAFA, NULL);
-	//pthread_join(hebraFM9, NULL);
+	pthread_join(hebraFM9, NULL);
 	//pthread_join(hebraMDJ, NULL);
 
 	liberarVariablesGlobales();					//Libero la memoria de las variables globales
