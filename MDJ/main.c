@@ -15,7 +15,7 @@ void TestBitMapCreateAssignAndFree()
 
 	//FIFA_PrintBitmap();
 
-	FIFA_CreateFile("/scripts/hola.script", 8);
+	FIFA_CreateFile("/scripts/hola.script", 10);
 
 	FIFA_FlushBitmap();
 
@@ -32,7 +32,7 @@ void TestFIFAReadFile()
 	int tam = 15;
 	int cop = 0;
 
-	char* cont = FIFA_ReadFile("/testfile", 5, 5, &cop);
+	char* cont = FIFA_ReadFile("/scripts/2.script", 0, 5, &cop);
 
 	cont = realloc(cont, cop + 1);
 

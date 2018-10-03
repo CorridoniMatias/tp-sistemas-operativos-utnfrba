@@ -2,6 +2,24 @@
 #include <string.h>
 t_bitarray* FSBitMap = NULL;
 
+
+static void FIFA_BlockPutContent(int blockNum, int offset, void* content, int len)
+{
+	Logger_Log(LOG_DEBUG, "FIFA -> Solicitud de escritura al bloque %d", blockNum);
+
+	char* blockFile = StringUtils_Format("%s%d.bin", config->blocksPath, blockNum);
+
+	FILE* fd = fopen(blockFile, "a+");
+
+	fseek(fd, offset, SEEK_SET);
+
+	fwrite(content, len, 1, fd);
+
+	fclose(fd);
+
+	free(blockFile);
+}
+
 /*
  * 	Comprueba si un bloque no esta usado y lo reserva en forma atomica con un mutex.
  */
@@ -188,6 +206,52 @@ static t_config* FIFA_OpenFile(char* path)
 	return metadata;
 }
 
+int* FIFA_ReserveBlocks(int cantBloques, char* stringVersion)
+{
+	int* bloques = (int*)malloc(sizeof(int) * cantBloques);
+
+	char* blocksCharArray = (char*)malloc(2);
+	strcpy(blocksCharArray, "[");
+
+	int tmp;
+	for(int i = 0 ; i < cantBloques;i++)
+	{
+		//ya arreglado: Posible bug: si se intenta crear un archivo que necesita X bloques pero solo hay Y libres (Y < X) los Y bloques se van a reservar pero la creacion va a fallar poque no hay X.
+		tmp = FIFA_ReserveNextFreeBlock();
+		if(tmp == -1) // no hay mas bloques
+		{
+			Logger_Log(LOG_DEBUG, "FIFA -> Se intento crear un archivo de mas bloques que los dispnibles! La creacion fallo.");
+			if(i > 0) //Ya reservamos al menos un bloque, debemos liberarlo/s porque no lo/s vamos a usar.
+			{
+				Logger_Log(LOG_DEBUG, "FIFA -> Haciendo rollback de intento de creacion... liberando bloques...");
+				for(int j = 0 ; j < i ; j++)
+				{
+					FIFA_FreeBlock( bloques[j] );
+				}
+			}
+
+			free(blocksCharArray);
+			return NULL;
+		}
+
+		Logger_Log(LOG_DEBUG, "FIFA -> Bloque %d reservado.", tmp);
+
+		bloques[i] = tmp;
+		char* temp = string_itoa(tmp);
+		string_append(&blocksCharArray, temp);
+		free(temp);
+
+		if(i < cantBloques - 1)
+			string_append(&blocksCharArray, ",");
+	}
+
+	string_append(&blocksCharArray, "]");
+
+	stringVersion = blocksCharArray;
+
+	return bloques;
+}
+
 bool FIFA_CreateFile(char* path, int newLines)
 {
 	char* fullPath = FIFA_GetFullPath(path);
@@ -197,7 +261,7 @@ bool FIFA_CreateFile(char* path, int newLines)
 	int cantBloques = ceil(newLines / (float)config->tamanioBloque);
 
 	Logger_Log(LOG_DEBUG, "FIFA -> Cantidad de bloques requererida para creacion: %d", cantBloques);
-
+	/*
 	int bloques[cantBloques];
 	char* blocksCharArray = (char*)malloc(2);
 	strcpy(blocksCharArray, "[");
@@ -234,6 +298,20 @@ bool FIFA_CreateFile(char* path, int newLines)
 	}
 
 	string_append(&blocksCharArray, "]");
+	*/
+
+	char* blocksCharArray;
+	int* bloques;
+
+	bloques = FIFA_ReserveBlocks(cantBloques, blocksCharArray);
+
+
+	if(bloques == NULL)
+	{
+		free(fullPath);
+		return false;
+	}
+
 
 	Logger_Log(LOG_DEBUG, "FIFA -> Bloques asignados a nuevo archivo: %s", blocksCharArray);
 
@@ -278,33 +356,28 @@ bool FIFA_CreateFile(char* path, int newLines)
 	config_save(metadata);
 	config_destroy(metadata);
 
+	int cant = 0;
+	char* content;
 	for(int i = 0; i < cantBloques; i++)
 	{
-		//TODO: Crear los archivos de los bloques y llenarlos con \n
-		FIFA_BlockPutContent();
+		if(config->tamanioBloque < newLines)
+			cant = config->tamanioBloque;
+		else
+			cant = newLines;
+
+		content = string_repeat('\n', cant);
+
+		newLines -= cant;
+
+		FIFA_BlockPutContent(bloques[i], 0, content, cant);
+
+		free(content);
 	}
 
 
 	free(fullPath);
 
 	return true;
-}
-
-static void FIFA_BlockPutContent(int blockNum, int offset, void* content, int len)
-{
-	Logger_Log(LOG_DEBUG, "FIFA -> Solicitud de escritura al bloque %d", blockNum);
-
-	char* blockFile = StringUtils_Format("%s%d.bin", config->blocksPath, blockNum);
-
-	FILE* fd = fopen(blockFile, "a+");
-
-	fseek(fd, offset, SEEK_SET);
-
-	fwrite(content, len, 1, fd);
-
-	fclose(fd);
-
-	free(blockFile);
 }
 
 bool FIFA_IsFileValid(char* path)
