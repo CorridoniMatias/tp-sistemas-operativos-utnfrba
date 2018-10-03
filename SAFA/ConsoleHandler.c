@@ -3,7 +3,24 @@
 void CommandEjecutar (int argC, char** args, char* callingLine, void* extraData)
 {
 
+	if(argC < 2)
+	{
+		printf("ERROR: Debe indicar la ruta del script a ejecutar\n");
+		CommandInterpreter_FreeArguments(args);
+		return;
+	}
+
+	else if(argC > 2)
+	{
+		printf("ERROR: Debe ingresar solo la ruta del script a ejecutar como parametro\n");
+		CommandInterpreter_FreeArguments(args);
+		return;
+	}
+
+	AddDTB(args[1]);
+
 	CommandInterpreter_FreeArguments(args);
+
 }
 
 void CommandStatus (int argC, char** args, char* callingLine, void* extraData)

@@ -5,6 +5,7 @@
 #include "kemmens/SocketServer.h"
 #include "incs/CPUsManager.h"
 #include "incs/ConsoleHandler.h"
+#include "incs/Scheduling.h"
 #include "bibliotecaSAFA.h"
 
 bool corrupt = true;
@@ -105,7 +106,6 @@ void StartServer()
 	DestroyCPUsHolder();
 	Logger_Log(LOG_INFO, "Server Shutdown.");
 }
-
 
 int main(int argc, char **argv)
 {
