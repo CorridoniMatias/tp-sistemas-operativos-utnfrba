@@ -15,7 +15,7 @@ void TestBitMapCreateAssignAndFree()
 
 	//FIFA_PrintBitmap();
 
-	FIFA_CreateFile("/scripts/hola.script", 10);
+	FIFA_CreateFile("/scripts/helloworld.script", 40);
 
 	FIFA_FlushBitmap();
 

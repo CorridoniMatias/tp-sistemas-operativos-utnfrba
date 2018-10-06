@@ -163,11 +163,6 @@ void FIFA_FlushBitmap()
 	fclose(fp);
 }
 
-void FIFA_WriteFile(char* path, int offset, int size, void* data)
-{
-
-}
-
 void FIFA_MkDir(char* path)
 {
 	Logger_Log(LOG_DEBUG, "FIFA -> mkdir recursivo de %s", path);
@@ -206,12 +201,9 @@ static t_config* FIFA_OpenFile(char* path)
 	return metadata;
 }
 
-int* FIFA_ReserveBlocks(int cantBloques, char* stringVersion)
+static int* FIFA_ReserveBlocks(int cantBloques)
 {
 	int* bloques = (int*)malloc(sizeof(int) * cantBloques);
-
-	char* blocksCharArray = (char*)malloc(2);
-	strcpy(blocksCharArray, "[");
 
 	int tmp;
 	for(int i = 0 ; i < cantBloques;i++)
@@ -230,26 +222,26 @@ int* FIFA_ReserveBlocks(int cantBloques, char* stringVersion)
 				}
 			}
 
-			free(blocksCharArray);
+			free(bloques);
 			return NULL;
 		}
 
 		Logger_Log(LOG_DEBUG, "FIFA -> Bloque %d reservado.", tmp);
 
 		bloques[i] = tmp;
-		char* temp = string_itoa(tmp);
-		string_append(&blocksCharArray, temp);
-		free(temp);
-
-		if(i < cantBloques - 1)
-			string_append(&blocksCharArray, ",");
 	}
 
-	string_append(&blocksCharArray, "]");
-
-	stringVersion = blocksCharArray;
-
 	return bloques;
+}
+
+static bool FIFA_FileExists(char* path)
+{
+	return access( path, F_OK ) != -1;
+}
+
+void FIFA_WriteFile(char* path, int offset, int size, void* data)
+{
+
 }
 
 bool FIFA_CreateFile(char* path, int newLines)
@@ -258,53 +250,19 @@ bool FIFA_CreateFile(char* path, int newLines)
 
 	Logger_Log(LOG_DEBUG, "FIFA -> Petition to create file at '%s'", fullPath);
 
+	if( FIFA_FileExists(fullPath) ) {
+		Logger_Log(LOG_DEBUG, "FIFA -> No se creara el archivo %s. El archivo ya existe.", fullPath);
+	    free(fullPath);
+	    return false;
+	}
+
 	int cantBloques = ceil(newLines / (float)config->tamanioBloque);
 
 	Logger_Log(LOG_DEBUG, "FIFA -> Cantidad de bloques requererida para creacion: %d", cantBloques);
-	/*
-	int bloques[cantBloques];
-	char* blocksCharArray = (char*)malloc(2);
-	strcpy(blocksCharArray, "[");
 
-	int tmp;
-	for(int i = 0 ; i < cantBloques;i++)
-	{
-		//ya arreglado: Posible bug: si se intenta crear un archivo que necesita X bloques pero solo hay Y libres (Y < X) los Y bloques se van a reservar pero la creacion va a fallar poque no hay X.
-		tmp = FIFA_ReserveNextFreeBlock();
-		if(tmp == -1) // no hay mas bloques
-		{
-			Logger_Log(LOG_DEBUG, "FIFA -> Se intento crear un archivo de mas bloques que los dispnibles! La creacion fallo.");
-			if(i > 0) //Ya reservamos al menos un bloque, debemos liberarlo/s porque no lo/s vamos a usar.
-			{
-				Logger_Log(LOG_DEBUG, "FIFA -> Haciendo rollback de intento de creacion... liberando bloques...");
-				for(int j = 0 ; j < i ; j++)
-				{
-					FIFA_FreeBlock( bloques[j] );
-				}
-			}
-
-			free(fullPath);
-			free(blocksCharArray);
-			return false;
-		}
-
-		bloques[i] = tmp;
-		char* temp = string_itoa(tmp);
-		string_append(&blocksCharArray, temp);
-		free(temp);
-
-		if(i < cantBloques - 1)
-			string_append(&blocksCharArray, ",");
-	}
-
-	string_append(&blocksCharArray, "]");
-	*/
-
-	char* blocksCharArray;
 	int* bloques;
 
-	bloques = FIFA_ReserveBlocks(cantBloques, blocksCharArray);
-
+	bloques = FIFA_ReserveBlocks(cantBloques);
 
 	if(bloques == NULL)
 	{
@@ -312,6 +270,7 @@ bool FIFA_CreateFile(char* path, int newLines)
 		return false;
 	}
 
+	char* blocksCharArray = StringUtils_ArrayFromInts(bloques, cantBloques, true, true);
 
 	Logger_Log(LOG_DEBUG, "FIFA -> Bloques asignados a nuevo archivo: %s", blocksCharArray);
 
@@ -324,11 +283,21 @@ bool FIFA_CreateFile(char* path, int newLines)
 
 	free(folders);
 
-	FILE* file = fopen(fullPath, "w");
+	void fallar(int* bloques, char* path, char* blocks, int cant)
+	{
+		for(int i = 0; i < cant;i++)
+		{
+			FIFA_FreeBlock( bloques[i] );
+		}
+		free(path);
+		free(blocks);
+		free(bloques);
+	}
+
+	FILE* file = fopen(fullPath, "w"); //Creamos el archivo para t_config ya que no puede crearlo solo.
 	if(!file)
 	{
-		free(fullPath);
-		free(blocksCharArray);
+		fallar(bloques, fullPath, blocksCharArray, cantBloques);
 		return false;
 	}
 	fclose(file);
@@ -338,9 +307,7 @@ bool FIFA_CreateFile(char* path, int newLines)
 	if(metadata == NULL)
 	{
 		Logger_Log(LOG_ERROR, "FIFA -> Error al abrir archivo de metadata para archivo %s", fullPath);
-		free(fullPath);
-		free(blocksCharArray);
-
+		fallar(bloques, fullPath, blocksCharArray, cantBloques);
 		return false;
 	}
 
@@ -374,7 +341,7 @@ bool FIFA_CreateFile(char* path, int newLines)
 		free(content);
 	}
 
-
+	free(bloques);
 	free(fullPath);
 
 	return true;
