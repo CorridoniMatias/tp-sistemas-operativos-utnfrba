@@ -3,6 +3,11 @@
 t_bitarray* FSBitMap = NULL;
 
 
+static int FIFA_CalculateBlockAmount(int bytes)
+{
+	return ceil(bytes / (float)config->tamanioBloque);
+}
+
 static void FIFA_BlockPutContent(int blockNum, int offset, void* content, int len)
 {
 	Logger_Log(LOG_DEBUG, "FIFA -> Solicitud de escritura al bloque %d", blockNum);
@@ -239,9 +244,85 @@ static bool FIFA_FileExists(char* path)
 	return access( path, F_OK ) != -1;
 }
 
-void FIFA_WriteFile(char* path, int offset, int size, void* data)
+static int FIFA_GetBlockFromOffset(int offset)
 {
+	return ceil(offset/(float)config->tamanioBloque) - 1; //Nuestros bloques empiezan en 0
+}
 
+static int FIFA_GetFirstByteFromOffset(int offset)
+{
+	//El offset que nos vamos a correr adentro de nuestro bloque.
+	return offset % config->tamanioBloque;
+}
+
+int FIFA_WriteFile(char* path, int offset, int size, void* data)
+{
+	char* fullPath = FIFA_GetFullPath(path);
+
+	if( !FIFA_FileExists(fullPath) ) {
+		Logger_Log(LOG_DEBUG, "FIFA -> Write file no puede ejecutar %s no existe", fullPath);
+		free(fullPath);
+		return FILE_NOT_EXISTS;
+	}
+
+	t_config* metadata = FIFA_OpenFile(path);
+
+	if(metadata == NULL)
+	{
+		Logger_Log(LOG_ERROR, "FIFA -> Error WriteFile al abrir archivo de metadata para archivo %s", fullPath);
+		free(fullPath);
+		return METADATA_OPEN_ERROR;
+	}
+
+	int fileSize = config_get_int_value(metadata, "TAMANIO");
+
+	char* blocksAsString = config_get_string_value(metadata, "BLOQUES");
+
+	int neededSize = offset + size;
+
+	//Si este if pasa quiere decir que tenemos mas bytes para asignar de los que disponemos por lo que hay que reservar mas bloques.
+	if(neededSize > fileSize)
+	{
+		int reservar = FIFA_CalculateBlockAmount( neededSize - fileSize );
+		int* newBlocks = FIFA_ReserveBlocks( reservar );
+
+		if(newBlocks == NULL)
+		{
+			free(blocksAsString);
+			free(fullPath);
+			return INSUFFICIENT_SPACE;
+		}
+
+		blocksAsString[ strlen(blocksAsString) - 1 ] = ',';
+
+		char* tmp = StringUtils_ArrayFromInts(newBlocks, reservar, false, true);
+
+		string_append(&blocksAsString, tmp);
+
+		free(tmp);
+		free(newBlocks);
+	}
+
+	char** blocks = string_get_string_as_array(blocksAsString);
+
+	int primerBloqueIndex = FIFA_GetBlockFromOffset(offset);
+
+	int primerByte = FIFA_GetFirstByteFromOffset(offset);
+
+	//Por el offset que definimos si por ejemplo tenemos un tamaño 4 y offset 4 caeriamos en el blqoue 1° pero tendriamos que ir al 2°
+	if(primerByte == 0)
+		primerBloqueIndex ++;
+
+	int cantBloques = StringUtils_ArraySize(blocks);
+
+	for(int i = primerBloqueIndex; i < cantBloques;i++)
+	{
+		FIFA_BlockPutContent( atoi(blocks[i]),  );
+	}
+
+	StringUtils_FreeArray(blocks);
+	free(blocksAsString);
+	return WRITE_OK;
 }
 
 bool FIFA_CreateFile(char* path, int newLines)
@@ -338,6 +419,8 @@ bool FIFA_CreateFile(char* path, int newLines)
 
 		FIFA_BlockPutContent(bloques[i], 0, content, cant);
 
+		//TODO: Como en el read hay que hacer el mismo calculo de la cantidad de bytes a guardar
+
 		free(content);
 	}
 
@@ -374,11 +457,10 @@ char* FIFA_ReadFile(char* path, int offset, int size, int* amountCopied)
 	char** bloques = config_get_array_value(metadata, "BLOQUES");
 
 	// Nos fijamos en que bloque empezar a buscar los bytes a copiar
-	int primerBloqueIndex = ceil(offset/(float)config->tamanioBloque) - 1; //Nuestros bloques empiezan en 0
+	int primerBloqueIndex = FIFA_GetBlockFromOffset(offset);
 
 	//El offset que nos vamos a correr adentro de nuestro bloque.
-	int primerByte = offset % config->tamanioBloque;
-
+	int primerByte = FIFA_GetFirstByteFromOffset(offset);
 
 	//Por el offset que definimos si por ejemplo tenemos un tamaño 4 y offset 4 caeriamos en el blqoue 1° pero tendriamos que ir al 2°
 	if(primerByte == 0)

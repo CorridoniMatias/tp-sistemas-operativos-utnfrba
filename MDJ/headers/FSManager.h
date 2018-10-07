@@ -13,6 +13,15 @@
 
 #include "Config.h"
 
+//FIFA General Errors:
+
+#define INSUFFICIENT_SPACE		-10
+
+//FIFA WriteFile Return Values:
+#define WRITE_OK 				 0
+#define FILE_NOT_EXISTS 		-1
+#define METADATA_OPEN_ERROR 	-2
+
 pthread_mutex_t bitmapLock;
 
 void FIFA_Init();
@@ -27,7 +36,7 @@ void FIFA_FlushBitmap();
 
 bool FIFA_IsBlockUsed(int blockNum);
 
-void FIFA_WriteFile(char* path, int offset, int size, void* data);
+int FIFA_WriteFile(char* path, int offset, int size, void* data);
 
 char* FIFA_ReadFile(char* path, int offset, int size, int* amountCopied);
 

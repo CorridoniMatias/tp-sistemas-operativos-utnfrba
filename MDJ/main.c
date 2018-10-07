@@ -47,6 +47,21 @@ void TestFIFAReadFile()
 
 int main(int argc, char **argv)
 {
+	char* s1 = malloc(6);
+
+	strcpy(s1, "Hola!");
+
+	char* s2 = "Como estas?";
+
+	s1[4] = '\0';
+
+	string_append(&s1, s2);
+
+	printf("\n%s\n", s1);
+
+	free(s1);
+
+	return 0;
 	//TestFIFAReadFile();
 	TestBitMapCreateAssignAndFree();
 
