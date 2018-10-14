@@ -15,7 +15,7 @@ void TestBitMapCreateAssignAndFree()
 
 	//FIFA_PrintBitmap();
 
-	FIFA_CreateFile("/scripts/helloworld.script", 40);
+	FIFA_CreateFile("/testfile", 1);
 
 	FIFA_FlushBitmap();
 
@@ -45,25 +45,36 @@ void TestFIFAReadFile()
 	exit_gracefully_custom((void*)freeGlobals, 0);
 }
 
+void TestFIFAWriteFile()
+{
+	Logger_CreateLog("./DMJ.log", "DMJ", true);
+	initGlobals();
+	FIFA_Init();
+	FIFA_ReadBitmap();
+
+	FIFA_WriteFile("/testfile", 3, 14, "holacomoestaAS");
+
+	int cop = 0;
+	char* cont = FIFA_ReadFile("/testfile", 0, 500, &cop);
+
+	cont = realloc(cont, cop + 1);
+
+	cont[cop] = '\0';
+
+	printf("\nCONTENIDO: '%s' tamanio = %d\n", cont, cop);
+
+	free(cont);
+
+	FIFA_FreeBitmap();
+	exit_gracefully_custom((void*)freeGlobals, 0);
+}
+
 int main(int argc, char **argv)
 {
-	char* s1 = malloc(6);
 
-	strcpy(s1, "Hola!");
-
-	char* s2 = "Como estas?";
-
-	s1[4] = '\0';
-
-	string_append(&s1, s2);
-
-	printf("\n%s\n", s1);
-
-	free(s1);
-
-	return 0;
 	//TestFIFAReadFile();
-	TestBitMapCreateAssignAndFree();
+	//TestBitMapCreateAssignAndFree();
+	TestFIFAWriteFile();
 
 	Logger_CreateLog("./DMJ.log", "DMJ", true);
 	char* path = "/path/to/file.txt";

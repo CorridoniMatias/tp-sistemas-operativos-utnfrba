@@ -14,7 +14,23 @@ static void FIFA_BlockPutContent(int blockNum, int offset, void* content, int le
 
 	char* blockFile = StringUtils_Format("%s%d.bin", config->blocksPath, blockNum);
 
-	FILE* fd = fopen(blockFile, "a+");
+	FILE* fd = fopen(blockFile, "r+b");
+	if(!fd)
+	{
+		FILE* file = fopen(blockFile, "w");
+		if(!file)
+		{
+			return;
+		}
+		fclose(file);
+
+		fd = fopen(blockFile, "r+b");
+	}
+
+	if(!fd)
+	{
+		return;
+	}
 
 	fseek(fd, offset, SEEK_SET);
 
@@ -278,29 +294,47 @@ int FIFA_WriteFile(char* path, int offset, int size, void* data)
 
 	char* blocksAsString = config_get_string_value(metadata, "BLOQUES");
 
+	int blockCount = StringUtils_CountOccurrences(blocksAsString, ",") + 1;
+
+	int availableSpaceInLastBlock = (blockCount * config->tamanioBloque) - fileSize;
+
 	int neededSize = offset + size;
 
-	//Si este if pasa quiere decir que tenemos mas bytes para asignar de los que disponemos por lo que hay que reservar mas bloques.
 	if(neededSize > fileSize)
 	{
-		int reservar = FIFA_CalculateBlockAmount( neededSize - fileSize );
-		int* newBlocks = FIFA_ReserveBlocks( reservar );
-
-		if(newBlocks == NULL)
-		{
-			free(blocksAsString);
-			free(fullPath);
-			return INSUFFICIENT_SPACE;
-		}
-
-		blocksAsString[ strlen(blocksAsString) - 1 ] = ',';
-
-		char* tmp = StringUtils_ArrayFromInts(newBlocks, reservar, false, true);
-
-		string_append(&blocksAsString, tmp);
-
+		int newBytes = neededSize - fileSize;
+		char* tmp;
+		tmp = string_itoa(neededSize);
+		config_set_value(metadata, "TAMANIO", tmp);
 		free(tmp);
-		free(newBlocks);
+
+		if(newBytes > availableSpaceInLastBlock) //no nos alcanza el espacio que sobro en el ultimo bloque del archivo.
+		{
+			int reservar = FIFA_CalculateBlockAmount( newBytes );
+			int* newBlocks = FIFA_ReserveBlocks( reservar );
+
+			if(newBlocks == NULL)
+			{
+				//free(blocksAsString);
+				config_destroy(metadata);
+				free(fullPath);
+				return INSUFFICIENT_SPACE;
+			}
+
+			char* temp = strdup(blocksAsString);
+			temp[ strlen(temp) - 1 ] = ',';
+
+			char* tmp = StringUtils_ArrayFromInts(newBlocks, reservar, false, true);
+			string_append(&temp, tmp);
+			config_set_value(metadata, "BLOQUES", temp);
+
+			//necesitamos la nueva direccion de memoria.
+			blocksAsString = config_get_string_value(metadata, "BLOQUES");
+
+			free(temp);
+			free(tmp);
+			free(newBlocks);
+		}
 	}
 
 	char** blocks = string_get_string_as_array(blocksAsString);
@@ -310,18 +344,46 @@ int FIFA_WriteFile(char* path, int offset, int size, void* data)
 	int primerByte = FIFA_GetFirstByteFromOffset(offset);
 
 	//Por el offset que definimos si por ejemplo tenemos un tamaño 4 y offset 4 caeriamos en el blqoue 1° pero tendriamos que ir al 2°
+	//Ademas el si el offset el 0, el prime block que va a ser -1, por lo que debemos incrementar para que sea 0.
 	if(primerByte == 0)
 		primerBloqueIndex ++;
 
-	int cantBloques = StringUtils_ArraySize(blocks);
+	blockCount = StringUtils_ArraySize(blocks);
 
-	for(int i = primerBloqueIndex; i < cantBloques;i++)
+	int tam = config->tamanioBloque - primerByte;
+
+	if(size < tam)
+		tam = size;
+
+	void* dataCopy = data;
+	int sizeCopy = size;
+
+	for(int i = primerBloqueIndex; i < blockCount;i++)
 	{
-		FIFA_BlockPutContent( atoi(blocks[i]),  );
+		FIFA_BlockPutContent( atoi(blocks[i]), primerByte, dataCopy, tam);
+
+		if(sizeCopy - tam <= 0)
+			break;
+
+		if(i == primerBloqueIndex)
+			primerByte = 0;
+
+		dataCopy += tam; //TODO: Actualizamos el pointer desde donde copiar, verificar que la cuenta este bien hecha y si efectuvamente es <= porque tal vez si es = tira segfault.
+		sizeCopy -= tam;
+
+		if(sizeCopy > config->tamanioBloque)
+		{
+			tam = config->tamanioBloque;
+		} else
+			tam = sizeCopy;
 	}
 
+
+	config_save(metadata);
 	StringUtils_FreeArray(blocks);
-	free(blocksAsString);
+	config_destroy(metadata);
+	FIFA_FlushBitmap();
+	free(fullPath);
 	return WRITE_OK;
 }
 
@@ -419,14 +481,12 @@ bool FIFA_CreateFile(char* path, int newLines)
 
 		FIFA_BlockPutContent(bloques[i], 0, content, cant);
 
-		//TODO: Como en el read hay que hacer el mismo calculo de la cantidad de bytes a guardar
-
 		free(content);
 	}
 
 	free(bloques);
 	free(fullPath);
-
+	FIFA_FlushBitmap();
 	return true;
 }
 
@@ -463,6 +523,7 @@ char* FIFA_ReadFile(char* path, int offset, int size, int* amountCopied)
 	int primerByte = FIFA_GetFirstByteFromOffset(offset);
 
 	//Por el offset que definimos si por ejemplo tenemos un tamaño 4 y offset 4 caeriamos en el blqoue 1° pero tendriamos que ir al 2°
+	//Ademas el si el offset el 0, el prime block que va a ser -1, por lo que debemos incrementar para que sea 0.
 	if(primerByte == 0)
 		primerBloqueIndex ++;
 
@@ -500,12 +561,12 @@ char* FIFA_ReadFile(char* path, int offset, int size, int* amountCopied)
 		buffer = realloc(buffer, realCopiado + tam);
 		fread(buffer + realCopiado, tam, 1, fp);
 
-		realCopiado += tam;
 
 		fclose(fp);
 		free(blockFilePath);
 		if(copiado >= size)
 			break;
+		realCopiado += tam;
 	}
 	config_destroy(metadata);
 	StringUtils_FreeArray(bloques);
