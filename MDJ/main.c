@@ -10,16 +10,19 @@ void TestBitMapCreateAssignAndFree()
 {
 	Logger_CreateLog("./DMJ.log", "DMJ", true);
 	initGlobals();
-	FIFA_Init();
-	FIFA_ReadBitmap();
+	FIFA_Start();
 
-	//FIFA_PrintBitmap();
+	for(int i = 0; i < 10; i++)
+	{
+		FIFA_CreateFile("/testfile", 8);
+	}
+	FIFA_CreateFile("/testfile", 8);
+	FIFA_CreateFile("/testfile1", 8);
+	FIFA_CreateFile("/testfile2", 8);
+	FIFA_CreateFile("/testfile3", 8);
+	FIFA_CreateFile("/testfile4", 8);
 
-	FIFA_CreateFile("/testfile", 1);
-
-	FIFA_FlushBitmap();
-
-	FIFA_FreeBitmap();
+	FIFA_ShutDown();
 
 	exit_gracefully_custom((void*)freeGlobals, 0);
 }
@@ -29,7 +32,7 @@ void TestFIFAReadFile()
 	Logger_CreateLog("./DMJ.log", "DMJ", true);
 	initGlobals();
 
-	int tam = 15;
+	//int tam = 15;
 	int cop = 0;
 
 	char* cont = FIFA_ReadFile("/scripts/2.script", 0, 5, &cop);
@@ -49,13 +52,12 @@ void TestFIFAWriteFile()
 {
 	Logger_CreateLog("./DMJ.log", "DMJ", true);
 	initGlobals();
-	FIFA_Init();
-	FIFA_ReadBitmap();
+	FIFA_Start();
 
-	FIFA_WriteFile("/testfile", 3, 14, "holacomoestaAS");
+	//FIFA_WriteFile("/testfile", 3, 14, "holacomoestaAS");
 
 	int cop = 0;
-	char* cont = FIFA_ReadFile("/testfile", 0, 500, &cop);
+	char* cont = FIFA_ReadFile("/testfile", 4, 1, &cop);
 
 	cont = realloc(cont, cop + 1);
 
@@ -65,7 +67,19 @@ void TestFIFAWriteFile()
 
 	free(cont);
 
-	FIFA_FreeBitmap();
+	FIFA_ShutDown();
+	exit_gracefully_custom((void*)freeGlobals, 0);
+}
+
+void TestFIFADeleteFile()
+{
+	Logger_CreateLog("./DMJ.log", "DMJ", true);
+	initGlobals();
+	FIFA_Start();
+
+	FIFA_DeleteFile("/testfile");
+
+	FIFA_ShutDown();
 	exit_gracefully_custom((void*)freeGlobals, 0);
 }
 
@@ -73,50 +87,14 @@ int main(int argc, char **argv)
 {
 
 	//TestFIFAReadFile();
-	//TestBitMapCreateAssignAndFree();
-	TestFIFAWriteFile();
+	TestBitMapCreateAssignAndFree();
+	//TestFIFAWriteFile();
+	//TestFIFADeleteFile();
 
 	Logger_CreateLog("./DMJ.log", "DMJ", true);
-	char* path = "/path/to/file.txt";
-	int last = StringUtils_LastIndexOf(path, '/');
 
-	printf("Last = %d\n", last);
-
-	char* tmp = string_substring_until(path, last);
-
-	printf("Path = %s\n", tmp + 1);
-
-	return 0;
-
-	FIFA_Init();
-
-	FIFA_ReadBitmap();
-
-	bool b1 = FIFA_IsBlockUsed(0);
-	bool b2 = FIFA_IsBlockUsed(1);
-	bool b3 = FIFA_IsBlockUsed(2);
-	bool b4 = FIFA_IsBlockUsed(3);
-
-	printf("b1: %d \t b2: %d \t b3: %d \t b4:%d\n", b1, b2, b3, b4);
-
-	FIFA_SetUsedBlock(0);
-	FIFA_SetUsedBlock(3);
-
-	b1 = FIFA_IsBlockUsed(0);
-	b2 = FIFA_IsBlockUsed(1);
-	b3 = FIFA_IsBlockUsed(2);
-	b4 = FIFA_IsBlockUsed(3);
-
-	 printf("b1: %d \t b2: %d \t b3: %d \t b4:%d\n", b1, b2, b3, b4);
-
-
-
-	FIFA_FlushBitmap();
-
-	FIFA_FreeBitmap();
-
-	//startServer();
-	//ThreadPool_FreeGracefully(threadPool);
+	startServer();
+	ThreadPool_FreeGracefully(threadPool);
 	exit_gracefully_custom((void*)freeGlobals, 0);
 }
 
