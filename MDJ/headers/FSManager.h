@@ -1,6 +1,10 @@
 #ifndef FSMANAGER_H_
 #define FSMANAGER_H_
 
+/*
+ * 		FIFA - FileSystem For Academics
+ */
+
 #include <commons/bitarray.h>
 #include <commons/config.h>
 #include "kemmens/StringUtils.h"
@@ -15,14 +19,14 @@
 
 //FIFA General Errors:
 
-#define OPERATION_SUCCESSFUL	  0
-#define INSUFFICIENT_SPACE		-10
-#define METADATA_OPEN_ERROR 	-11
-#define FILE_NOT_EXISTS 		-12
+#define OPERATION_SUCCESSFUL	 0
+#define INSUFFICIENT_SPACE		10
+#define METADATA_OPEN_ERROR 	11
+#define FILE_NOT_EXISTS 		12
 
 //FIFA FileCreate Return Values:
-#define EXISTING_FILE 			-1
-#define METADATA_CREATE_ERROR	-2
+#define EXISTING_FILE 			1
+#define METADATA_CREATE_ERROR	2
 
 pthread_mutex_t bitmapLock;
 

@@ -119,9 +119,9 @@ typedef struct {
  *
  * 		El paquete serializado posee la siguiente estructura:
  *
- * 		+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-------+
- * 		|	size1   |	data1	| 	size2	|	data2	|	.....	|	sizeN	|	dataN	|	0	|
- * 		+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-------+
+ * 		+-------------+-------------+-------------+-------------+-------------+-------------+-------------+---------+
+ * 		|    size1    |    data1    |    size2    |    data2    |    .....    |    sizeN    |    dataN    |    0    |
+ * 		+-------------+-------------+-------------+-------------+-------------+-------------+-------------+---------+
  *
  * 		Tanto "size" como "data" deben estar definidos por SerializedPart como se ve en el ejemplo. El orden de grabado en el paquete es el mismo que el orden de llegada de los parametros.
  *
@@ -136,7 +136,7 @@ void* Serialization_Serialize(int fieldCount, ...);
  * 		serializedPacket: Paquete serializado que pretendo deserializar, leyendo partes y tamanios
  * 		dest: Estructura donde guardare las partes leidas (en un array) y la cantidad de estas
  *
- * 	!!!!!!!!NOTA!!!!!!!!: Por algun motivo, copia mal los ints; revisar esto
+ * 	NOTA: Por algun motivo, copia mal los ints; revisar esto: REVISADO -> hay que hacer un *((int*)data) para obtener el valor ya que el dato es guardado en un void* !
  */
 void Serialization_Deserialize(void* serializedPacket, DeserializedData* dest);
 

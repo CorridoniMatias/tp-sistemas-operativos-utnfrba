@@ -12,15 +12,14 @@ void TestBitMapCreateAssignAndFree()
 	initGlobals();
 	FIFA_Start();
 
-	for(int i = 0; i < 10; i++)
+	char* tmp;
+	for(int i = 0; i < 20; i++)
 	{
-		FIFA_CreateFile("/testfile", 8);
+		printf("\n\n");
+		tmp = StringUtils_Format("/testfile_%d", i);
+		FIFA_CreateFile(tmp, 8);
+		free(tmp);
 	}
-	FIFA_CreateFile("/testfile", 8);
-	FIFA_CreateFile("/testfile1", 8);
-	FIFA_CreateFile("/testfile2", 8);
-	FIFA_CreateFile("/testfile3", 8);
-	FIFA_CreateFile("/testfile4", 8);
 
 	FIFA_ShutDown();
 
@@ -54,8 +53,8 @@ void TestFIFAWriteFile()
 	initGlobals();
 	FIFA_Start();
 
-	//FIFA_WriteFile("/testfile", 3, 14, "holacomoestaAS");
-
+	FIFA_WriteFile("/testfile", 15, 2, "holacomoestaAS");
+/*
 	int cop = 0;
 	char* cont = FIFA_ReadFile("/testfile", 4, 1, &cop);
 
@@ -66,7 +65,7 @@ void TestFIFAWriteFile()
 	printf("\nCONTENIDO: '%s' tamanio = %d\n", cont, cop);
 
 	free(cont);
-
+*/
 	FIFA_ShutDown();
 	exit_gracefully_custom((void*)freeGlobals, 0);
 }
@@ -87,8 +86,8 @@ int main(int argc, char **argv)
 {
 
 	//TestFIFAReadFile();
-	TestBitMapCreateAssignAndFree();
-	//TestFIFAWriteFile();
+	//TestBitMapCreateAssignAndFree();
+	TestFIFAWriteFile();
 	//TestFIFADeleteFile();
 
 	Logger_CreateLog("./DMJ.log", "DMJ", true);

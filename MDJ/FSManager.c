@@ -143,6 +143,7 @@ static void FIFA_FreeBlock(int blockNum)
 	pthread_mutex_lock(&bitmapLock);
 	bitarray_clean_bit(FSBitMap, blockNum);
 	pthread_mutex_unlock(&bitmapLock);
+	Logger_Log(LOG_DEBUG, "FIFA -> Bloque %d liberado.", blockNum);
 }
 
 static bool FIFA_IsBlockUsed(int blockNum)
@@ -243,7 +244,7 @@ static int* FIFA_ReserveBlocks(int cantBloques)
 		tmp = FIFA_ReserveNextFreeBlock();
 		if(tmp == -1) // no hay mas bloques
 		{
-			Logger_Log(LOG_DEBUG, "FIFA -> Se intento crear un archivo de mas bloques que los dispnibles! La creacion fallo.");
+			Logger_Log(LOG_DEBUG, "FIFA -> Se intentaron reservar mas bloques que los dispnibles! La creacion/ampliacion fallo.");
 			if(i > 0) //Ya reservamos al menos un bloque, debemos liberarlo/s porque no lo/s vamos a usar.
 			{
 				Logger_Log(LOG_DEBUG, "FIFA -> Haciendo rollback de intento de creacion... liberando bloques...");
@@ -287,6 +288,8 @@ int FIFA_WriteFile(char* path, int offset, int size, void* data)
 {
 	char* fullPath = FIFA_GetFullPath(path);
 
+	Logger_Log(LOG_DEBUG, "FIFA -> Solicitud de modificacion de archivo '%s'.", path);
+
 	if( !FIFA_FileExists(fullPath) ) {
 		Logger_Log(LOG_DEBUG, "FIFA -> Write file no puede ejecutar %s no existe", fullPath);
 		free(fullPath);
@@ -314,6 +317,7 @@ int FIFA_WriteFile(char* path, int offset, int size, void* data)
 
 	if(neededSize > fileSize)
 	{
+		Logger_Log(LOG_DEBUG, "FIFA -> El archivo '%s' va a intentar ampliarse.", path);
 		int newBytes = neededSize - fileSize;
 		char* tmp;
 		tmp = string_itoa(neededSize);
@@ -327,7 +331,6 @@ int FIFA_WriteFile(char* path, int offset, int size, void* data)
 
 			if(newBlocks == NULL)
 			{
-				//free(blocksAsString);
 				config_destroy(metadata);
 				free(fullPath);
 				return INSUFFICIENT_SPACE;
