@@ -2,6 +2,8 @@
 #define INCS_SCHEDULING_H_
 
 #include "commons/collections/queue.h"
+#include "kemmens/Serialization.h"
+#include "CPUsManager.h"
 #include <pthread.h>
 #include <semaphore.h>
 
@@ -12,7 +14,7 @@
  * 	CAMPOS:
  * 		id: Identificador numerico y unico del DTB
  * 		pathEscriptorio: Ruta del script a ejecutar asociado al DTB
- * 		programCounter: Contador que indica que linea del script se deber leer; 0 indica la primer linea
+ * 		programCounter: Contador que indica que linea del script se debe leer; 0 indica la primer linea
  * 		initialized: Flag numerico que indica si el DTB ha sido inicializado (puede pasar a READY) o no
  * 		status:	Codigo numerico que representa el estado del DTB (diagrama de 5 estados)
  * 		openedFiles: Array de cadenas que simula la tabla de archivos abiertos por el DTB
@@ -47,7 +49,7 @@ struct CreatableGDT_s
 /*
  * 	Estructura que contiene la info necesaria para el PCP cuando debe mover un DTB de una cola a otra
  * 	y, posiblemente, desalojar el CPU que se le habia asignado (si pasa de READY a BLOCKED)
- * 	Para saber de que cola a que cola mover, se fijara en el taskCode
+ * 	Para saber de que cola a que cola mover, se fijara en el taskCode; NO USAR PARA MOVER DE READY A EXEC
  * 	CAMPOS:
  * 		dtbID: ID numerico del DTB involucrado (puede ser el Dummy) a mover de colas
  * 		cpuSocket: Descriptor de socket que identifica al CPU al cual se habia asignado el DTB desalojado
@@ -81,13 +83,14 @@ struct AssignmentInfo_s
 
 ///-------------VARIABLES GLOBALES-------------///
 
-//No deberian ser globales al programa main?
+//Semaforos a emplear; no deberian ser globales al programa main?
 pthread_mutex_t mutexPLPtask;
 pthread_mutex_t mutexPCPtask;
 sem_t workPLP;									//Semaforo binario, para indicar que es hora de que el PLP trabaje
 
-int PLPtask;									//Variable con el codigo actual de la tarea a realizar por el PLP
-int PCPtask;									//Variable con el codigo actual de la tarea a realizar por el PCP
+//Tareas a realizar de los planificadores, son externas en main para que se puedan modificar desde cualquier modulo
+int PLPtask;
+int PCPtask;
 
 int nextID;										//ID a asignarle al proximo DTB que se cree
 
@@ -97,8 +100,11 @@ t_list* EXECqueue;								//"Cola" EXEC, en realidad es una lista (mas manejable
 t_list* BLOCKEDqueue;							//"Cola" BLOCKED, en realidad es una lista (mas manejable), gest. por PCP
 t_list* EXITqueue;								//"Cola EXIT, en realidad es una lista (mas manejable)
 
+DTB* dummyDTB;									//DTB que se usara como Dummy
+
+//Estas tres son externas en main
 CreatableGDT* toBeCreated;						//Estructura con el path del script cuyo DTB quiero crear, y el ID del
-												//DTB a inicializar al terminar la correspondiente operacion Dummy
+												//DTB a inicializar al terminar la correspondiente operacion Dummy; para PLP
 
 AssignmentInfo toBeMoved;						//Estructura con el DTB a mover de cola y el CPU a desalojar (si hace falta)
 

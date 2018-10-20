@@ -11,6 +11,12 @@
 bool corrupt = true;
 int elDiego = -1;
 
+//Variables externas, declaradas primero en Scheduling.h
+extern int PLPtask;
+extern int PCPtask;
+extern CreatableGDT* toBeCreated;
+extern AssignmentInfo toBeMoved;
+
 void *CommandIAm (int argC, char** args, char* callingLine, void* extraData)
 {
 	if(argC == 1)
