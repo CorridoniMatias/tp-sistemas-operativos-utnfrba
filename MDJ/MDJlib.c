@@ -100,6 +100,8 @@ void onPacketArrived(int socketID, int message_type, void* data)
 
 	run->data = (void*)arriveData;
 
+	//TODO: al no haber un free data para arrive data (run->free_data) podrian haber memory leaks si no se ejecuta el job que se manda al pool!
+
 	switch(message_type)
 	{
 		case MESSAGETYPE_MDJ_CHECKFILE:
@@ -113,6 +115,9 @@ void onPacketArrived(int socketID, int message_type, void* data)
 		break;
 		case MESSAGETYPE_MDJ_PUTDATA:
 			run->runnable = (void*)MDJ_PutData;
+		break;
+		case MESSAGETYPE_MDJ_DELETEFILE:
+			run->runnable = (void*)MDJ_DeleteFile;
 		break;
 
 		default:

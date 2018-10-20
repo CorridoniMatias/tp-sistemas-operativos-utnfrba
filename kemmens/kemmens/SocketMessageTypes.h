@@ -13,6 +13,7 @@
 #define MESSAGETYPE_MDJ_CREATEFILE	3	//Comando: Crear Archivo
 #define MESSAGETYPE_MDJ_GETDATA		4	//Comando: Obtener bytes de archivo
 #define MESSAGETYPE_MDJ_PUTDATA		5	//Comando: Grabar datos a archivo
+#define MESSAGETYPE_MDJ_DELETEFILE	6	//Comando: Eliminar un archivo
 
 
 #endif /* KEMMENS_SOCKETMESSAGETYPES_H_ */
