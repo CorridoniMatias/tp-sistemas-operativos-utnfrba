@@ -87,13 +87,15 @@ int main(int argc, char **argv)
 
 	//TestFIFAReadFile();
 	//TestBitMapCreateAssignAndFree();
-	TestFIFAWriteFile();
+	//TestFIFAWriteFile();
 	//TestFIFADeleteFile();
 
-	Logger_CreateLog("./DMJ.log", "DMJ", true);
-
+	Logger_CreateLog("./DMJ.log", "DMJ", false);
+	initGlobals();
+	FIFA_Start();
 	startServer();
 	ThreadPool_FreeGracefully(threadPool);
+	FIFA_ShutDown();
 	exit_gracefully_custom((void*)freeGlobals, 0);
 }
 

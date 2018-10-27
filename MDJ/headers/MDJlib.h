@@ -8,6 +8,7 @@
 #include "kemmens/SocketServer.h"
 #include <stdio.h>
 #include <string.h>
+#include <dirent.h>
 
 #include "Config.h"
 
@@ -23,6 +24,14 @@ void startServer();
 void initGlobals();
 
 void* CommandIAm (int argc, char** args, char* comando, void* datos);
+
+void* Command_ls (int argc, char** args, char* comando, void* datos);
+void* Command_cat (int argc, char** args, char* comando, void* datos);
+void* Command_md5 (int argc, char** args, char* comando, void* datos);
+void* Command_cd (int argc, char** args, char* comando, void* datos);
+void *CommandQuit (int argC, char** args, char* callingLine, void* extraData);
+
+int cd(char* path, char** tmp);
 
 void clientConnected(int socket);
 
