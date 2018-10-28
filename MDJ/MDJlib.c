@@ -299,6 +299,7 @@ void *Command_cd (int argC, char** args, char* callingLine, void* extraData)
 		while (parts[i] != NULL) {
 			if(cd(parts[i], &tmp) == 0)
 			{
+				free(tmp);
 				error = 1;
 				break;
 			}
@@ -326,6 +327,8 @@ void *Command_cd (int argC, char** args, char* callingLine, void* extraData)
 
 void *Command_md5 (int argC, char** args, char* callingLine, void* extraData)
 {
+
+
 
 	CommandInterpreter_FreeArguments(args);
 	return 0;

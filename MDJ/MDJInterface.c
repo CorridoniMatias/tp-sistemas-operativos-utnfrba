@@ -73,7 +73,7 @@ void MDJ_GetData(void* arriveData)
 		if(content == NULL)
 			SocketCommons_SendData(data->calling_SocketID, MESSAGETYPE_INT, (void*)404, sizeof(uint32_t));
 		else
-			SocketCommons_SendData(data->calling_SocketID, MESSAGETYPE_STRING, (void*)content, copied + 1);
+			SocketCommons_SendData(data->calling_SocketID, MESSAGETYPE_STRING, (void*)content, copied);
 	} else
 	{
 		//En honor a HTTP : Bad Request
