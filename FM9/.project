@@ -3,6 +3,7 @@
 	<name>FM9</name>
 	<comment></comment>
 	<projects>
+		<project>kemmens</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

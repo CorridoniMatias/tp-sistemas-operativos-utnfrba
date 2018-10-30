@@ -1,4 +1,4 @@
-#include "incs/ConsoleHandler.h"
+#include "headers/ConsoleHandler.h"
 
 void OnPostInterpreter(char* cmd, char* sep, void* args, bool actionFired)
 {
