@@ -34,7 +34,7 @@ void TestFIFAReadFile()
 	//int tam = 15;
 	int cop = 0;
 
-	char* cont = FIFA_ReadFile("/scripts/2.script", 0, 5, &cop);
+	char* cont = FIFA_ReadFile("/scripts/checkpoint.escriptorio", 0, 500, &cop);
 
 	cont = realloc(cont, cop + 1);
 
@@ -85,7 +85,7 @@ void TestFIFADeleteFile()
 int main(int argc, char **argv)
 {
 
-	//TestFIFAReadFile();
+	TestFIFAReadFile();
 	//TestBitMapCreateAssignAndFree();
 	//TestFIFAWriteFile();
 	//TestFIFADeleteFile();

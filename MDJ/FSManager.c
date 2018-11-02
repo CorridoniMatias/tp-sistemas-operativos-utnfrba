@@ -79,7 +79,7 @@ static int FIFA_ReserveNextFreeBlock()
 
 static char* FIFA_GetFullPath(char* path)
 {
-	return StringUtils_Format("%s%s%s", config->filesPath, path, ".bin");
+	return StringUtils_Format("%s%s", config->filesPath, path);
 }
 
 static void FIFA_InitBitmapFile()
