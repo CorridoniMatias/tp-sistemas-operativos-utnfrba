@@ -2,6 +2,8 @@
 
 void configurar()
 {
+	Logger_Log(LOG_INFO, "FM9 -> Configurando.");
+
 	settings = (Configuracion*)malloc(sizeof(Configuracion));
 
 	char* campos[] = {
@@ -9,19 +11,28 @@ void configurar()
 			"MODO",
 			"TAMANIO",
 			"MAX_LINEA",
-			"TAM_PAGINA"
+			NULL
 	};
 
 	t_config* archivoConfig = archivoConfigCrear(RUTA_CONFIG, campos);
 
-	//strcpy(settings->puertoEscucha, archivoConfigSacarStringDe(archivoConfig, "PUERTO_ESCUCHA"));
 	settings->puerto= archivoConfigSacarIntDe(archivoConfig, "PUERTO");
 	strcpy(settings->modo, archivoConfigSacarStringDe(archivoConfig, "MODO"));
 	settings->tamanio = archivoConfigSacarIntDe(archivoConfig, "TAMANIO");
 	settings->max_linea = archivoConfigSacarIntDe(archivoConfig, "MAX_LINEA");
-	settings->tam_pagina = archivoConfigSacarIntDe(archivoConfig, "TAM_PAGINA");
+	if(!string_equals_ignore_case(settings->modo,"SEG")){
+		if(!archivoConfigTieneCampo(archivoConfig,"TAM_PAGINA"))
+		{
+			archivoConfigEsInvalido();
+		}
+		else
+		{
 
-	//free(campos);
+			settings->tam_pagina = archivoConfigSacarIntDe(archivoConfig, "TAM_PAGINA");
+		}
+	}
 	archivoConfigDestruir(archivoConfig);
+
+	Logger_Log(LOG_INFO, "FM9 -> Configurado correctamente.");
 
 }

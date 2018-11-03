@@ -9,6 +9,7 @@
 //FM9 General Errors:
 
 #define INSUFFICIENT_SPACE	-1
+#define INSUFFICIENT_DATA	-2
 
 size_t tamanioLinea;
 size_t cantLineas;
@@ -39,6 +40,6 @@ void freeStorage();
 
 	Retorna:
  */
-int save(void* data, size_t numLinea, size_t size);
+int writeStorage(void* data, size_t size, size_t numLinea);
 
 #endif /* STORAGE_H_ */

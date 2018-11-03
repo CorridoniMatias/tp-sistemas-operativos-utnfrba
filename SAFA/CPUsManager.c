@@ -1,7 +1,5 @@
 #include "incs/CPUsManager.h"
 
-t_list* cpus;
-
 void InitCPUsHolder()
 {
 	cpus = list_create();
@@ -10,7 +8,7 @@ void InitCPUsHolder()
 void AddCPU(int* socketID)
 {
 
-	CPU* newCPU;
+	CPU* newCPU = (CPU*) malloc(sizeof(CPU));
 	newCPU->socket = *socketID;
 	newCPU->busy = false;
 	list_add(cpus, newCPU);
@@ -21,7 +19,8 @@ void FreeCPU(int socketID)
 {
 
 	int size = CPUsCount();
-	CPU* counter, toModify;
+	CPU* counter;
+	CPU* toModify;
 	for(int i = 0; i < size; i++)
 	{
 		counter = list_get(cpus, i);
@@ -85,7 +84,7 @@ bool ExistsIdleCPU()
 {
 
 	bool exists;
-	exists = list_any_satisfy(cpus, IsIdle);
+	exists = list_any_satisfy(cpus, (void*)IsIdle);
 	return exists;
 
 }

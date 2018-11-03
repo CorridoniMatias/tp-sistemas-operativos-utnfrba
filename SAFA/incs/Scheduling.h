@@ -6,6 +6,7 @@
 #include "CPUsManager.h"
 #include <pthread.h>
 #include <semaphore.h>
+#include <unistd.h>
 
 ///-------------ESTRUCTURAS DEFINIDAS-------------///
 
@@ -27,6 +28,7 @@ struct DTB_s
 	int programCounter;					//0 es para la primer linea
 	int initialized;
 	int status;
+	int openedFilesAmount;				//Cantidad de archivos abiertos
 	char** openedFiles;					//Tabla de archivos abiertos
 	int quantumRemainder;				//Cantidad de UTs del quantum que le quedan
 } typedef DTB;
@@ -86,6 +88,7 @@ struct AssignmentInfo_s
 //Semaforos a emplear; no deberian ser globales al programa main?
 pthread_mutex_t mutexPLPtask;
 pthread_mutex_t mutexPCPtask;
+//ESte no seria externo del main tambien?
 sem_t workPLP;									//Semaforo binario, para indicar que es hora de que el PLP trabaje
 
 //Tareas a realizar de los planificadores, son externas en main para que se puedan modificar desde cualquier modulo
@@ -102,10 +105,43 @@ t_list* EXITqueue;								//"Cola EXIT, en realidad es una lista (mas manejable)
 
 DTB* dummyDTB;									//DTB que se usara como Dummy
 
-//Estas tres son externas en main
+//Estas dos son externas en main
 CreatableGDT* toBeCreated;						//Estructura con el path del script cuyo DTB quiero crear, y el ID del
 												//DTB a inicializar al terminar la correspondiente operacion Dummy; para PLP
 
 AssignmentInfo toBeMoved;						//Estructura con el DTB a mover de cola y el CPU a desalojar (si hace falta)
+
+
+///-------------FUNCIONES DEFINIDAS------------///
+
+
+void InitQueuesAndLists();
+void InitSemaphores();
+void CreateDummy();
+void InitGlobalVariables();
+void SetPLPTask(int taskCode);
+void SetPCPTask(int taskCode);
+
+int ShowOptions();
+void GestorDeProgramas();
+
+DTB* CreateDTB(char* script);
+void AddToNew(DTB* myDTB);
+void AddToReady(DTB* myDTB);
+void AddToBlocked(DTB* myDTB);
+void AddToExec(DTB* myDTB);
+bool IsDTBtoBeInitialized(DTB* myDTB);
+bool IsInitialized(DTB* myDTB);
+bool IsDummy(DTB* myDTB);
+bool IsToBeMoved(DTB* myDTB);
+DTB* GetNextDTB();
+
+void PlanificadorLargoPlazo(void* gradoMultiprogramacion);
+
+void PlanificadorCortoPlazo(void* algoritmo);
+void* ConcatOpenedFiles(char** openedFiles, int amount);
+void* GetMessageForCPU(DTB* chosenDTB);
+void* scheduleRR(int quantum);
+void* scheduleVRR(int maxQuantum);
 
 #endif /* INCS_SCHEDULING_H_ */

@@ -1,4 +1,4 @@
-#include "bibliotecaSAFA.h"
+#include "incs/bibliotecaSAFA.h"
 
 
 void configurar()
@@ -11,7 +11,8 @@ void configurar()
 			"ALGORITMO",
 			"QUANTUM",
 			"MULTIPROGRAMACION",
-			"RETARDO_PLANIF"
+			"RETARDO_PLANIF",
+			NULL
 	};
 
 	t_config* archivoConfig = archivoConfigCrear(RUTA_CONFIG, campos);
