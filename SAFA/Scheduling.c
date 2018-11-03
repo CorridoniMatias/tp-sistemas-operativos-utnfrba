@@ -5,7 +5,7 @@
 void InitQueuesAndLists()
 {
 
-	NEWqueue = queue_create();
+	NEWqueue = list_create();
 	READYqueue = queue_create();
 	BLOCKEDqueue = list_create();
 	EXECqueue = list_create();
@@ -16,8 +16,8 @@ void InitQueuesAndLists()
 void InitSemaphores()
 {
 
-	pthread_mutex_init(mutexPLPtask, NULL);
-	pthread_mutex_init(mutexPCPtask, NULL);
+	pthread_mutex_init(&mutexPLPtask, NULL);
+	pthread_mutex_init(&mutexPCPtask, NULL);
 	sem_init(&workPLP, 0, 0);
 
 }
@@ -75,7 +75,7 @@ void SetPCPTask(int taskCode)
 
 ////////////////////////////////////////////////////////////
 
-int showOptions()
+int ShowOptions()
 {
 
 	int chosen;
@@ -102,6 +102,7 @@ void GestorDeProgramas()
 
 		chosenOption = ShowOptions();
 		char* path;
+		path = malloc(100);			//Fantasma, para no tenerlo sin inicializar
 
 		if(chosenOption == 1)
 		{
@@ -117,6 +118,8 @@ void GestorDeProgramas()
 			//Actualizo la tarea a realizar del PLP, y activo el semaforo binario
 			SetPLPTask(PLP_TASK_CREATE_DTB);
 		}
+
+		free(path);
 
 	}
 
@@ -136,6 +139,10 @@ DTB* CreateDTB(char* script)
 	newDTB->pathEscriptorio = malloc(strlen(script) + 1);
 	strcpy(newDTB->pathEscriptorio, script);
 	newDTB->programCounter = 0;
+	//Le pongo un malloc fantasma para luego poder realocar
+	newDTB->openedFiles = malloc(1);
+	//De entrada no tiene ningun archivo abierto
+	newDTB->openedFilesAmount = 0;
 	//Le pongo un valor basura, para su primera ejecucion (por si fuera con VRR)
 	newDTB->quantumRemainder = -1;
 	newDTB->status = -1;										//Valor basura, todavia no esta en NEW
@@ -307,12 +314,12 @@ void PlanificadorLargoPlazo(void* gradoMultiprogramacion)
 			{
 
 				//Si no hay ninguno inicializado, no hay nada que hacer, voy a la siguiente iteracion (bloqueo en el semaforo)
-				if(!list_any_satisfy(NEWqueue, IsInitialized))
+				if(!list_any_satisfy(NEWqueue, (void*)IsInitialized))
 				{
 					sleep(3);
 					continue;
 				}
-				DTB* firstInitialized = list_remove_by_condition(NEWqueue, IsInitialized);
+				DTB* firstInitialized = list_remove_by_condition(NEWqueue, (void*)IsInitialized);
 				AddToReady(firstInitialized);
 
 			}
@@ -332,7 +339,7 @@ void PlanificadorLargoPlazo(void* gradoMultiprogramacion)
 		{
 			//Busco el DTB que tiene el mismo ID que indicaba el Dummy; le pongo el flag en 1
 			//Para ello, debo sacarlo de la lista, modificarlo, y ponerlo al final de nuevo (es una cola)
-			DTB* toBeInitialized = list_remove_by_condition(NEWqueue, IsDTBtoBeInitialized);
+			DTB* toBeInitialized = list_remove_by_condition(NEWqueue, (void*)IsDTBtoBeInitialized);
 			toBeInitialized->initialized = 1;
 			AddToNew(toBeInitialized);
 			//Vuelvo a poner la tarea del PLP en Planificacion Normal (1)
@@ -364,7 +371,7 @@ void PlanificadorCortoPlazo(void* algoritmo)
 			}
 
 			//Agarro el primer CPU libre que haya, lo saco de la lista y lo pongo aca
-			CPU* chosenCPU = list_remove_by_condition(cpus, IsIdle);
+			CPU* chosenCPU = list_remove_by_condition(cpus, (void*)IsIdle);
 
 			//Elegir el DTB adecuado, y obtener el mensaje a enviarle al CPU; ponerlo en EXEC
 			//if(algoritmo == "RR") => scheduleRR(quantum)
@@ -388,7 +395,7 @@ void PlanificadorCortoPlazo(void* algoritmo)
 		{
 
 			//Saco el Dummy de la cola de EXEC, y lo paso a la de BLOCKED (modifico su estado)
-			list_remove_by_condition(EXECqueue, IsDummy);
+			list_remove_by_condition(EXECqueue, (void*)IsDummy);
 			AddToBlocked(dummyDTB);
 			//Aca habria que liberar el CPU, con FreeCPU(toBeMoved.cpuSocket)
 			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
@@ -399,7 +406,7 @@ void PlanificadorCortoPlazo(void* algoritmo)
 		else if(PCPtask == PCP_TASK_BLOCK_DTB)
 		{
 
-			DTB* target = list_remove_by_condition(EXECqueue, IsToBeMoved);
+			DTB* target = list_remove_by_condition(EXECqueue, (void*)IsToBeMoved);
 			AddToBlocked(target);
 			//Aca habria que liberar el CPU, con FreeCPU(toBeMoved.cpuSocket)
 			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
@@ -410,7 +417,7 @@ void PlanificadorCortoPlazo(void* algoritmo)
 		else if(PCPtask == PCP_TASK_UNLOCK_DTB)
 		{
 
-			DTB* target = list_remove_by_condition(BLOCKEDqueue, IsToBeMoved);
+			DTB* target = list_remove_by_condition(BLOCKEDqueue, (void*)IsToBeMoved);
 			AddToReady(target);
 			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 
@@ -420,21 +427,56 @@ void PlanificadorCortoPlazo(void* algoritmo)
 
 }
 
-void* scheduleRR(int quantum)
+void* ConcatOpenedFiles(char** openedFiles, int amount)
 {
 
-	DTB* chosenDTB = GetNextDTB();
-	chosenDTB->quantumRemainder = quantum;
+	int offset = 0, totalSize = 0;				//Contadores de desplazamiento y tamanio total de la cadena
+	int nextSize = strlen(openedFiles[0]);		//Primero copio el primero de la lista
 
-	int* idToSend;
+	void* result;
+	result = malloc(nextSize);					//Hago esto para el realloc inicial
+
+	memcpy(result + offset, openedFiles[0], nextSize); 	//Copio el primero de la lista
+	offset += nextSize;
+	totalSize += nextSize;
+
+	int i = 1;									//Contador para los archivos abiertos
+
+	while(i < amount)
+	{
+		nextSize = strlen(openedFiles[i]);		//Obtengo largo del siguiente path
+		totalSize += (nextSize + 1); 			//Le sumo tambien 1 por la coma separadora de archivos
+		result = realloc(result, totalSize);	//Realloco espacio para el resultado
+		memcpy(result + offset, ",", 1);		//Copio la coma, corro el offset
+		offset++;
+		memcpy(result + offset, openedFiles[i], nextSize);	//Copio el path actual
+		offset += nextSize;						//Corro el offset, no me puedo olvidar!
+		i++;
+	}
+
+	totalSize += 2;                             //Agrego espacio para el ;\0 que ira al final, y lo pongo
+	result = realloc(result, totalSize);
+	memcpy(result + offset, ";\0", 2);
+
+	return result;								//Queda : "arch1,arch2,...,archN;" con un \0 al final
+
+}
+
+void* GetMessageForCPU(DTB* chosenDTB)
+{
+
+	int* idToSend = malloc(sizeof(int));
 	*idToSend = chosenDTB->id;
-	int* pcToSend;
+	int* pcToSend = malloc(sizeof(int));
 	*pcToSend = chosenDTB->programCounter;
-	int* quantumToSend;
-	*quantumToSend = quantum;
+	int* quantumToSend = malloc(sizeof(int));
+	*quantumToSend = chosenDTB->quantumRemainder;
+	//Cantidad de archivos abiertos
+	int* ofaToSend = malloc(sizeof(int));
+	*ofaToSend = chosenDTB->openedFilesAmount;
 
 	//Estructuras con los datos a serializar y mandar como cadena
-	SerializedPart idSP, pathSP, pcSP, quantumSP;
+	SerializedPart idSP, pathSP, pcSP, quantumSP, ofaSP, filesSP;
 	idSP.size = sizeof(idToSend);
 	idSP.data = idToSend;
 	pathSP.size = strlen(chosenDTB->pathEscriptorio) + 1;
@@ -443,11 +485,29 @@ void* scheduleRR(int quantum)
 	pcSP.data = pcToSend;
 	quantumSP.size = sizeof(quantumToSend);
 	quantumSP.data = quantumToSend;
+	ofaSP.size = sizeof(ofaToSend);
+	ofaSP.data = ofaToSend;
+	filesSP.data = ConcatOpenedFiles(chosenDTB->openedFiles, chosenDTB->openedFilesAmount);
+	filesSP.size = strlen (filesSP.data) + 1;
 
 	//La idea es armar un paquete serializado que va a tener la estructura:
-	// |IDdelDTB|PathEscriptorioAsociado|ProgramCounterDelDTB|QuantumAEjecutar|
+	// |IDdelDTB|PathEscriptorioAsociado|ProgramCounterDelDTB|QuantumAEjecutar|CantArchivosAbiertos|Archivos
 	//(cada cual con su respectivo tamanio antes del dato en si)
-	void* packet = Serialization_Serialize(4, idSP, pathSP, pcSP, quantumSP);
+	//Los archivos se mandan como: "arch1,arch2,...,archN;", separados por "," y terminando con un ";"
+	void* message = Serialization_Serialize(6, idSP, pathSP, pcSP, quantumSP, ofaSP, filesSP);
+
+	return message;
+
+}
+
+void* scheduleRR(int quantum)
+{
+
+	DTB* chosenDTB = GetNextDTB();
+	chosenDTB->quantumRemainder = quantum;
+
+	//Obtengo la cadena a enviarle al CPU asignado; detalle de la misma dentro de la funcion
+	void* packet = GetMessageForCPU(chosenDTB);
 
 	AddToExec(chosenDTB);
 	//OJO: Alguien deberia hacer free de ese packet despues
@@ -461,33 +521,13 @@ void* scheduleVRR(int maxQuantum)
 	DTB* chosenDTB = GetNextDTB();
 	//Si le quedara 0 de quantum (se quedo sin) o tuviera mas del maximo (por haber sido
 	//planificado con otro algoritmo antes), le actualizo el maximo quantum a ejecutar
-	if(chosenDTB->quantumRemainder == 0 || (chosenDTB->quantumRemainder == 0 > maxQuantum))
+	if((chosenDTB->quantumRemainder == 0) || ((chosenDTB->quantumRemainder == 0) > maxQuantum))
 	{
 		chosenDTB->quantumRemainder = maxQuantum;
 	}
 
-	int* idToSend;
-	*idToSend = chosenDTB->id;
-	int* pcToSend;
-	*pcToSend = chosenDTB->programCounter;
-	int* quantumToSend;
-	*quantumToSend = chosenDTB->quantumRemainder;
-
-	//Estructuras con los datos a serializar y mandar como cadena
-	SerializedPart idSP, pathSP, pcSP, quantumSP;
-	idSP.size = sizeof(idToSend);
-	idSP.data = idToSend;
-	pathSP.size = strlen(chosenDTB->pathEscriptorio) + 1;
-	strcpy(pathSP.data, chosenDTB->pathEscriptorio);
-	pcSP.size = sizeof(pcToSend);
-	pcSP.data = pcToSend;
-	quantumSP.size = sizeof(quantumToSend);
-	quantumSP.data = quantumToSend;
-
-	//La idea es armar un paquete serializado que va a tener la estructura:
-	// |IDdelDTB|PathEscriptorioAsociado|ProgramCounterDelDTB|QuantumAEjecutar|
-	//(cada cual con su respectivo tamanio antes del dato en si)
-	void* packet = Serialization_Serialize(4, idSP, pathSP, pcSP, quantumSP);
+	//Obtengo la cadena a enviarle al CPU asignado; detalle de la misma dentro de la funcion
+	void* packet = GetMessageForCPU(chosenDTB);
 
 	AddToExec(chosenDTB);
 	//OJO: Alguien deberia hacer free de ese packet despues

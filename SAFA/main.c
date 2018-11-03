@@ -6,7 +6,7 @@
 #include "incs/CPUsManager.h"
 #include "incs/ConsoleHandler.h"
 #include "incs/Scheduling.h"
-#include "bibliotecaSAFA.h"
+#include "incs/bibliotecaSAFA.h"
 
 bool corrupt = true;
 int elDiego = -1;

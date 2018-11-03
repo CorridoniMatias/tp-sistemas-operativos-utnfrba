@@ -85,7 +85,7 @@ void TestFIFADeleteFile()
 int main(int argc, char **argv)
 {
 
-	TestFIFAReadFile();
+	//TestFIFAReadFile();
 	//TestBitMapCreateAssignAndFree();
 	//TestFIFAWriteFile();
 	//TestFIFADeleteFile();

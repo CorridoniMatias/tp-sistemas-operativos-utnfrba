@@ -83,6 +83,7 @@ int FIFA_DeleteFile(char* path);
 
 void FIFA_Start();
 void FIFA_ShutDown();
+t_config* FIFA_OpenFile(char* path);
 
 void FIFA_PrintBitmap();
 void FIFA_MkDir(char* path);
