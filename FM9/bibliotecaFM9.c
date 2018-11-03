@@ -2,6 +2,8 @@
 
 void configurar()
 {
+	Logger_Log(LOG_INFO, "FM9 -> Configurando.");
+
 	settings = (Configuracion*)malloc(sizeof(Configuracion));
 
 	char* campos[] = {
@@ -25,20 +27,12 @@ void configurar()
 		}
 		else
 		{
-			Logger_Log(LOG_DEBUG, "pOR SACAR TAMANIO PAGINA");
 
 			settings->tam_pagina = archivoConfigSacarIntDe(archivoConfig, "TAM_PAGINA");
 		}
 	}
-	int page;
-	if(settings->tam_pagina!=0)
-	{
-		page = settings->tam_pagina;
-	}
-	else
-		page = -1;
-	Logger_Log(LOG_DEBUG, "FM9 -> Valor tamaño pagina %d.",page);
-
 	archivoConfigDestruir(archivoConfig);
+
+	Logger_Log(LOG_INFO, "FM9 -> Configurado correctamente.");
 
 }
