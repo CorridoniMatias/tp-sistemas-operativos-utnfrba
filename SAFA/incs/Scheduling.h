@@ -139,6 +139,8 @@ DTB* GetNextDTB();
 void PlanificadorLargoPlazo(void* gradoMultiprogramacion);
 
 void PlanificadorCortoPlazo(void* algoritmo);
+void* ConcatOpenedFiles(char** openedFiles, int amount);
+void* GetMessageForCPU(DTB* chosenDTB);
 void* scheduleRR(int quantum);
 void* scheduleVRR(int maxQuantum);
 

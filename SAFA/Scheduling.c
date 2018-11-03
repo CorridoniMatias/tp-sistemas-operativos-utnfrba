@@ -427,24 +427,56 @@ void PlanificadorCortoPlazo(void* algoritmo)
 
 }
 
-void* scheduleRR(int quantum)
+void* ConcatOpenedFiles(char** openedFiles, int amount)
 {
 
-	DTB* chosenDTB = GetNextDTB();
-	chosenDTB->quantumRemainder = quantum;
+	int offset = 0, totalSize = 0;				//Contadores de desplazamiento y tamanio total de la cadena
+	int nextSize = strlen(openedFiles[0]);		//Primero copio el primero de la lista
+
+	void* result;
+	result = malloc(nextSize);					//Hago esto para el realloc inicial
+
+	memcpy(result + offset, openedFiles[0], nextSize); 	//Copio el primero de la lista
+	offset += nextSize;
+	totalSize += nextSize;
+
+	int i = 1;									//Contador para los archivos abiertos
+
+	while(i < amount)
+	{
+		nextSize = strlen(openedFiles[i]);		//Obtengo largo del siguiente path
+		totalSize += (nextSize + 1); 			//Le sumo tambien 1 por la coma separadora de archivos
+		result = realloc(result, totalSize);	//Realloco espacio para el resultado
+		memcpy(result + offset, ",", 1);		//Copio la coma, corro el offset
+		offset++;
+		memcpy(result + offset, openedFiles[i], nextSize);	//Copio el path actual
+		offset += nextSize;						//Corro el offset, no me puedo olvidar!
+		i++;
+	}
+
+	totalSize += 2;                             //Agrego espacio para el ;\0 que ira al final, y lo pongo
+	result = realloc(result, totalSize);
+	memcpy(result + offset, ";\0", 2);
+
+	return result;								//Queda : "arch1,arch2,...,archN;" con un \0 al final
+
+}
+
+void* GetMessageForCPU(DTB* chosenDTB)
+{
 
 	int* idToSend = malloc(sizeof(int));
 	*idToSend = chosenDTB->id;
 	int* pcToSend = malloc(sizeof(int));
 	*pcToSend = chosenDTB->programCounter;
 	int* quantumToSend = malloc(sizeof(int));
-	*quantumToSend = quantum;
+	*quantumToSend = chosenDTB->quantumRemainder;
 	//Cantidad de archivos abiertos
 	int* ofaToSend = malloc(sizeof(int));
 	*ofaToSend = chosenDTB->openedFilesAmount;
 
 	//Estructuras con los datos a serializar y mandar como cadena
-	SerializedPart idSP, pathSP, pcSP, quantumSP, ofaSP;
+	SerializedPart idSP, pathSP, pcSP, quantumSP, ofaSP, filesSP;
 	idSP.size = sizeof(idToSend);
 	idSP.data = idToSend;
 	pathSP.size = strlen(chosenDTB->pathEscriptorio) + 1;
@@ -455,11 +487,27 @@ void* scheduleRR(int quantum)
 	quantumSP.data = quantumToSend;
 	ofaSP.size = sizeof(ofaToSend);
 	ofaSP.data = ofaToSend;
+	filesSP.data = ConcatOpenedFiles(chosenDTB->openedFiles, chosenDTB->openedFilesAmount);
+	filesSP.size = strlen (filesSP.data) + 1;
 
 	//La idea es armar un paquete serializado que va a tener la estructura:
-	// |IDdelDTB|PathEscriptorioAsociado|ProgramCounterDelDTB|QuantumAEjecutar|CantArchivosAbiertos|Arch1|Arch2|...|ArchN
+	// |IDdelDTB|PathEscriptorioAsociado|ProgramCounterDelDTB|QuantumAEjecutar|CantArchivosAbiertos|Archivos
 	//(cada cual con su respectivo tamanio antes del dato en si)
-	void* packet = Serialization_Serialize(4, idSP, pathSP, pcSP, quantumSP);
+	//Los archivos se mandan como: "arch1,arch2,...,archN;", separados por "," y terminando con un ";"
+	void* message = Serialization_Serialize(6, idSP, pathSP, pcSP, quantumSP, ofaSP, filesSP);
+
+	return message;
+
+}
+
+void* scheduleRR(int quantum)
+{
+
+	DTB* chosenDTB = GetNextDTB();
+	chosenDTB->quantumRemainder = quantum;
+
+	//Obtengo la cadena a enviarle al CPU asignado; detalle de la misma dentro de la funcion
+	void* packet = GetMessageForCPU(chosenDTB);
 
 	AddToExec(chosenDTB);
 	//OJO: Alguien deberia hacer free de ese packet despues
@@ -478,28 +526,8 @@ void* scheduleVRR(int maxQuantum)
 		chosenDTB->quantumRemainder = maxQuantum;
 	}
 
-	int* idToSend = malloc(sizeof(int));
-	*idToSend = chosenDTB->id;
-	int* pcToSend = malloc(sizeof(int));
-	*pcToSend = chosenDTB->programCounter;
-	int* quantumToSend = malloc(sizeof(int));
-	*quantumToSend = chosenDTB->quantumRemainder;
-
-	//Estructuras con los datos a serializar y mandar como cadena
-	SerializedPart idSP, pathSP, pcSP, quantumSP;
-	idSP.size = sizeof(idToSend);
-	idSP.data = idToSend;
-	pathSP.size = strlen(chosenDTB->pathEscriptorio) + 1;
-	strcpy(pathSP.data, chosenDTB->pathEscriptorio);
-	pcSP.size = sizeof(pcToSend);
-	pcSP.data = pcToSend;
-	quantumSP.size = sizeof(quantumToSend);
-	quantumSP.data = quantumToSend;
-
-	//La idea es armar un paquete serializado que va a tener la estructura:
-	//|IDdelDTB|PathEscriptorioAsociado|ProgramCounterDelDTB|QuantumAEjecutar|CantArchivosAbiertos|Arch1|Arch2|...|ArchN
-	//(cada cual con su respectivo tamanio antes del dato en si)
-	void* packet = Serialization_Serialize(4, idSP, pathSP, pcSP, quantumSP);
+	//Obtengo la cadena a enviarle al CPU asignado; detalle de la misma dentro de la funcion
+	void* packet = GetMessageForCPU(chosenDTB);
 
 	AddToExec(chosenDTB);
 	//OJO: Alguien deberia hacer free de ese packet despues
