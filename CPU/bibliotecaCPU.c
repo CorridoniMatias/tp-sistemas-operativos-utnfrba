@@ -31,7 +31,6 @@ void configurar()
 
 int conectarAProceso(char* ip, char* puerto, char* nombreProceso)
 {
-	//todo PODRIAMOS PONER ESTA FUNCION PARA QUE LA USEMOS TODOS AUQNEU LA MIA PODRIA SER VOID TRANQUILAMENTE
 	int socket;
 	socket = SocketClient_ConnectToServerIP(ip, puerto);	//Me conecto al servidor que me dijeron
 
@@ -51,3 +50,31 @@ int conectarAProceso(char* ip, char* puerto, char* nombreProceso)
 
 }
 
+void executeDummy(DeserializedData dtb, int diego, int safa){
+	int* idDtb = (int*)malloc(4);
+	char* path = (char*)malloc(sizeof(dtb.parts[1]));
+	int* pc = (int*)malloc(4);
+	int* quantum = (int*)malloc(4);
+	int* code = (int*)malloc(4);
+
+	SerializedPart fieldForDiego1 = {.size = 4, .data = idDtb};
+	SerializedPart fieldForDiego2 = {.size = sizeof(dtb.parts[1]), .data = path};
+	void* packetToDiego = Serialization_Serialize(2, fieldForDiego1, fieldForDiego2);
+
+	SocketCommons_SendData(diego, MESSAGETYPE_VOIDPOINTER, packetToDiego, sizeof(packetToDiego));
+
+	SerializedPart fieldForSafa1 = {.size = 4, .data = idDtb};
+	SerializedPart fieldForSafa2 = {.size = 4, .data = pc};
+	SerializedPart fieldForSafa3 = {.size = 4, .data = quantum};
+	SerializedPart fieldForSafa4 = {.size = 4, .data = code};
+	void* packetToSafa = Serialization_Serialize(4, fieldForSafa1, fieldForSafa2, fieldForSafa3, fieldForSafa4);
+
+	SocketCommons_SendData(safa,MESSAGETYPE_VOIDPOINTER, packetToSafa, sizeof(packetToSafa));
+}
+
+void waitSafaOrders(){
+
+
+
+
+}

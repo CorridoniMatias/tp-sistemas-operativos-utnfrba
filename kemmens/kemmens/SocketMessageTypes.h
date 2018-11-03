@@ -6,8 +6,10 @@
 
 //Message Types
 
-#define MESSAGETYPE_STRING	1	//Strings puras
+#define MESSAGETYPE_STRING 1	//Strings puras
 #define MESSAGETYPE_INT	2		//INTS de longitud variable
+#define MESSAGETYPE_VOIDPOINTER	3   //void*, pára los packets
+
 
 //PROTOCOLO MDJ (1)
 #define MESSAGETYPE_MDJ_CHECKFILE 	10	//Comando: Validar Archivo
