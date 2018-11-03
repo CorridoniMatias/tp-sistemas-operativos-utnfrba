@@ -104,6 +104,42 @@ char* askLineToFM9(DeserializedData dtb, int fm9){
 		return "error"; //TODO cambiar por algo para saber verdaderamente que no es una linea de codigo
 }
 
+void* CommandAbrir(){
+return 0;
+}
+
+void* CommandConcentrar(){
+return 0;
+}
+
+void* CommandAsignar(){
+return 0;
+}
+
+void* CommandWait(){
+return 0;
+}
+
+void* CommandSignal(){
+return 0;
+}
+
+void* CommandFlush(){
+return 0;
+}
+
+void* CommandClose(){
+return 0;
+}
+
+void* CommandCrear(){
+return 0;
+}
+
+void* CommandBorrar(){
+return 0;
+}
+
 
 void waitSafaOrders(){
 

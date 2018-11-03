@@ -41,6 +41,16 @@ int conectarAProceso(char* ip, char* puerto, char* nombreProceso); // Funcion cr
 void waitSafaOrders();
 void executeDummy(DeserializedData dtb, int socketDiego, int socketSafa);
 char* askLineToFM9(DeserializedData dtb, int socketfm9);
+void* CommandAbrir();
+void* CommandConcentrar();
+void* CommandAsignar();
+void* CommandWait();
+void* CommandSignal();
+void* CommandFlush();
+void* CommandClose();
+void* CommandCrear();
+void* CommandBorrar();
+
 
 
 

@@ -13,7 +13,8 @@ int main(int argc, char *argv[])
 	int fm9 = conectarAProceso(settings->ipFM9,settings->puertoFM9,"FM9");
 
 
-	while(1){
+	while(1)
+	{
 		int err,messageType;
 //		waitSafaOrders();
 		void* msgFromSafa = SocketCommons_ReceiveData(safa,&messageType,&err);
@@ -21,30 +22,55 @@ int main(int argc, char *argv[])
 		DeserializedData data;
 		Serialization_Deserialize(msgFromSafa,&data);
 
-		if ( *(int*)data.parts[0] == 0){
+		if ( *(int*)data.parts[0] == 0)
+			{
+				executeDummy(data, safa, diego);
 
-			executeDummy(data, safa, diego);
+				sleep(settings->retardo);
 
-			sleep(settings->retardo);
+				continue;
+			}
 
-			continue;
-		}
-		else {
-			int i = 0;
-			while( i < *((int*)data.parts[3])){
+		else
+			{
+				int i = 0;
+				CommandInterpreter_Init();
+
+				CommandInterpreter_RegisterCommand("abrir",(void*)CommandAbrir);
+				CommandInterpreter_RegisterCommand("concentrar",(void*)CommandConcentrar);
+				CommandInterpreter_RegisterCommand("asignar",(void*)CommandAsignar);
+				CommandInterpreter_RegisterCommand("wait",(void*)CommandWait);
+				CommandInterpreter_RegisterCommand("signal",(void*)CommandSignal);
+				CommandInterpreter_RegisterCommand("flush",(void*)CommandFlush);
+				CommandInterpreter_RegisterCommand("close",(void*)CommandClose);
+				CommandInterpreter_RegisterCommand("crear",(void*)CommandCrear);
+				CommandInterpreter_RegisterCommand("borrar",(void*)CommandBorrar);
+
+
+
+			while( i < *((int*)data.parts[3]))
+				{
 				//TODO hacer verificacion de que verdaderamente me lleno una linea de codigo
-				char* line = askLineToFM9(data, fm9);
+					char* line = askLineToFM9(data, fm9);
+				// TODO terminar el command interpretar siempre ejecutando linea por linea y actualizando el PC de SAFA,
+				// NO OLVIDAR RETARDO POR OPERACION
+
+				}
+
 
 			}
 
-		}
+	}
+
+
 
 
 
 		/*
+		 * EXPLICACION VILLERA TODO DOCUMENTAR BIEN
 		ACORDARME DE MANDARME EL QUANTUM QUE SOBRO A SAFA
 							bloqueado esperando recv del SAFA
-						 //Deserializo todo el mensaje
+						 //Deserializo todó el mensaje
 						// Me fijo el id del DTb -> si es 0 es DUMMY, le hablo al DAM y al DAM le paso el path(pensar la estructura)
 						 * apenas le hablo al diego, le hablo al safa para que lo desaloje (le paso la estructura del id del dtb, codigo de error
 						 y )
@@ -57,8 +83,13 @@ int main(int argc, char *argv[])
 
 
 						 */
-	}
+
 	exit_gracefully(0);
 
 }
+
+
+void* CommandConcentrar(int argC, char** args, char* callingLine, void* extraData){
+
+	}
 
