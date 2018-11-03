@@ -16,5 +16,10 @@
 #define MESSAGETYPE_MDJ_PUTDATA		13	//Comando: Grabar datos a archivo
 #define MESSAGETYPE_MDJ_DELETEFILE	14	//Comando: Eliminar un archivo
 
+//PROTOCOLO DAM (2)
+
+#define MESSAGETYPE_DAM_ABRIR	20 //Comando: abrir <pathFile>
+#define MESSAGETYPE_DAM_FLUSH	21 //Comando flush <pathFile>
+
 
 #endif /* KEMMENS_SOCKETMESSAGETYPES_H_ */

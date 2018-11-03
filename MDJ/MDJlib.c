@@ -14,7 +14,8 @@ void configurar()
 	char* campos[] = {
 			"PUERTO",
 			"PUNTO_MONTAJE",
-			"RETARDO"
+			"RETARDO",
+			NULL
 	};
 
 	t_config* archivoConfig = archivoConfigCrear(RUTA_CONFIG, campos);
@@ -35,7 +36,8 @@ void configurar()
 	char* campos2[] = {
 			"CANTIDAD_BLOQUES",
 			"TAMANIO_BLOQUES",
-			"MAGIC_NUMBER"
+			"MAGIC_NUMBER",
+			NULL
 	};
 
 	char* bitmap = StringUtils_Format("%s%s", config->puntoMontaje, RUTA_BITMAP);
@@ -223,10 +225,8 @@ void *CommandQuit (int argC, char** args, char* callingLine, void* extraData)
 	return 0;
 }
 
-//Comandos de consola
-void *Command_ls (int argC, char** args, char* callingLine, void* extraData)
+static char* GetPathFromCMD(int argC, char** args)
 {
-
 	char* path;
 	if(argC == 0)
 	{
@@ -240,6 +240,14 @@ void *Command_ls (int argC, char** args, char* callingLine, void* extraData)
 			string_append(&path, args[i]);
 		}
 	}
+
+	return path;
+}
+
+//Comandos de consola
+void *Command_ls (int argC, char** args, char* callingLine, void* extraData)
+{
+	char* path = GetPathFromCMD(argC, args);
 
 	void freeall(char* ppath, char** aargs)
 	{
@@ -259,8 +267,6 @@ void *Command_ls (int argC, char** args, char* callingLine, void* extraData)
 		freeall(path, args);
 		return 0;
 	}
-
-
 
 	while ((de = readdir(dr)) != NULL)
 		printf("|\t\t\t %s \t\t\t|\t\t\t %s \t\t\t| \n", de->d_name, ((de->d_type == 8) ? "FILE" : "DIR"));
@@ -336,6 +342,52 @@ void *Command_md5 (int argC, char** args, char* callingLine, void* extraData)
 
 void *Command_cat (int argC, char** args, char* callingLine, void* extraData)
 {
+	if(argC > 0)
+	{
+		char* passedPath = string_new();
+		char* path;
+
+		for(int i = 1; i <= argC;i++)
+		{
+			string_append(&passedPath, args[i]);
+		}
+
+		if(StringUtils_CountOccurrences(passedPath, "/") == 0)
+		{
+			path = StringUtils_Format("%s%s", CONTEXT_CURRENT_PATH, passedPath);
+		} else
+		{
+			path = string_duplicate(passedPath);
+		}
+
+		free(passedPath);
+
+		int cop = 0;
+
+		t_config* metadata = FIFA_OpenFile(path);
+
+		if(metadata == NULL)
+		{
+			printf("El path ingresado no es valido.\n");
+			free(path);
+			CommandInterpreter_FreeArguments(args);
+			return 0;
+		}
+
+		int fileSize = config_get_int_value(metadata, "TAMANIO");
+
+		config_destroy(metadata);
+
+		char* cont = FIFA_ReadFile(path, 0, fileSize, &cop);
+
+		cont = realloc(cont, cop + 1);
+
+		cont[cop] = '\0';
+
+		printf("Cat %s (%d bytes):\n %s\n", path, cop, cont);
+
+		free(path);
+	}
 
 	CommandInterpreter_FreeArguments(args);
 	return 0;
@@ -358,7 +410,6 @@ int cd(char* path, char** tmp)
 		return 0;
 	} else if(strcmp(path, ".") == 0)
 	{
-		//TODO:ojo aca ahay un memory leak porque cuando devuelvo 1 despues CONTEXT se reeemplaza por tmp y uno de los dos queda sin free, ver como arreglar.
 		return 1;
 	} else
 	{
