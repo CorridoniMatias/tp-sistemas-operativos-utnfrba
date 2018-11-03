@@ -32,33 +32,14 @@ int main(int argc, char *argv[])
 		else {
 			int i = 0;
 			while( i < *((int*)data.parts[3])){
-
-				char* line = askLineToFM9(data);
+				//TODO hacer verificacion de que verdaderamente me lleno una linea de codigo
+				char* line = askLineToFM9(data, fm9);
 
 			}
 
 		}
 
 
-		char* askLineToFM9(DeserializedData dtb){
-
-			int* idDtb = (int*)malloc(4);
-			char* path = (char*)malloc(sizeof(dtb.parts[1]));
-			int* pc = (int*)malloc(4);
-			int* code = (int*)malloc(4);
-
-			*code = 0;
-
-			SerializedPart fieldForFM91 = {.size = 4, .data = idDtb};
-			SerializedPart fieldForFM92 = {.size = sizeof(dtb.parts[1]), .data = path};
-			SerializedPart fieldForFM93 = {.size = 4, .data = pc};
-			SerializedPart fieldForFM94 = {.size = 4, .data = code};
-
-			void* packetToFM9 = Serialization_Serialize(4, fieldForFM91, fieldForFM92, fieldForFM93, fieldForFM94);
-
-			SocketCommons_SendData(fm9,MESSAGETYPE_VOIDPOINTER, packetToFM9, sizeof(packetToFM9));
-
-		}
 
 		/*
 		ACORDARME DE MANDARME EL QUANTUM QUE SOBRO A SAFA

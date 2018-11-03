@@ -40,6 +40,8 @@ void configurar();
 int conectarAProceso(char* ip, char* puerto, char* nombreProceso); // Funcion creada por PEPE
 void waitSafaOrders();
 void executeDummy(DeserializedData dtb, int socketDiego, int socketSafa);
+char* askLineToFM9(DeserializedData dtb, int socketfm9);
+
 
 
 #endif /* BIBLIOTECACPU_H_ */

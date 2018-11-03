@@ -72,6 +72,39 @@ void executeDummy(DeserializedData dtb, int diego, int safa){
 	SocketCommons_SendData(safa,MESSAGETYPE_VOIDPOINTER, packetToSafa, sizeof(packetToSafa));
 }
 
+char* askLineToFM9(DeserializedData dtb, int fm9){
+
+	int* idDtb = (int*)malloc(4);
+	char* path = (char*)malloc(sizeof(dtb.parts[1]));
+	int* pc = (int*)malloc(4);
+	int* code = (int*)malloc(4);
+
+	*code = 0;
+
+	SerializedPart fieldForFM91 = {.size = 4, .data = idDtb};
+	SerializedPart fieldForFM92 = {.size = sizeof(dtb.parts[1]), .data = path};
+	SerializedPart fieldForFM93 = {.size = 4, .data = pc};
+	SerializedPart fieldForFM94 = {.size = 4, .data = code};
+
+	void* packetToFM9 = Serialization_Serialize(4, fieldForFM91, fieldForFM92, fieldForFM93, fieldForFM94);
+
+	SocketCommons_SendData(fm9,MESSAGETYPE_VOIDPOINTER, packetToFM9, sizeof(packetToFM9));
+
+	// Me quedo esperando hasta que me devuelva la linea para ejecutar
+	int messageType, err;
+
+	void* msgFromFM9 = SocketCommons_ReceiveData(fm9,&messageType,&err);
+
+	DeserializedData data;
+	Serialization_Deserialize(msgFromFM9,&data);
+
+	if(*(int*)data.parts[1] == 0){
+		return (char *)data.parts[0];
+	}
+		return "error"; //TODO cambiar por algo para saber verdaderamente que no es una linea de codigo
+}
+
+
 void waitSafaOrders(){
 
 
