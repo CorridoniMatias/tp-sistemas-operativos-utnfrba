@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <commons/config.h>
+#include "logger.h"
+#include "StringUtils.h"
 
 /**
  * 		ACCION: Crea un archivo de configuracion en cierta ruta y con ciertos campos
@@ -109,5 +111,10 @@ bool archivoConfigInexistente(t_config* archivoConfig);
  * 			campos: Campos a verificar en el archivo
  */
 bool archivoConfigIncompleto(t_config* archivoConfig, char** campos);
+
+/**
+ * 		ACCION: Informa que el archivo es invalido en logs y termina el programa con error.
+ */
+void archivoConfigEsInvalido();
 
 #endif /* CONFIGKEMMENS_H_ */
