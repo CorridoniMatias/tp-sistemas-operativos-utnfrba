@@ -7,18 +7,21 @@ C_SRCS += \
 ../CPUsManager.c \
 ../ConsoleHandler.c \
 ../bibliotecaSAFA.c \
+../Scheduling.c \
 ../main.c 
 
 OBJS += \
 ./CPUsManager.o \
 ./ConsoleHandler.o \
 ./bibliotecaSAFA.o \
+./Scheduling.o \
 ./main.o 
 
 C_DEPS += \
 ./CPUsManager.d \
 ./ConsoleHandler.d \
 ./bibliotecaSAFA.d \
+./Scheduling.d \
 ./main.d 
 
 

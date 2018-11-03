@@ -17,7 +17,8 @@ void CommandEjecutar (int argC, char** args, char* callingLine, void* extraData)
 		return;
 	}
 
-	AddDTB(args[1]);
+	//NO. Aca deberia llenar el toBeCreated del Scheduling.h (aca es externo del main) con args[1]
+	//AddDTB(args[1]);
 
 	CommandInterpreter_FreeArguments(args);
 
