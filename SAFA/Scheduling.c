@@ -229,7 +229,7 @@ bool IsDummy(DTB* myDTB)
 bool IsToBeMoved(DTB* myDTB)
 {
 
-	if(myDTB->id == toBeMoved.dtbID)
+	if(myDTB->id == toBeMoved->dtbID)
 	{
 		return true;
 	}
@@ -372,11 +372,22 @@ void PlanificadorCortoPlazo(void* algoritmo)
 
 			//Agarro el primer CPU libre que haya, lo saco de la lista y lo pongo aca
 			CPU* chosenCPU = list_remove_by_condition(cpus, (void*)IsIdle);
+			toBeAssigned->cpuSocket = chosenCPU->socket;
+
+			void* messageToSend;
 
 			//Elegir el DTB adecuado, y obtener el mensaje a enviarle al CPU; ponerlo en EXEC
-			//if(algoritmo == "RR") => scheduleRR(quantum)
-			//if(algoritmo == "VRR") => scheduleVRR(quantum)
+			if((strcmp((char*)algoritmo, "RR")) == 0)
+			{
+				messageToSend = ScheduleRR(settings->quantum);
+			}
+			else if((strcmp((char*)algoritmo, "VRR")) == 0)
+			{
+				messageToSend = ScheduleVRR(settings->quantum);
+			}
 			//if(algoritmo == "PROPIO") => scheduleSelf()
+
+			memcpy(toBeAssigned->message, messageToSend, strlen(messageToSend) + 1);
 
 			//Enviarle el mensaje al CPU, y actualizarle el estado en la lista
 			//Deberia activar algun semaforo para que sepa que debe mandarselo por el socket?
@@ -496,11 +507,34 @@ void* GetMessageForCPU(DTB* chosenDTB)
 	//Los archivos se mandan como: "arch1,arch2,...,archN;", separados por "," y terminando con un ";"
 	void* message = Serialization_Serialize(6, idSP, pathSP, pcSP, quantumSP, ofaSP, filesSP);
 
+	//Funcion anidada, para buscar el DTB con el mismo script que el DTB elegido, solo para el caso de estar mandando el Dummy
+	bool IsDTBWithTheSamePath(DTB* aDTB)
+	{
+		if((strcmp(aDTB->pathEscriptorio, pathSP.data)) == 0)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	//Si estoy mandandole el Dummy (ID = 0), busco el DTB con el mismo script y lo guardo en mi variable global
+	//Nadie deberia modificar este toBeCreated->dtbID hasta no hacer otra operacion asi (previo a ello
+	//desbloqueando el Dummy y cerrando esta inicializacion). Guarda con eso
+	if(*idToSend == 0)
+	{
+		DTB* wanted;
+		wanted = list_find(NEWqueue, (void*)IsDTBWithTheSamePath);
+		toBeCreated->dtbID = wanted->id;
+	}
+
 	return message;
 
 }
 
-void* scheduleRR(int quantum)
+void* ScheduleRR(int quantum)
 {
 
 	DTB* chosenDTB = GetNextDTB();
@@ -515,7 +549,7 @@ void* scheduleRR(int quantum)
 
 }
 
-void* scheduleVRR(int maxQuantum)
+void* ScheduleVRR(int maxQuantum)
 {
 
 	DTB* chosenDTB = GetNextDTB();

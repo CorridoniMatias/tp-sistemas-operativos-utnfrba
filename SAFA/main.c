@@ -14,8 +14,10 @@ int elDiego = -1;
 //Variables externas, declaradas primero en Scheduling.h
 extern int PLPtask;
 extern int PCPtask;
+extern sem_t workPLP;
 extern CreatableGDT* toBeCreated;
-extern AssignmentInfo toBeMoved;
+extern DeassignmentInfo* toBeMoved;
+extern AssignmentInfo* toBeAsigned;
 
 void *CommandIAm (int argC, char** args, char* callingLine, void* extraData)
 {
