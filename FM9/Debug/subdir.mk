@@ -4,14 +4,26 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../CPUsManager.c \
+../ConsoleHandler.c \
+../FM9_Server.c \
+../Storage.c \
 ../bibliotecaFM9.c \
 ../main.c 
 
 OBJS += \
+./CPUsManager.o \
+./ConsoleHandler.o \
+./FM9_Server.o \
+./Storage.o \
 ./bibliotecaFM9.o \
 ./main.o 
 
 C_DEPS += \
+./CPUsManager.d \
+./ConsoleHandler.d \
+./FM9_Server.d \
+./Storage.d \
 ./bibliotecaFM9.d \
 ./main.d 
 

@@ -1,112 +1,25 @@
-#include "kemmens/megekemmen.h"
-#include "kemmens/logger.h"
-#include "kemmens/ThreadPool.h"
-#include "kemmens/CommandInterpreter.h"
-#include "kemmens/SocketServer.h"
-#include "incs/CPUsManager.h"
-#include "incs/ConsoleHandler.h"
-#include "bibliotecaFM9.h"
-
-//int elDiego = -1;
-
-void *CommandIAm (int argC, char** args, char* callingLine, void* extraData)
-{
-//	if(argC == 1)
-//	{
-//		if(string_equals_ignore_case(args[1], "dam"))
-//		{
-//			elDiego = *(int*)extraData;
-//		} else if(string_equals_ignore_case(args[1], "cpu"))
-//		{
-//			AddCPU((int*)extraData);
-//		}
-//	}
-
-	CommandInterpreter_FreeArguments(args);
-	return 0;
-}
-
-void* postDo(char* cmd, char* sep, void* args, bool fired)
-{
-	/*if(!fired)
-		SocketCommons_SendMessageString((int)args, "Lo recibido no es comando!");*/
-
-	free(cmd);
-	return 0;
-}
-
-
-void onPacketArrived(int socketID, int message_type, void* data)
-{
-	if(message_type == MESSAGETYPE_STRING)
-	{
-		ThreadableDoStructure* st = CommandInterpreter_MallocThreadableStructure();
-
-		st->commandline = (char*)data;
-		st->data = &socketID;
-		st->separator = " ";
-		st->postDo = (void*)postDo;
-
-		ThreadPoolRunnable* run = ThreadPool_CreateRunnable();
-
-		run->data = (void*)st;
-		run->runnable = (void*)CommandInterpreter_DoThreaded;
-		//Aca si necesitamos decirle al ThreadPool que libere data (o sea el st) en caso que se liberen todos los jobs
-		run->free_data = (void*)CommandInterpreter_FreeThreadableDoStructure;
-
-		ThreadPool_AddJob(threadPool, run);
-	}
-}
-
-void ClientConnected(int socket)
-{
-	printf("Cliente se conecto! %d\n", socket);
-}
-
-void ClientDisconnected(int socket)
-{
-	//RemoveCPU(socket); //Si no esta, no se va a sacar nada.
-	printf("Cliente se fue! %d\n", socket);
-}
-
-void ClientError(int socketID, int errorCode)
-{
-	printf("Cliente %d se reporto con error %s!\n", socketID, strerror(errorCode));
-}
-
-
-void StartServer()
-{
-	CommandInterpreter_Init();
-	//InitCPUsHolder();
-	threadPool = ThreadPool_CreatePool(10, false);
-
-	CommandInterpreter_RegisterCommand("iam", (void*)CommandIAm);
-
-	SocketServer_Start("FM9", settings->puerto);
-	Logger_Log(LOG_INFO, "Escuchando en el puerto %d", settings->puerto);
-	SocketServer_ActionsListeners actions = INIT_ACTION_LISTENER;
-
-	//actions.OnConsoleInputReceived = (void*)ProcessLineInput;
-	actions.OnPacketArrived = (void*)onPacketArrived;
-	actions.OnClientConnected = (void*)ClientConnected;
-	actions.OnClientDisconnect = (void*)ClientDisconnected;
-	actions.OnReceiveError = (void*)ClientError;
-
-	SocketServer_ListenForConnection(actions);
-	//DestroyCPUsHolder();
-	Logger_Log(LOG_INFO, "Server Shutdown.");
-}
-
-
+#include "headers/CPUsManager.h"
+#include "headers/ConsoleHandler.h"
+#include "headers/bibliotecaFM9.h"
+#include "headers/FM9_Server.h"
+#include "headers/Storage.h"
+#include <unistd.h>
 
 int main(int argc, char **argv)
 {
 	Logger_CreateLog("./FM9.log", "FM9", true);
 	Logger_Log(LOG_INFO, "Proceso FM9 iniciado...");
 	configurar();
-	StartServer();
-	ThreadPool_FreeGracefully(threadPool);
+	Logger_Log(LOG_INFO, "Creando Storage");
+	sleep(5);
+	createStorage();
+	Logger_Log(LOG_INFO, "Storage creado");
+	sleep(5);
+
+	sleep(10);
+//	StartServer();
+//	ThreadPool_FreeGracefully(threadPool);
+
 	exit_gracefully(0);
 }
 

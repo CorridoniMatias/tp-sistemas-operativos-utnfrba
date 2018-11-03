@@ -1,4 +1,4 @@
-#include "incs/CPUsManager.h"
+#include "headers/CPUsManager.h"
 
 t_list* cpus;
 

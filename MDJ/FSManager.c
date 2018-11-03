@@ -79,7 +79,7 @@ static int FIFA_ReserveNextFreeBlock()
 
 static char* FIFA_GetFullPath(char* path)
 {
-	return StringUtils_Format("%s%s%s", config->filesPath, path, ".bin");
+	return StringUtils_Format("%s%s", config->filesPath, path);
 }
 
 static void FIFA_InitBitmapFile()
@@ -217,22 +217,6 @@ static void FIFA_ReadBitmap()
 	pthread_mutex_unlock(&bitmapLock);
 }
 
-
-static t_config* FIFA_OpenFile(char* path)
-{
-	char* fullPath = FIFA_GetFullPath(path);
-	t_config* metadata = config_create(fullPath);
-	free(fullPath);
-
-	if(metadata == NULL)
-	{
-		Logger_Log(LOG_DEBUG, "FIFA: Attempt to open '%s' failed. File may not exist.", path);
-		return NULL;
-	}
-
-	return metadata;
-}
-
 static int* FIFA_ReserveBlocks(int cantBloques)
 {
 	int* bloques = (int*)malloc(sizeof(int) * cantBloques);
@@ -267,6 +251,21 @@ static int* FIFA_ReserveBlocks(int cantBloques)
 }
 
 //General Functions
+
+t_config* FIFA_OpenFile(char* path)
+{
+	char* fullPath = FIFA_GetFullPath(path);
+	t_config* metadata = config_create(fullPath);
+	free(fullPath);
+
+	if(metadata == NULL)
+	{
+		Logger_Log(LOG_DEBUG, "FIFA: Attempt to open '%s' failed. File may not exist.", path);
+		return NULL;
+	}
+
+	return metadata;
+}
 
 void FIFA_PrintBitmap()
 {
