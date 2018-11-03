@@ -7,13 +7,15 @@
 //Message Types
 
 #define MESSAGETYPE_STRING 1	//Strings puras
+#define MESSAGETYPE_INT 2		//INTS de longitud variable
+#define MESSAGETYPE_VOIDPOINTER	3	//void*, para los packets
 
 //PROTOCOLO MDJ
-#define MESSAGETYPE_MDJ_CHECKFILE 	2	//Comando: Validar Archivo
-#define MESSAGETYPE_MDJ_CREATEFILE	3	//Comando: Crear Archivo
-#define MESSAGETYPE_MDJ_GETDATA		4	//Comando: Obtener bytes de archivo
-#define MESSAGETYPE_MDJ_PUTDATA		5	//Comando: Grabar datos a archivo
-#define MESSAGETYPE_MDJ_DELETEFILE	6	//Comando: Eliminar un archivo
+#define MESSAGETYPE_MDJ_CHECKFILE 	10	//Comando: Validar Archivo
+#define MESSAGETYPE_MDJ_CREATEFILE	11	//Comando: Crear Archivo
+#define MESSAGETYPE_MDJ_GETDATA		12	//Comando: Obtener bytes de archivo
+#define MESSAGETYPE_MDJ_PUTDATA		13	//Comando: Grabar datos a archivo
+#define MESSAGETYPE_MDJ_DELETEFILE	14	//Comando: Eliminar un archivo
 
 
 #endif /* KEMMENS_SOCKETMESSAGETYPES_H_ */

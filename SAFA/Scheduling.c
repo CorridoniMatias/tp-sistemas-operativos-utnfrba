@@ -443,6 +443,7 @@ void* scheduleRR(int quantum)
 	pcSP.data = pcToSend;
 	quantumSP.size = sizeof(quantumToSend);
 	quantumSP.data = quantumToSend;
+	//chosenDTB->
 
 	//La idea es armar un paquete serializado que va a tener la estructura:
 	// |IDdelDTB|PathEscriptorioAsociado|ProgramCounterDelDTB|QuantumAEjecutar|
@@ -485,7 +486,7 @@ void* scheduleVRR(int maxQuantum)
 	quantumSP.data = quantumToSend;
 
 	//La idea es armar un paquete serializado que va a tener la estructura:
-	// |IDdelDTB|PathEscriptorioAsociado|ProgramCounterDelDTB|QuantumAEjecutar|
+	//|IDdelDTB|PathEscriptorioAsociado|ProgramCounterDelDTB|QuantumAEjecutar|CantArchivosAbiertos|Arch1|Arch2|...|ArchN
 	//(cada cual con su respectivo tamanio antes del dato en si)
 	void* packet = Serialization_Serialize(4, idSP, pathSP, pcSP, quantumSP);
 
