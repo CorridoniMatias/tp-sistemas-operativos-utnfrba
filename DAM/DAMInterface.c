@@ -44,12 +44,13 @@ void DAM_Flush(void* arriveData)
 		SocketCommons_SendData(modulos->socketMDJ, MESSAGETYPE_MDJ_PUTDATA, (void*)tmpData, config->transferSize);
 	}
 
+	/*
 	Se enviará una solicitud a El Diego indicando que se requiere hacer un Flush del archivo,
 	enviando los parámetros necesarios para que pueda obtenerlo desde FM9 y guardarlo en MDJ.
 
 	Se comunicará al proceso S-AFA que el G.DT se encuentra a la espera de una respuesta por parte
 	de El Diego y S-AFA lo bloqueará.
-
+	*7
 
 
 
