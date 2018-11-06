@@ -79,6 +79,7 @@ char* askLineToFM9(DeserializedData dtb, int fm9){
 	int* pc = (int*)malloc(4);
 	int* code = (int*)malloc(4);
 
+
 	*code = 0;
 
 	SerializedPart fieldForFM91 = {.size = 4, .data = idDtb};

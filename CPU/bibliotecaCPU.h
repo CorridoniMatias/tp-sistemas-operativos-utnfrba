@@ -33,6 +33,12 @@ struct Configuracion_s
 } typedef Configuracion;
 
 
+struct Operation_s
+{
+	char* lineToExecute;
+	int codeOperation;
+} typedef Operation;
+
 Configuracion* settings;
 
 

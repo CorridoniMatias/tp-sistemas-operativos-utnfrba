@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
 
 		if ( *(int*)data.parts[0] == 0)
 			{
+			//TODO cambiar protocolo, hablar con pepe
 				executeDummy(data, safa, diego);
 
 				sleep(settings->retardo);
@@ -51,7 +52,12 @@ int main(int argc, char *argv[])
 			while( i < *((int*)data.parts[3]))
 				{
 				//TODO hacer verificacion de que verdaderamente me lleno una linea de codigo
-					char* line = askLineToFM9(data, fm9);
+				//TODO agregar direccion logica para mandar al FM9
+					char* line = askLineToFM9(data, fm9); //Pido una linea
+					Operation extraData = {};
+					CommandInterpreter_Do(line, " ",NULL );
+					sleep(settings->retardo); //retardo por operacion
+
 				// TODO terminar el command interpretar siempre ejecutando linea por linea y actualizando el PC de SAFA,
 				// NO OLVIDAR RETARDO POR OPERACION
 
@@ -90,6 +96,7 @@ int main(int argc, char *argv[])
 
 
 void* CommandConcentrar(int argC, char** args, char* callingLine, void* extraData){
-
+	sleep(settings->retardo);
+	//StringUtils_FreeArray(args);
 	}
 
