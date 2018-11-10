@@ -13,13 +13,13 @@ int main(int argc, char **argv)
 	createStorage();
 	char * datos="0123456789ABCDE";
 	int resultado = writeStorage(datos,15,10);
-	if(resultado == INSUFFICIENT_SPACE)
+	if(resultado == INVALID_WRITE)
 		Logger_Log(LOG_DEBUG, "FM9 -> Espacio Insuficiente.");
 	else
 		Logger_Log(LOG_DEBUG, "FM9 -> Guardado Correctamente");
 	char * buffer=malloc(15);
 	resultado = readStorage(buffer,15,10);
-	if(resultado == INSUFFICIENT_DATA)
+	if(resultado == INVALID_READ)
 		Logger_Log(LOG_DEBUG, "FM9 -> No existe el espacio de memoria a leer deseado.");
 	else
 	{

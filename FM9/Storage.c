@@ -11,7 +11,7 @@ void createStorage() {
 
 	for (int i = 0; i < cantLineas; i++) {
 		*(storage + i) = calloc(tamanioLinea, sizeof(char));
-		Logger_Log(LOG_DEBUG, "FM9 -> Linea %d creada.", i);
+//		Logger_Log(LOG_DEBUG, "FM9 -> Linea %d creada.", i);
 	}
 	Logger_Log(LOG_INFO, "FM9 -> Storage creado.");
 }
@@ -20,11 +20,11 @@ void freeStorage() {
 
 	for (int i = 0; i < cantLineas; i++) {
 		free(*(storage + i));
-		Logger_Log(LOG_DEBUG, "FM9 -> Linea %d liberada.", i);
+//		Logger_Log(LOG_DEBUG, "FM9 -> Linea %d liberada.", i);
 	}
 
 	free(storage);
-	Logger_Log(LOG_DEBUG, "FM9 -> Storage liberado.");
+	Logger_Log(LOG_INFO, "FM9 -> Storage liberado.");
 }
 
 int writeStorage(void* data, size_t size, size_t offset) {
@@ -36,22 +36,24 @@ int writeStorage(void* data, size_t size, size_t offset) {
 	if (espacioUltimaLinea > 0 )
 		espacioTotalUsado++;
 	if(espacioTotalUsado > cantLineas)
-		return INSUFFICIENT_SPACE;
+		return INVALID_WRITE;
 
-	Logger_Log(LOG_DEBUG, "FM9 -> cantLineasNecesarias = %d.", cantLineasNecesarias);
-	Logger_Log(LOG_DEBUG, "FM9 -> espacioUltimaLinea = %d.", espacioUltimaLinea);
+//	Logger_Log(LOG_DEBUG, "FM9 -> cantLineasNecesarias = %d.", cantLineasNecesarias);
+//	Logger_Log(LOG_DEBUG, "FM9 -> espacioUltimaLinea = %d.", espacioUltimaLinea);
 
 	int i = 0;
 	while (i < cantLineasNecesarias) {
 		memcpy(storage[offset + i], data + tamanioLinea * i, tamanioLinea);
-		Logger_Log(LOG_DEBUG, "FM9 -> guardadoEnStorage = %s -- En linea = %d.", storage[offset + i], offset + i);
+//		Logger_Log(LOG_DEBUG, "FM9 -> guardadoEnStorage = %s -- En linea = %d.", storage[offset + i], offset + i);
 		i++;
 	}
 	if (espacioUltimaLinea > 0) {
 		memcpy(storage[offset + i], data + tamanioLinea * i, espacioUltimaLinea);
 
-		Logger_Log(LOG_DEBUG, "FM9 -> guardadoEnStorage = %s -- En linea = %d.", storage[offset + i], offset + i);
+//		Logger_Log(LOG_DEBUG, "FM9 -> guardadoEnStorage = %s -- En linea = %d.", storage[offset + i], offset + i);
 	}
+
+	Logger_Log(LOG_INFO, "FM9 -> Escritura en Storage exitosa en linea %d hasta linea %d.", offset, offset + i);
 
 	return 1;
 }
@@ -65,24 +67,26 @@ int readStorage(void* target, size_t size, size_t offset)
 	if (espacioUltimaLinea > 0 )
 		espacioTotalUsado++;
 	if(espacioTotalUsado > cantLineas)
-		return INSUFFICIENT_DATA;
-
-	Logger_Log(LOG_DEBUG, "FM9 -> cantLineasNecesarias = %d.", cantLineasALeer);
-	Logger_Log(LOG_DEBUG, "FM9 -> espacioUltimaLinea = %d.", espacioUltimaLinea);
+		return INVALID_READ;
+//
+//	Logger_Log(LOG_DEBUG, "FM9 -> cantLineasNecesarias = %d.", cantLineasALeer);
+//	Logger_Log(LOG_DEBUG, "FM9 -> espacioUltimaLinea = %d.", espacioUltimaLinea);
 
 	int i = 0;
 	while (i < cantLineasALeer) {
 		memcpy(target + tamanioLinea * i, storage[offset + i], tamanioLinea);
-		Logger_Log(LOG_DEBUG, "FM9 -> guardadoEnStorage = %s -- En linea = %d.", storage[offset + i], offset + i);
-		Logger_Log(LOG_DEBUG, "FM9 -> guardadoEnTarget = %s -- En linea = %d.", (target + tamanioLinea * i), offset + i);
+//		Logger_Log(LOG_DEBUG, "FM9 -> guardadoEnStorage = %s -- En linea = %d.", storage[offset + i], offset + i);
+//		Logger_Log(LOG_DEBUG, "FM9 -> guardadoEnTarget = %s -- En linea = %d.", (target + tamanioLinea * i), offset + i);
 		i++;
 	}
 	if (espacioUltimaLinea > 0) {
 		memcpy(target + tamanioLinea * i, storage[offset + i], tamanioLinea);
 
-		Logger_Log(LOG_DEBUG, "FM9 -> guardadoEnStorage = %s -- En linea = %d.", storage[offset + i], offset + i);
-		Logger_Log(LOG_DEBUG, "FM9 -> guardadoEnTarget = %s -- En linea = %d.", (target + tamanioLinea * i), offset + i);
+//		Logger_Log(LOG_DEBUG, "FM9 -> guardadoEnStorage = %s -- En linea = %d.", storage[offset + i], offset + i);
+//		Logger_Log(LOG_DEBUG, "FM9 -> guardadoEnTarget = %s -- En linea = %d.", (target + tamanioLinea * i), offset + i);
 	}
+
+	Logger_Log(LOG_INFO, "FM9 -> Lectura de Storage exitosa de linea %d hasta linea %d.", offset, offset + i);
 
 	return 1;
 }
