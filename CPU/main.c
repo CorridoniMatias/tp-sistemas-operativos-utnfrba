@@ -35,6 +35,7 @@ int main(int argc, char *argv[])
 		else
 			{
 				int i = 0;
+				int totalQuantum = *((int*)data.parts[3]);
 				CommandInterpreter_Init();
 
 				CommandInterpreter_RegisterCommand("abrir",(void*)CommandAbrir);
@@ -49,13 +50,14 @@ int main(int argc, char *argv[])
 
 
 
-			while( i < *((int*)data.parts[3]))
+			while( i < totalQuantum )
 				{
 				//TODO hacer verificacion de que verdaderamente me lleno una linea de codigo
 				//TODO agregar direccion logica para mandar al FM9
 					char* line = askLineToFM9(data, fm9); //Pido una linea
 					Operation extraData = {};
-					CommandInterpreter_Do(line, " ",NULL );
+					CommandInterpreter_Do(line, " ",NULL); //El null se tiene que cambiar por un struct extraData
+														  //que me tengo que fijar bien que mandarle
 					sleep(settings->retardo); //retardo por operacion
 
 				// TODO terminar el command interpretar siempre ejecutando linea por linea y actualizando el PC de SAFA,
