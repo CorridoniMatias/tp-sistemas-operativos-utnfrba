@@ -15,7 +15,8 @@ void configurar()
 			"PUERTO_MDJ",
 			"IP_FM9",
 			"PUERTO_FM9",
-			"TRANSFER_SIZE"
+			"TRANSFER_SIZE",
+			NULL
 	};
 
 	//Creo un puntero al archivo de configuracion

@@ -6,6 +6,8 @@
 #include <commons/collections/list.h>
 #include "logger.h"
 #include "SocketCommons.h"
+#include <semaphore.h>
+#include <pthread.h>
 
 #define MAXWAITCONNECTIONS 10
 
@@ -45,8 +47,9 @@ struct
 	 * 		socketID: Socket a traves del cual arribo el paquete
 	 * 		messageType: Tipo de mensaje recibido; ver tipos en SocketMessageTypes.h
 	 * 		actualData: Paquete de datos recibido
+	 * 		actualDataLength: Tamaño del contenido de actualData.
 	 */
-	void (*OnPacketArrived)(int socketID, int messageType, void* actualData);
+	void (*OnPacketArrived)(int socketID, int messageType, void* actualData, int actualDataLength);
 	/**
 	 * Accion a realizar al recibir una entrada por consola
 	 * PARAMETROS:
@@ -58,14 +61,29 @@ struct
 struct
 {
 	int calling_SocketID;
+	int receivedDataLength;
 	void* receivedData;
 } typedef OnArrivedData;
+
+struct
+{
+	int socketID; 				//Or the socket file descriptor
+	sem_t waitForData;			//Semaphore used when: another thread is expecting to receive data on the socket described by 'socketID'. If this occurs the thread should call SocketServer_WakeMeUpWhenDataIsAvailableOn(<socketID>).
+	bool isWaitingForData;		//If another thread if expecting to receive data on the socket described by 'socketID' this attribute is set to true, false otherwise.
+	OnArrivedData* arriveData;	//When the socketserver reads (recv()) the content the thread is expecting, its content and other data is stored in this heap variable.
+} typedef ServerClient;
 
 
 /**
  * 		Lista de conexiones activas del servidor
  */
 t_list* connections;
+pthread_mutex_t connections_lock;
+
+/*
+ * 		Lista de descriptores de sockets que el select va a ignorar, esto puede ser porque su procesamiento se este haciendo en otro lado.
+ */
+//t_list* ignoredSockets;
 
 /**
  * Cadena que almacena el nombre del servidor, para volcar en los logs
@@ -121,5 +139,30 @@ bool SocketServer_IsClientConnected(int socket);
  */
 OnArrivedData* SocketServer_CreateOnArrivedData();
 
+/*
+ * 		!!!! Funcion a ser llamada por un thread DISTINTO al que esta corriendo el server (donde se llamo a listenForConnections) !!!!
+ *
+ * 		Le indica al Server que cuando haya datos disponibles en el socket 'socketToWatch' no haga el flujo normal de llamar a OnPacketReceived()
+ * 		sino que va a desbloquear el hilo que llamo a esta funcion.
+ *
+ * 		Retorna un OnArriveData con todo el contenido recibido, verificar la estructura para ver que datos estan disponibles.
+ *
+ * 		Si el valor retornado es NULL, entonces puede ser que haya habido un error al recibir (ver OnReceiveError),
+ * 			el cliente se desconecto (OnClientDisconnect) o que el socket que se pidio vigilar no esta en la lista de clientes.
+ *
+ * 		IMPORTANTE: Hacer free de la data recibida y de la estructura cuando se termina de usar!
+ *
+ * 		SOLAMENTE DEBE SER LLAMARA POR UN HILO A LA VEZ!
+ */
+OnArrivedData* SocketServer_WakeMeUpWhenDataIsAvailableOn(int socketToWatch);
+
+
+/*
+t_list* SocketServer_GetIgnoredSockets();
+
+void SocketServer_IgnoreSocket(int socketToIgnore);
+
+void SocketServer_ReAttendSocket(int socketToAttend);
+*/
 
 #endif

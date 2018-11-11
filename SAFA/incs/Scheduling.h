@@ -2,6 +2,7 @@
 #define INCS_SCHEDULING_H_
 
 #include "commons/collections/queue.h"
+#include "commons/collections/dictionary.h"
 #include "kemmens/Serialization.h"
 #include "CPUsManager.h"
 #include "bibliotecaSAFA.h"
@@ -15,23 +16,26 @@
  * 	Estructura que representa un DTB (unidad planificable)
  * 	CAMPOS:
  * 		id: Identificador numerico y unico del DTB
- * 		pathEscriptorio: Ruta del script a ejecutar asociado al DTB
+ * 		pathEscriptorio: Ruta del script a ejecutar asociado al DTB, como cadena (mejor para CPU y MDJ)
+ * 		pathLogicalAddress: Direccion logica del path asociado, empleada por el FM9 (el la define al cargar tras el Dummy)
  * 		programCounter: Contador que indica que linea del script se debe leer; 0 indica la primer linea
  * 		initialized: Flag numerico que indica si el DTB ha sido inicializado (puede pasar a READY) o no
  * 		status:	Codigo numerico que representa el estado del DTB (diagrama de 5 estados)
- * 		openedFiles: Array de cadenas que simula la tabla de archivos abiertos por el DTB
+ * 		openedFilesAmount: Cantidad de archivos abiertos por el DTB
+ * 		openedFiles: Diccionario que representa la tabla de archivos abiertos por el DTB. Key: path, Value: dirLogica
  * 		quantumRemainder: Cantidad de UTs del quantum que le quedan al DTB para ejecutar
  */
 struct DTB_s
 {
 	int id;
 	char* pathEscriptorio;
+	uint32_t pathLogicalAddress;
 	int programCounter;					//0 es para la primer linea
 	int initialized;
 	int status;
-	int openedFilesAmount;				//Cantidad de archivos abiertos
-	char** openedFiles;					//Tabla de archivos abiertos
-	int quantumRemainder;				//Cantidad de UTs del quantum que le quedan
+	int openedFilesAmount;
+	t_dictionary* openedFiles;
+	int quantumRemainder;
 } typedef DTB;
 
 /*
@@ -154,9 +158,11 @@ DTB* GetNextDTB();
 void PlanificadorLargoPlazo(void* gradoMultiprogramacion);
 
 void PlanificadorCortoPlazo(void* algoritmo);
-void* ConcatOpenedFiles(char** openedFiles, int amount);
+void* FlattenPathsAndAddresses(char** openedFiles);
 void* GetMessageForCPU(DTB* chosenDTB);
 void* ScheduleRR(int quantum);
 void* ScheduleVRR(int maxQuantum);
+
+t_dictionary* BuildDictionary(void* flattened, int amount);
 
 #endif /* INCS_SCHEDULING_H_ */
