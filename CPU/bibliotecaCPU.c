@@ -75,7 +75,7 @@ void executeDummy(DeserializedData dtb, int diego, int safa){
 char* askLineToFM9(DeserializedData dtb, int fm9){
 
 	int* idDtb = (int*)malloc(4);
-	char* path = (char*)malloc(sizeof(dtb.parts[1]));
+	char* logicDir = (char*)malloc(sizeof(dtb.parts[2]));
 	int* pc = (int*)malloc(4);
 	int* code = (int*)malloc(4);
 
@@ -83,11 +83,10 @@ char* askLineToFM9(DeserializedData dtb, int fm9){
 	*code = 0;
 
 	SerializedPart fieldForFM91 = {.size = 4, .data = idDtb};
-	SerializedPart fieldForFM92 = {.size = sizeof(dtb.parts[1]), .data = path};
-	SerializedPart fieldForFM93 = {.size = 4, .data = pc};
-	SerializedPart fieldForFM94 = {.size = 4, .data = code};
+	SerializedPart fieldForFM92 = {.size = sizeof(dtb.parts[2]), .data = logicDir};
+	SerializedPart fieldForFM93 = {.size = 4, .data = code};
 
-	void* packetToFM9 = Serialization_Serialize(4, fieldForFM91, fieldForFM92, fieldForFM93, fieldForFM94);
+	void* packetToFM9 = Serialization_Serialize(4, fieldForFM91, fieldForFM92, fieldForFM93);
 
 	SocketCommons_SendData(fm9,MESSAGETYPE_VOIDPOINTER, packetToFM9, sizeof(packetToFM9));
 
@@ -109,16 +108,50 @@ void* CommandAbrir(){
 return 0;
 }
 
-void* CommandConcentrar(){
-return 0;
-}
+void* CommandConcentrar(int argC, char** args, char* callingLine, void* extraData){
+	sleep(settings->retardo);
+	StringUtils_FreeArray(args);
+	return 0;
+	}
 
 void* CommandAsignar(){
 return 0;
 }
 
-void* CommandWait(){
-return 0;
+void* CommandWait(int argC, char** args, char* callingLine, void* extraData){
+	if(argC == 1){
+
+		//LE MANDO AL SAFA IDDTB|PC|QUANTUM|RECURSO|CODIGO
+		SerializedPart fieldForSAFA1 = {.size = 4, .data =((Operation*)extraData)->dtb};
+		SerializedPart fieldForSAFA2 = {.size = sizeof(((Operation*)extraData)->programCounter), .data = ((Operation*)extraData)->programCounter};
+		SerializedPart fieldForSAFA3 = {.size = 4, .data = ((Operation*)extraData)->quantum};
+		SerializedPart fieldForSAFA4 = {.size = sizeof(args[0]) , .data = args[0]};
+		//Se define codigo nuevo - 5.Solicitud de retencion del recurso
+		SerializedPart fieldForSAFA5 = {.size = 4 , .data = 5};
+		void* packetToSAFA = Serialization_Serialize(4, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4, fieldForSAFA5);
+
+		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_VOIDPOINTER, packetToSAFA, sizeof(packetToSAFA));
+
+		int messageType,err;
+		void* msgFromSafa = SocketCommons_ReceiveData(((Operation*)extraData)->socketSAFA,&messageType,&err);
+		DeserializedData data;
+		Serialization_Deserialize(msgFromSafa,&data);
+		//TODO Hablar con PEPE pero suponiendo que el mensaje que me mando es solo el codigo Ej |code|
+		//Siendo code = 0, pudo ser asignado y code = 1, no pudo ser asignado. Quedaria de la siguente forma
+		if(*(int*)data.parts[0] == 0 ){
+
+			return 0;
+		}
+	}
+	SerializedPart fieldForSAFA1 = {.size = 4, .data =((Operation*)extraData)->dtb};
+	SerializedPart fieldForSAFA2 = {.size = sizeof(((Operation*)extraData)->programCounter), .data = ((Operation*)extraData)->programCounter};
+	SerializedPart fieldForSAFA3 = {.size = 4, .data = ((Operation*)extraData)->quantum};
+	SerializedPart fieldForSAFA4 = {.size = sizeof(args[0]) , .data = args[0]};
+	SerializedPart fieldForSAFA5 = {.size = 4 , .data = 4};
+	void* packetToSAFAToBlockGDT = Serialization_Serialize(4, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4, fieldForSAFA5);
+
+	SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_VOIDPOINTER,packetToSAFAToBlockGDT, sizeof(packetToSAFAToBlockGDT));
+	return 1;
 }
 
 void* CommandSignal(){
@@ -144,7 +177,30 @@ return 0;
 
 void waitSafaOrders(){
 
+}
 
+t_dictionary* BuildDictionary(void* flattened, int amount)
+{
 
+	t_dictionary* dict = dictionary_create();
+	int i = 1;
+	int offset = 0;
+	int* logicalAddress;
+	while(i <= amount)
+	{
+		char* path;
+		//OJO: NO VA EL FREE DE ESTE PUNTERO ACA, SINO PIERDO LA REFERENCIA DEL ULTIMO PUT
+		//EL FREE SE HACE SOLO CUANDO DESTRUYA EL DICCIONARIO Y SUS ELEMENTOS
+		logicalAddress = malloc(sizeof(int));
+		path = strtok((char*)(flattened + offset), ":");
+		//No le sumo uno por los :, strlen me devuelve el largo + 1 por el \0 al final
+		offset += (strlen(path) + 1);
+		memcpy(logicalAddress, flattened + offset, sizeof(int));
+		offset += (sizeof(int) + 1);
+		dictionary_put(dict, path, logicalAddress);
+		i++;
+	}
+
+	return dict;
 
 }
