@@ -8,12 +8,11 @@
 
 //FM9 General Errors:
 
-#define INVALID_WRITE	-1
-#define INVALID_READ	-2
+#define INVALID_LINE_NUMBER	-1
+//#define INVALID_LINE_NUMBER	-2
 
 int tamanioLinea;
 int cantLineas;
-
 char** storage;
 
 //Requerimiento: Inicializa Storage/Memoria Real
@@ -37,7 +36,7 @@ void freeStorage();
  *
  *	Descripción: Ante un pedido de guardado en el storage, el FM9 guardará los bytes de Data en la linea NumLinea.
  *
- *	Retorna: si se pudo escribir 1, caso contrario INVALID_WRITE
+ *	Retorna: si se pudo escribir 1, caso contrario INVALID_LINE_NUMBER
  */
 int writeLine(void* data, int numLinea);
 
@@ -47,7 +46,7 @@ int writeLine(void* data, int numLinea);
  *
  *	Descripción: Ante un pedido de lectura desde el storage, la linea numLinea y lo leido lo copia en target.
  *
- *	Retorna: si se pudo leer 1, caso contrario INVALID_READ
+ *	Retorna: si se pudo leer 1, caso contrario INVALID_LINE_NUMBER
  */
 int readLine(void* target, int numLinea);
 

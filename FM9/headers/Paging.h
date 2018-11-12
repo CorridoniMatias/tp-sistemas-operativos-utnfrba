@@ -5,11 +5,14 @@
 #include <commons/collections/list.h>
 #include "kemmens/logger.h"
 #include "bibliotecaFM9.h"
+#include "Storage.h"
 
 //FM9 General Errors:
 
 #define NO_FRAMES_AVAILABLE	-1
+#define INVALID_FRAME_NUMBER -2
 
+//Tamaño Frame se refiere a la cantidad de lineas.
 int tamanioFrame;
 int cantFrames;
 t_list* framesLibres;
@@ -46,5 +49,25 @@ void addFreeFrame(int numFrame);
  *	Retorna: El número de frame libre, en caso de no haber ninguno devuelve NO_FRAMES_AVAILABLE.
  */
 int getFreeFrame();
+
+//Requerimiento: Escribir una página en un frame.
+/*
+ * 	Parámetros: [Page, NumFrame]
+ *
+ *	Descripción: Guarda los bytes de page en el frame numFrame.
+ *
+ * 	Retorna: si se pudo escribir 1, caso contrario INVALID_FRAME_NUMBER o INVALID_LINE_NUMBER.
+ */
+int writeFrame(void* page, int numFrame);
+
+//Requerimiento: Leer datos de un Frame
+/*
+ * 	Parámetros: [Target, NumFrame]
+ *
+ *	Descripción: Ante un pedido de lectura de un frame, copia en target el contenido de ese número de frame.
+ *
+ *	Retorna: si se pudo leer 1, caso contrario INVALID_FRAME_NUMBER o INVALID_LINE_NUMBER.
+ */
+int readFrame(void* target, int numFrame);
 
 #endif /* #define FREE_FRAMES_LIST_H_ */

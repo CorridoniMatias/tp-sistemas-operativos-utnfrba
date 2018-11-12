@@ -1,7 +1,9 @@
 #include "headers/Storage.h"
 
-int numeroDeLineaValido(int numLinea){
-	return numLinea < cantLineas;
+int verifyLineNumber(int numLinea){
+	if (numLinea >= cantLineas)
+		return INVALID_LINE_NUMBER;
+	return 1;
 }
 
 void createStorage() {
@@ -33,14 +35,13 @@ void freeStorage() {
 
 int writeLine(void* data, int numLinea) {
 
-	if (!numeroDeLineaValido(numLinea))
-		return INVALID_WRITE;
+	verifyLineNumber(numLinea);
 
 //	Logger_Log(LOG_DEBUG, "FM9 -> Contenido de Data: %s.", data);
 
 	memcpy(storage[numLinea], data, tamanioLinea);
 
-//	Logger_Log(LOG_DEBUG, "FM9 -> Contenido guardado en Storage = %s -- En linea = %d.", storage[numLinea], numLinea);
+//	Logger_Log(LOG_DEBUG, "FM9 -> Contenido guardado en Storage = %s - En linea = %d.", storage[numLinea], numLinea);
 
 	Logger_Log(LOG_INFO, "FM9 -> Escritura en Storage exitosa en linea %d.", numLinea);
 
@@ -49,8 +50,7 @@ int writeLine(void* data, int numLinea) {
 
 int readLine(void* target, int numLinea) {
 
-	if (!numeroDeLineaValido(numLinea))
-		return INVALID_READ;
+	verifyLineNumber(numLinea);
 
 //	Logger_Log(LOG_DEBUG, "FM9 -> Contenido de Storage = %s -- En linea = %d.", storage[numLinea], numLinea);
 

@@ -12,7 +12,7 @@ typedef struct {
 
 IPTEntry* IPTable;
 
-t_dictionary* processesPages;
+t_dictionary* DTBsPages;
 
 //Requerimiento: Inicializa la variable IPTable
 /*
