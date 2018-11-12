@@ -2,6 +2,7 @@
 #define FREE_FRAMES_LIST_H_
 
 #include <stdio.h>
+#include <commons/collections/list.h>
 #include "kemmens/logger.h"
 #include "bibliotecaFM9.h"
 
@@ -9,8 +10,8 @@
 
 #define NO_FRAMES_AVAILABLE	-1
 
-size_t tamanioFrame;
-size_t cantFrames;
+int tamanioFrame;
+int cantFrames;
 t_list* framesLibres;
 
 
@@ -21,6 +22,13 @@ t_list* framesLibres;
  * 		no hay ningun frame ocupado.
  */
 void createPagingStructures();
+
+//Requerimiento: Liberar lista de frames libres.
+/*
+ *
+ * 		Descripción: Libera la memoria ocupada por la lista de frames.
+ */
+void freePagingStructures();
 
 //Requerimiento: Agregar el número de un frame libre a la lista de frames.
 /*

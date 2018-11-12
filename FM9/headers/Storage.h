@@ -11,8 +11,8 @@
 #define INVALID_WRITE	-1
 #define INVALID_READ	-2
 
-size_t tamanioLinea;
-size_t cantLineas;
+int tamanioLinea;
+int cantLineas;
 
 char** storage;
 
@@ -31,17 +31,24 @@ void createStorage();
  */
 void freeStorage();
 
-//Requerimiento: Guardar Datos
+//Requerimiento: Guardar datos en memoria
 /*
- * 	Parámetros: [Data, NumLinea, Size]
+ * 	Parámetros: [Data, NumLinea]
  *
- *	Descripción: Ante un pedido de guardado en el storage, el FM9 guardará los bytes de Data, definidos por el valor
- *	de Size, a partir de la linea NumLinea.
+ *	Descripción: Ante un pedido de guardado en el storage, el FM9 guardará los bytes de Data en la linea NumLinea.
  *
- *	Retorna:
+ *	Retorna: si se pudo escribir 1, caso contrario INVALID_WRITE
  */
-int writeStorage(void* data, size_t size, size_t numLinea);
+int writeLine(void* data, int numLinea);
 
-int readStorage(void* target, size_t size, size_t offset);
+//Requerimiento: Leer datos de memoria
+/*
+ * 	Parámetros: [Target, NumLinea]
+ *
+ *	Descripción: Ante un pedido de lectura desde el storage, la linea numLinea y lo leido lo copia en target.
+ *
+ *	Retorna: si se pudo leer 1, caso contrario INVALID_READ
+ */
+int readLine(void* target, int numLinea);
 
 #endif /* STORAGE_H_ */
