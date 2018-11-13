@@ -12,8 +12,9 @@ void createPagingStructures() {
 
 	Logger_Log(LOG_INFO, "FM9 -> Creando estructuras de paginado.");
 
-	tamanioFrame = settings->tam_pagina / tamanioLinea;
-	cantFrames = cantLineas / tamanioFrame;
+	tamanioFrame = settings->tam_pagina
+	cantLineasPorFrame =  tamanioFrame / tamanioLinea;
+	cantFrames = cantLineas / cantLineasPorFrame;
 
 	framesLibres = list_create();
 	int* frame;
@@ -62,8 +63,7 @@ int getFreeFrame() {
 	int numFrame = *frame;
 	free(frame);
 
-	Logger_Log(LOG_INFO, "FM9 -> Se devolvio el frame %d y se saco de la lista de frames libres.",
-			numFrame);
+	Logger_Log(LOG_INFO, "FM9 -> Se devolvio el frame %d y se saco de la lista de frames libres.", numFrame);
 
 	return numFrame;
 }
@@ -76,13 +76,19 @@ int readFrame(void* page, int numFrame){
 	return useFrame(page,numFrame,"Lectura",readLine);
 }
 
+int framesNeededAreAvailable(int size) {
+	int framesNecesarios = size / tamanioFrame;
+	if (size % tamanioFrame > 0)
+		framesNecesarios++;
+	return framesLibres->elements_count >= framesNecesarios ? framesNecesarios : INSUFFICIENT_FRAMES_AVAILABLE;
+}
 
 static int useFrame(void* page, int numFrame,char* log, int (*operation)(void*,int)){
 	verifyFrameNumber(numFrame);
 
-	int lineaInicial = numFrame * tamanioFrame;
+	int lineaInicial = numFrame * cantLineasPorFrame;
 
-	for (int i = 0; i < tamanioFrame; i++) {
+	for (int i = 0; i < cantLineasPorFrame; i++) {
 		if (operation(((char*) page) + i * tamanioLinea, lineaInicial + i) == INVALID_LINE_NUMBER)
 			return INVALID_LINE_NUMBER;
 	}

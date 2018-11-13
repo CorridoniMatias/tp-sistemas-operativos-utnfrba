@@ -21,6 +21,23 @@ void freeStructuresIPT(){
 
 	free(IPTable);
 
+	void elementDestroyer(void* DTBPages){
+		void listDestroyer(void* pages){
+			list_destroy_and_destroy_elements(pages,free);
+		}
+		dictionary_clean_and_destroy_elements(DTBPages,listDestroyer);
+	}
+
+	dictionary_clean_and_destroy_elements(DTBsPages,elementDestroyer);
+
 	Logger_Log(LOG_INFO, "FM9 -> Tabla de páginas invertida liberada.");
+}
+
+int saveData(void* data, int size){
+	int framesNecesarios = framesNeededAreAvailable(size);
+	if(framesNecesarios == INSUFFICIENT_FRAMES_AVAILABLE)
+		return INSUFFICIENT_SPACE;
+
+
 }
 

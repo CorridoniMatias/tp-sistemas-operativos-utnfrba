@@ -11,9 +11,10 @@
 
 #define NO_FRAMES_AVAILABLE	-1
 #define INVALID_FRAME_NUMBER -2
+#define INSUFFICIENT_FRAMES_AVAILABLE -3
 
-//Tamaño Frame se refiere a la cantidad de lineas.
 int tamanioFrame;
+int cantLineasPorFrame;
 int cantFrames;
 t_list* framesLibres;
 
@@ -69,5 +70,17 @@ int writeFrame(void* page, int numFrame);
  *	Retorna: si se pudo leer 1, caso contrario INVALID_FRAME_NUMBER o INVALID_LINE_NUMBER.
  */
 int readFrame(void* target, int numFrame);
+
+//Requerimiento: Saber cuantos frames se necesitarían para guardar un tamaño size y si hay esa cantidad libres.
+/*
+ * 	Parámetros: [Size]
+ *
+ *	Descripción: Calcula en base al tamaño de los frames cuantos se necesitarían para guardar información que
+ *	ocupe size y se fija en la lista de frames libres si hay esa cantidad.
+ *
+ *	Retorna: La cantidad de frames necesarios, en caso de no haya esa cantidad de frames libres devuelve
+ *  INSUFFICIENT_FRAMES_AVAILABLE.
+ */
+int framesNeededAreAvailable(int size);
 
 #endif /* #define FREE_FRAMES_LIST_H_ */
