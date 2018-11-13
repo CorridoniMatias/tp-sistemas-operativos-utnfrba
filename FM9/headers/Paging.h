@@ -1,5 +1,5 @@
-#ifndef FREE_FRAMES_LIST_H_
-#define FREE_FRAMES_LIST_H_
+#ifndef PAGING_H_
+#define PAGING_H_
 
 #include <stdio.h>
 #include <commons/collections/list.h>
@@ -83,4 +83,4 @@ int readFrame(void* target, int numFrame);
  */
 int framesNeededAreAvailable(int size);
 
-#endif /* #define FREE_FRAMES_LIST_H_ */
+#endif /* #define PAGING_H_ */
