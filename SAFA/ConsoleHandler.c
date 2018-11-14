@@ -17,8 +17,10 @@ void CommandEjecutar (int argC, char** args, char* callingLine, void* extraData)
 		return;
 	}
 
-	//NO. Aca deberia llenar el toBeCreated del Scheduling.h (aca es externo del main) con args[1]
-	//AddDTB(args[1]);
+	//Copio el script a ejecutar en la variable global que usa el PLP, y le aviso
+	strcpy(toBeCreated->script, args[1]);
+	PLPtask = PLP_TASK_CREATE_DTB;
+	sem_post(&workPLP);
 
 	CommandInterpreter_FreeArguments(args);
 

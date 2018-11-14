@@ -101,7 +101,7 @@ void freeGlobals()
 	free(config);
 }
 
-void onPacketArrived(int socketID, int message_type, void* data)
+void onPacketArrived(int socketID, int message_type, void* data, int message_length)
 {
 
 	ThreadPoolRunnable* run = ThreadPool_CreateRunnable();

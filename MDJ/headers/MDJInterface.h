@@ -13,7 +13,7 @@
  *
  * 			Para solicitar este recurso usar SocketCommons_SendStringAsContent(int socket, "/path_to_file", MESSAGETYPE_MDJ_CHECKFILE);
  *
- * 			Esta funcion devuelve un 1 o un 0 del tamaño uint32_t a traves del socket solicitante. Para recibir la respuesta usar SocketCommons_ReceiveDataWithoutHeader.
+ * 			Esta funcion devuelve un 1 o un 0 del tamaño uint32_t a traves del socket solicitante.
  *
  * 			Si devuelve 1 quiere decir que el archivo existe, si devuelve 0 no existe.
  */
@@ -28,7 +28,7 @@ void MDJ_CheckFile(void* arriveData);
  *					pathToFile: Ruta del archivo a crear.
  *					newLineCount: Cantidad de \n que se deben crear por defecto.
  *
- *			Esta funcion devuelve un numero del tamaño uint32_t a traves del socket solicitante. Para recibir la respuesta usar SocketCommons_ReceiveDataWithoutHeader.
+ *			Esta funcion devuelve un numero del tamaño uint32_t a traves del socket solicitante.
  *
  *			Valores de retorno:
  *				numero distinto de 400: ver FSManager.h para la interpretacion del valor de retorno.
@@ -47,11 +47,13 @@ void MDJ_CreateFile(void* arriveData);
  *					tamañoALeer: Cantidad de bytes a leer
  *
  *			Esta funcion devuelve un string o un int a traves del socket solicitante.
- *			Para recibir la respuesta usar SocketCommons_ReceiveData(int socket, int* message_type, int* error_status) -> se tiene que usar esta porque no se sabe el length porque puede ser que se soliciten mas bytes que los que existen.
+ *			Para recibir la respuesta usar SocketCommons_ReceiveData(int socket, int* message_type, int* error_status)
  *
  *				message_type tomara valores de MESSAGETYPE_STRING o MESSAGETYPE_INT.
  *				En caso de ser MESSAGETYPE_INT el valor recibido es un error (404 = el archivo solicitado no existe. 400 = cantidad de argumentos no coincide con la interfaz)
  *				En caso de ser MESSAGETYPE_STRING el valor recibido es el contenido del archivo.
+ *
+ *			Si el message_length de lo recibido es 0 es porque no habia nada mas que copiar, probablemente se haya llegado al fin del archivo.
  *
  */
 void MDJ_GetData(void* arriveData);
@@ -66,7 +68,7 @@ void MDJ_GetData(void* arriveData);
  *					tamañoDelBuffer: cantidad de bytes que tiene el buffer
  *					buffer: contenido a escribir
  *
- *			Esta funcion devuelve un numero del tamaño uint32_t a traves del socket solicitante. Para recibir la respuesta usar SocketCommons_ReceiveDataWithoutHeader.
+ *			Esta funcion devuelve un numero del tamaño uint32_t a traves del socket solicitante.
  *
  *			Valores de retorno:
  *				numero distinto de 400: ver FSManager.h para la interpretacion del valor de retorno.
@@ -80,7 +82,7 @@ void MDJ_PutData(void* arriveData);
  *
  * 			Para solicitar este recurso usar SocketCommons_SendStringAsContent(int socket, "/path_to_file", MESSAGETYPE_MDJ_DELETEFILE);
  *
- * 			Esta funcion devuelve un numero del tamaño uint32_t a traves del socket solicitante. Para recibir la respuesta usar SocketCommons_ReceiveDataWithoutHeader.
+ * 			Esta funcion devuelve un numero del tamaño uint32_t a traves del socket solicitante.
  *
  * 			ver FSManager.h para la interpretacion del valor de retorno.
  */

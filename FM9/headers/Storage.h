@@ -8,15 +8,14 @@
 
 //FM9 General Errors:
 
-#define INSUFFICIENT_SPACE	-1
-#define INSUFFICIENT_DATA	-2
+#define INVALID_LINE_NUMBER	-1
+//#define INVALID_LINE_NUMBER	-2
 
-size_t tamanioLinea;
-size_t cantLineas;
-
+int tamanioLinea;
+int cantLineas;
 char** storage;
 
-//Requerimiento: Crear Storage/Memoria Real
+//Requerimiento: Inicializa Storage/Memoria Real
 /*
  *
  * 		Descripción: Inicializa la variable storage con el tamaño de linea y la cantidad de lineas especificadas
@@ -31,15 +30,24 @@ void createStorage();
  */
 void freeStorage();
 
-//Requerimiento: Guardar Datos
+//Requerimiento: Guardar datos en memoria
 /*
- * 	Parámetros: [Data, NumLinea, Size]
+ * 	Parámetros: [Data, NumLinea]
  *
-	Descripción: Ante un pedido de guardado en el storage, el FM9 guardará los bytes de Data, definidos por el valor
-	de Size, a partir de la linea NumLinea.
-
-	Retorna:
+ *	Descripción: Ante un pedido de guardado en el storage, el FM9 guardará los bytes de Data en la linea NumLinea.
+ *
+ *	Retorna: si se pudo escribir 1, caso contrario INVALID_LINE_NUMBER
  */
-int writeStorage(void* data, size_t size, size_t numLinea);
+int writeLine(void* data, int numLinea);
+
+//Requerimiento: Leer datos de memoria
+/*
+ * 	Parámetros: [Target, NumLinea]
+ *
+ *	Descripción: Ante un pedido de lectura desde el storage, la linea numLinea y lo leido lo copia en target.
+ *
+ *	Retorna: si se pudo leer 1, caso contrario INVALID_LINE_NUMBER
+ */
+int readLine(void* target, int numLinea);
 
 #endif /* STORAGE_H_ */

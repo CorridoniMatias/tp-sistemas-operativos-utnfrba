@@ -6,6 +6,7 @@
 #include "Config.h"
 #include "kemmens/SocketServer.h"
 #include "kemmens/Serialization.h"
+#include "kemmens/SocketMessageTypes.h"
 
 void DAM_Abrir(void* arriveData);
 

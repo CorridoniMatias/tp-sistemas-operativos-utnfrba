@@ -229,7 +229,7 @@ bool IsDummy(DTB* myDTB)
 bool IsToBeMoved(DTB* myDTB)
 {
 
-	if(myDTB->id == toBeMoved.dtbID)
+	if(myDTB->id == toBeMoved->dtbID)
 	{
 		return true;
 	}
@@ -372,11 +372,22 @@ void PlanificadorCortoPlazo(void* algoritmo)
 
 			//Agarro el primer CPU libre que haya, lo saco de la lista y lo pongo aca
 			CPU* chosenCPU = list_remove_by_condition(cpus, (void*)IsIdle);
+			toBeAssigned->cpuSocket = chosenCPU->socket;
+
+			void* messageToSend;
 
 			//Elegir el DTB adecuado, y obtener el mensaje a enviarle al CPU; ponerlo en EXEC
-			//if(algoritmo == "RR") => scheduleRR(quantum)
-			//if(algoritmo == "VRR") => scheduleVRR(quantum)
+			if((strcmp((char*)algoritmo, "RR")) == 0)
+			{
+				messageToSend = ScheduleRR(settings->quantum);
+			}
+			else if((strcmp((char*)algoritmo, "VRR")) == 0)
+			{
+				messageToSend = ScheduleVRR(settings->quantum);
+			}
 			//if(algoritmo == "PROPIO") => scheduleSelf()
+
+			memcpy(toBeAssigned->message, messageToSend, strlen(messageToSend) + 1);
 
 			//Enviarle el mensaje al CPU, y actualizarle el estado en la lista
 			//Deberia activar algun semaforo para que sepa que debe mandarselo por el socket?
@@ -427,38 +438,35 @@ void PlanificadorCortoPlazo(void* algoritmo)
 
 }
 
-void* ConcatOpenedFiles(char** openedFiles, int amount)
+void* FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 {
 
-	int offset = 0, totalSize = 0;				//Contadores de desplazamiento y tamanio total de la cadena
-	int nextSize = strlen(openedFiles[0]);		//Primero copio el primero de la lista
+	void* result = malloc(1);
+	int offset = 0, totalSize = 0;
+	int nextSize;
 
-	void* result;
-	result = malloc(nextSize);					//Hago esto para el realloc inicial
+	printf("Reserve el espacio\n");
 
-	memcpy(result + offset, openedFiles[0], nextSize); 	//Copio el primero de la lista
-	offset += nextSize;
-	totalSize += nextSize;
-
-	int i = 1;									//Contador para los archivos abiertos
-
-	while(i < amount)
+	void CopyPath(char* path, void* address)
 	{
-		nextSize = strlen(openedFiles[i]);		//Obtengo largo del siguiente path
-		totalSize += (nextSize + 1); 			//Le sumo tambien 1 por la coma separadora de archivos
-		result = realloc(result, totalSize);	//Realloco espacio para el resultado
-		memcpy(result + offset, ",", 1);		//Copio la coma, corro el offset
+		nextSize = strlen(path);							//Obtengo el largo del path
+		totalSize += (nextSize + 2 + sizeof(int));			//Sumo a totalSize, y sumo 2 mas por los : y la ,
+		result = realloc(result, totalSize);				//Realloco memoria
+		memcpy(result + offset, path, nextSize);			//Copio el path y muevo el offset
+		offset += nextSize;
+		memcpy(result + offset, ":", 1);					//Copio el : (separa path de DL) y muevo el offset
 		offset++;
-		memcpy(result + offset, openedFiles[i], nextSize);	//Copio el path actual
-		offset += nextSize;						//Corro el offset, no me puedo olvidar!
-		i++;
+		memcpy(result + offset, address, sizeof(int));		//Copio la DL y muevo el offset
+		offset += sizeof(int);
+		memcpy(result + offset, ",", 1);					//Copio la , (separa registros) y muevo el offset
+		offset++;
 	}
 
-	totalSize += 2;                             //Agrego espacio para el ;\0 que ira al final, y lo pongo
-	result = realloc(result, totalSize);
-	memcpy(result + offset, ";\0", 2);
+	dictionary_iterator(openFilesTable, CopyPath);			//Llamo al closure de arriba para hacerlo con todos los registros
 
-	return result;								//Queda : "arch1,arch2,...,archN;" con un \0 al final
+	memcpy(result + offset - 1, ";", 1);					//Pongo el ; al final de la cadena
+
+	return result;											//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
 
 }
 
@@ -467,6 +475,8 @@ void* GetMessageForCPU(DTB* chosenDTB)
 
 	int* idToSend = malloc(sizeof(int));
 	*idToSend = chosenDTB->id;
+	int* pathAddressToSend = malloc(sizeof(int));
+	*pathAddressToSend = chosenDTB->pathLogicalAddress;
 	int* pcToSend = malloc(sizeof(int));
 	*pcToSend = chosenDTB->programCounter;
 	int* quantumToSend = malloc(sizeof(int));
@@ -476,31 +486,56 @@ void* GetMessageForCPU(DTB* chosenDTB)
 	*ofaToSend = chosenDTB->openedFilesAmount;
 
 	//Estructuras con los datos a serializar y mandar como cadena
-	SerializedPart idSP, pathSP, pcSP, quantumSP, ofaSP, filesSP;
+	SerializedPart idSP, pathSP, pathAddressSP, pcSP, quantumSP, ofaSP, filesSP;
 	idSP.size = sizeof(idToSend);
 	idSP.data = idToSend;
 	pathSP.size = strlen(chosenDTB->pathEscriptorio) + 1;
 	strcpy(pathSP.data, chosenDTB->pathEscriptorio);
+	pathAddressSP.size = sizeof(pathAddressToSend);
+	pathAddressSP.data = pathAddressToSend;
 	pcSP.size = sizeof(pcToSend);
 	pcSP.data = pcToSend;
 	quantumSP.size = sizeof(quantumToSend);
 	quantumSP.data = quantumToSend;
 	ofaSP.size = sizeof(ofaToSend);
 	ofaSP.data = ofaToSend;
-	filesSP.data = ConcatOpenedFiles(chosenDTB->openedFiles, chosenDTB->openedFilesAmount);
-	filesSP.size = strlen (filesSP.data) + 1;
+	filesSP.data = FlattenPathsAndAddresses(chosenDTB->openedFiles);
+	filesSP.size = strlen(filesSP.data) + 1;
 
 	//La idea es armar un paquete serializado que va a tener la estructura:
-	// |IDdelDTB|PathEscriptorioAsociado|ProgramCounterDelDTB|QuantumAEjecutar|CantArchivosAbiertos|Archivos
+	//|IDdelDTB|PathEscriptorioAsociado|Dir.LogicaPath|ProgramCounterDelDTB|QuantumAEjecutar|CantArchivosAbiertos|Archivos
 	//(cada cual con su respectivo tamanio antes del dato en si)
-	//Los archivos se mandan como: "arch1,arch2,...,archN;", separados por "," y terminando con un ";"
-	void* message = Serialization_Serialize(6, idSP, pathSP, pcSP, quantumSP, ofaSP, filesSP);
+	//Los archivos se mandan como: "arch1:d1,arch2:d2,...,archN:dN;"
+	void* message = Serialization_Serialize(7, idSP, pathSP, pathAddressSP, pcSP, quantumSP, ofaSP, filesSP);
+
+	//Funcion anidada, para buscar el DTB con el mismo script que el DTB elegido, solo para el caso de estar mandando el Dummy
+	bool IsDTBWithTheSamePath(DTB* aDTB)
+	{
+		if((strcmp(aDTB->pathEscriptorio, pathSP.data)) == 0)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	//Si estoy mandandole el Dummy (ID = 0), busco el DTB con el mismo script y lo guardo en mi variable global
+	//Nadie deberia modificar este toBeCreated->dtbID hasta no hacer otra operacion asi (previo a ello
+	//desbloqueando el Dummy y cerrando esta inicializacion). Guarda con eso
+	if(*idToSend == 0)
+	{
+		DTB* wanted;
+		wanted = list_find(NEWqueue, (void*)IsDTBWithTheSamePath);
+		toBeCreated->dtbID = wanted->id;
+	}
 
 	return message;
 
 }
 
-void* scheduleRR(int quantum)
+void* ScheduleRR(int quantum)
 {
 
 	DTB* chosenDTB = GetNextDTB();
@@ -515,7 +550,7 @@ void* scheduleRR(int quantum)
 
 }
 
-void* scheduleVRR(int maxQuantum)
+void* ScheduleVRR(int maxQuantum)
 {
 
 	DTB* chosenDTB = GetNextDTB();
@@ -532,5 +567,32 @@ void* scheduleVRR(int maxQuantum)
 	AddToExec(chosenDTB);
 	//OJO: Alguien deberia hacer free de ese packet despues
 	return packet;
+
+}
+
+/////////////////////MOVER AL CPU////////////////////
+t_dictionary* BuildDictionary(void* flattened, int amount)
+{
+
+	t_dictionary* dict = dictionary_create();
+	int i = 1;
+	int offset = 0;
+	int* logicalAddress;
+	while(i <= amount)
+	{
+		char* path;
+		//OJO: NO VA EL FREE DE ESTE PUNTERO ACA, SINO PIERDO LA REFERENCIA DEL ULTIMO PUT
+		//EL FREE SE HACE SOLO CUANDO DESTRUYA EL DICCIONARIO Y SUS ELEMENTOS
+		logicalAddress = malloc(sizeof(int));
+		path = strtok((char*)(flattened + offset), ":");
+		//No le sumo uno por los :, strlen me devuelve el largo + 1 por el \0 al final
+		offset += (strlen(path) + 1);
+		memcpy(logicalAddress, flattened + offset, sizeof(int));
+		offset += (sizeof(int) + 1);
+		dictionary_put(dict, path, logicalAddress);
+		i++;
+	}
+
+	return dict;
 
 }

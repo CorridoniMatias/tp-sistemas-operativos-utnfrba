@@ -2,8 +2,10 @@
 #define INCS_SCHEDULING_H_
 
 #include "commons/collections/queue.h"
+#include "commons/collections/dictionary.h"
 #include "kemmens/Serialization.h"
 #include "CPUsManager.h"
+#include "bibliotecaSAFA.h"
 #include <pthread.h>
 #include <semaphore.h>
 #include <unistd.h>
@@ -14,23 +16,26 @@
  * 	Estructura que representa un DTB (unidad planificable)
  * 	CAMPOS:
  * 		id: Identificador numerico y unico del DTB
- * 		pathEscriptorio: Ruta del script a ejecutar asociado al DTB
+ * 		pathEscriptorio: Ruta del script a ejecutar asociado al DTB, como cadena (mejor para CPU y MDJ)
+ * 		pathLogicalAddress: Direccion logica del path asociado, empleada por el FM9 (el la define al cargar tras el Dummy)
  * 		programCounter: Contador que indica que linea del script se debe leer; 0 indica la primer linea
  * 		initialized: Flag numerico que indica si el DTB ha sido inicializado (puede pasar a READY) o no
  * 		status:	Codigo numerico que representa el estado del DTB (diagrama de 5 estados)
- * 		openedFiles: Array de cadenas que simula la tabla de archivos abiertos por el DTB
+ * 		openedFilesAmount: Cantidad de archivos abiertos por el DTB
+ * 		openedFiles: Diccionario que representa la tabla de archivos abiertos por el DTB. Key: path, Value: dirLogica
  * 		quantumRemainder: Cantidad de UTs del quantum que le quedan al DTB para ejecutar
  */
 struct DTB_s
 {
 	int id;
 	char* pathEscriptorio;
+	uint32_t pathLogicalAddress;
 	int programCounter;					//0 es para la primer linea
 	int initialized;
 	int status;
-	int openedFilesAmount;				//Cantidad de archivos abiertos
-	char** openedFiles;					//Tabla de archivos abiertos
-	int quantumRemainder;				//Cantidad de UTs del quantum que le quedan
+	int openedFilesAmount;
+	t_dictionary* openedFiles;
+	int quantumRemainder;
 } typedef DTB;
 
 /*
@@ -56,9 +61,19 @@ struct CreatableGDT_s
  * 		dtbID: ID numerico del DTB involucrado (puede ser el Dummy) a mover de colas
  * 		cpuSocket: Descriptor de socket que identifica al CPU al cual se habia asignado el DTB desalojado
  */
-struct AssignmentInfo_s
+struct DeassignmentInfo_s
 {
 	int dtbID;
+	int cpuSocket;
+} typedef DeassignmentInfo;
+
+/*
+ * 	Estructura que contiene el socket de comunicacion con el CPU elegido al planificar, y el mensaje a enviarle
+ * 	segun el algoritmo que se este empleando. Va a ser una variable global, externa desde aca y usada tambien en main
+ */
+struct AssignmentInfo_s
+{
+	void* message;
 	int cpuSocket;
 } typedef AssignmentInfo;
 
@@ -70,18 +85,18 @@ struct AssignmentInfo_s
 #define PLP_TASK_INITIALIZE_DTB 3				//Inicializar el DTB cuyo DUMMY fue exitoso
 
 //Codigos de tareas del PCP
-#define PCP_TASK_NORMAL_SCHEDULE 1				//Planificar e ir pasando procesos de READY a EXEC
-#define PCP_TASK_LOAD_DUMMY	2					//Pasar el Dummy de BLOCKED (no usado) a READY
-#define PCP_TASK_BLOCK_DUMMY 3					//Bloquear el Dummy y actualizar la CPU desalojada
-#define PCP_TASK_BLOCK_DTB 4					//Desalojar la CPU correspondiente y pasar su DTB de EXEC a BLOCK
-#define PCP_TASK_UNLOCK_DTB 5					//Pasar DTB bloqueado a READY (cuando DAM aviso que termino I/O)
+#define PCP_TASK_NORMAL_SCHEDULE 11				//Planificar e ir pasando procesos de READY a EXEC
+#define PCP_TASK_LOAD_DUMMY	12					//Pasar el Dummy de BLOCKED (no usado) a READY
+#define PCP_TASK_BLOCK_DUMMY 13					//Bloquear el Dummy y actualizar la CPU desalojada
+#define PCP_TASK_BLOCK_DTB 14					//Desalojar la CPU correspondiente y pasar su DTB de EXEC a BLOCK
+#define PCP_TASK_UNLOCK_DTB 15					//Pasar DTB bloqueado a READY (cuando DAM aviso que termino I/O)
 
 //Estados de los DTB (del diagrama de 5 estados)
-#define DTB_STATUS_NEW 1
-#define DTB_STATUS_READY 2
-#define DTB_STATUS_EXEC 3
-#define DTB_STATUS_BLOCKED 4
-#define DTB_STATUS_EXIT 5
+#define DTB_STATUS_NEW 21
+#define DTB_STATUS_READY 22
+#define DTB_STATUS_EXEC 23
+#define DTB_STATUS_BLOCKED 24
+#define DTB_STATUS_EXIT 25
 
 ///-------------VARIABLES GLOBALES-------------///
 
@@ -105,11 +120,15 @@ t_list* EXITqueue;								//"Cola EXIT, en realidad es una lista (mas manejable)
 
 DTB* dummyDTB;									//DTB que se usara como Dummy
 
-//Estas dos son externas en main
+extern Configuracion* settings;					//Estructura con la configuracion, externa desde bibliotecaSAFA.h
+
+//Estas tres son externas en main
 CreatableGDT* toBeCreated;						//Estructura con el path del script cuyo DTB quiero crear, y el ID del
 												//DTB a inicializar al terminar la correspondiente operacion Dummy; para PLP
 
-AssignmentInfo toBeMoved;						//Estructura con el DTB a mover de cola y el CPU a desalojar (si hace falta)
+DeassignmentInfo* toBeMoved;						//Estructura con el DTB a mover de cola y el CPU a desalojar (si hace falta)
+
+AssignmentInfo* toBeAssigned;					//Estructura con el mensaje a enviar y el CPU elegido en un ciclo de PCP
 
 
 ///-------------FUNCIONES DEFINIDAS------------///
@@ -139,9 +158,11 @@ DTB* GetNextDTB();
 void PlanificadorLargoPlazo(void* gradoMultiprogramacion);
 
 void PlanificadorCortoPlazo(void* algoritmo);
-void* ConcatOpenedFiles(char** openedFiles, int amount);
+void* FlattenPathsAndAddresses(char** openedFiles);
 void* GetMessageForCPU(DTB* chosenDTB);
-void* scheduleRR(int quantum);
-void* scheduleVRR(int maxQuantum);
+void* ScheduleRR(int quantum);
+void* ScheduleVRR(int maxQuantum);
+
+t_dictionary* BuildDictionary(void* flattened, int amount);
 
 #endif /* INCS_SCHEDULING_H_ */

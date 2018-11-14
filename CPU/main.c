@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
 
 		if ( *(int*)data.parts[0] == 0)
 			{
+			//TODO cambiar protocolo, hablar con pepe sobre flag
 				executeDummy(data, safa, diego);
 
 				sleep(settings->retardo);
@@ -34,6 +35,8 @@ int main(int argc, char *argv[])
 		else
 			{
 				int i = 0;
+				int totalQuantum = *((int*)data.parts[4]);
+				int updatedProgramCounter = *((int*)data.parts[4]);
 				CommandInterpreter_Init();
 
 				CommandInterpreter_RegisterCommand("abrir",(void*)CommandAbrir);
@@ -48,10 +51,20 @@ int main(int argc, char *argv[])
 
 
 
-			while( i < *((int*)data.parts[3]))
+			while( i < totalQuantum )
 				{
 				//TODO hacer verificacion de que verdaderamente me lleno una linea de codigo
-					char* line = askLineToFM9(data, fm9);
+
+
+					char* line = askLineToFM9(data, fm9); //Pido una linea
+					Operation extraData = {.dtb =*((int*)data.parts[0]) , .programCounter = updatedProgramCounter, .quantum = totalQuantum,
+											.socketSAFA = safa, .socketFM9 = fm9, .socketDIEGO = diego};
+					bool res = CommandInterpreter_Do(line, " ",&extraData);
+					if(res==1){
+						continue;
+					}
+					sleep(settings->retardo); //retardo por operacion
+					updatedProgramCounter ++;;
 				// TODO terminar el command interpretar siempre ejecutando linea por linea y actualizando el PC de SAFA,
 				// NO OLVIDAR RETARDO POR OPERACION
 
@@ -89,7 +102,4 @@ int main(int argc, char *argv[])
 }
 
 
-void* CommandConcentrar(int argC, char** args, char* callingLine, void* extraData){
-
-	}
 

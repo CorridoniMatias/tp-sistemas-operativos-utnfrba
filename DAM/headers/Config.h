@@ -19,4 +19,13 @@ struct Configuracion_s
 Configuracion* config;
 
 
+struct Modulos_s
+{
+	int socketMDJ;
+
+} typedef Modulos;
+
+Modulos* modulos;
+
+
 #endif /* HEADERS_CONFIG_H_ */

@@ -37,7 +37,7 @@ void clientConnected(int socket);
 
 void clientDisconnected(int unSocket);
 
-void onPacketArrived(int socket, int tipoMensaje, void* datos);
+void onPacketArrived(int socketID, int message_type, void* data, int message_length);
 
 void* postDo(char* cmd, char* sep, void* args, bool fired);
 
