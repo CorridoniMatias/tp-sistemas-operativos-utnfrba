@@ -11,7 +11,8 @@ void configurar()
 			"PUERTO_DIEGO",
 			"IP_FM9",
 			"PUERTO_FM9"
-			"RETARDO"
+			"RETARDO",
+			NULL
 	};
 
 	t_config* archivoConfig = archivoConfigCrear(RUTA_CONFIG, campos);
