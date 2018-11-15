@@ -15,15 +15,16 @@ int main(int argc, char *argv[])
 
 	while(1)
 	{
-		int err,messageType;
+		int err,messageType,msglength;
 //		waitSafaOrders();
-		void* msgFromSafa = SocketCommons_ReceiveData(safa,&messageType,&err);
+		void* msgFromSafa = SocketCommons_ReceiveData(safa,&messageType,&msglength,&err);
 
 		DeserializedData data;
 		Serialization_Deserialize(msgFromSafa,&data);
 
 		if ( *(int*)data.parts[0] == 0)
 			{
+			//TODO cambiar protocolo, hablar con pepe sobre flag y sobre el recurso
 				executeDummy(data, safa, diego);
 
 				sleep(settings->retardo);
@@ -34,7 +35,11 @@ int main(int argc, char *argv[])
 		else
 			{
 				int i = 0;
+				int totalQuantum = *((int*)data.parts[4]);
+				int updatedProgramCounter = *((int*)data.parts[4]);
 				CommandInterpreter_Init();
+
+				t_dictionary* dictionary= BuildDictionary(&data.parts[5],*((int*)data.parts[6]));
 
 				CommandInterpreter_RegisterCommand("abrir",(void*)CommandAbrir);
 				CommandInterpreter_RegisterCommand("concentrar",(void*)CommandConcentrar);
@@ -45,15 +50,33 @@ int main(int argc, char *argv[])
 				CommandInterpreter_RegisterCommand("close",(void*)CommandClose);
 				CommandInterpreter_RegisterCommand("crear",(void*)CommandCrear);
 				CommandInterpreter_RegisterCommand("borrar",(void*)CommandBorrar);
+				//pensar como ignorar cuando empiece con #
 
 
 
-			while( i < *((int*)data.parts[3]))
+			while( i < totalQuantum )
 				{
 				//TODO hacer verificacion de que verdaderamente me lleno una linea de codigo
-					char* line = askLineToFM9(data, fm9);
-				// TODO terminar el command interpretar siempre ejecutando linea por linea y actualizando el PC de SAFA,
-				// NO OLVIDAR RETARDO POR OPERACION
+
+
+					char* line = askLineToFM9(data, fm9); //Pido una linea
+					if(strcmp(line,"error") != 0){
+						Operation extraData = {.dtb =*((int*)data.parts[0]) , .programCounter = updatedProgramCounter, .quantum = totalQuantum,
+												.dictionary = dictionary ,.socketSAFA = safa, .socketFM9 = fm9, .socketDIEGO = diego};
+						bool res = CommandInterpreter_Do(line, " ",&extraData);
+						if(res == 1 ){
+							continue;
+						}
+						sleep(settings->retardo); //retardo por operacion
+						updatedProgramCounter ++;;
+					// TODO terminar el command interpretar siempre ejecutando linea por linea y actualizando el PC de SAFA,
+					// NO OLVIDAR RETARDO POR OPERACION
+					}
+					else{
+							totalQuantum +=1;
+							continue;
+					}
+
 
 				}
 
@@ -89,7 +112,4 @@ int main(int argc, char *argv[])
 }
 
 
-void* CommandConcentrar(int argC, char** args, char* callingLine, void* extraData){
-
-	}
 
