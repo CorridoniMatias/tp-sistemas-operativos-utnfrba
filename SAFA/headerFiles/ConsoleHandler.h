@@ -1,11 +1,12 @@
-#ifndef INCS_CONSOLEHANDLER_H_
-#define INCS_CONSOLEHANDLER_H_
+#ifndef HEADERFILES_CONSOLEHANDLER_H_
+#define HEADERFILES_CONSOLEHANDLER_H_
 
 #include "kemmens/CommandInterpreter.h"
 #include "kemmens/ThreadPool.h"
-#include "SharedResources.h"
 #include "kemmens/SocketServer.h"
-#include "Scheduling.h"
+
+#include "../headerFiles/Scheduling.h"
+#include "../headerFiles/SharedResources.h"
 
 //Variables externas, declaradas primero en Scheduling.h
 extern int PLPtask;
@@ -26,4 +27,4 @@ void CommandQuit (int argC, char** args, char* callingLine, void* extraData);
 
 void ProcessLineInput(char* line);
 
-#endif /* INCS_CONSOLEHANDLER_H_ */
+#endif /* HEADERFILES_CONSOLEHANDLER_H_ */

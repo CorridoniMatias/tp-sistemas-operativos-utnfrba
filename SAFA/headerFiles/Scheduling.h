@@ -1,14 +1,14 @@
-#ifndef INCS_SCHEDULING_H_
-#define INCS_SCHEDULING_H_
+#ifndef HEADERFILES_SCHEDULING_H_
+#define HEADERFILES_SCHEDULING_H_
 
 #include "commons/collections/queue.h"
 #include "commons/collections/dictionary.h"
 #include "kemmens/Serialization.h"
-#include "CPUsManager.h"
-#include "bibliotecaSAFA.h"
 #include <pthread.h>
 #include <semaphore.h>
 #include <unistd.h>
+#include "../headerFiles/bibliotecaSAFA.h"
+#include "../headerFiles/CPUsManager.h"
 
 ///-------------ESTRUCTURAS DEFINIDAS-------------///
 
@@ -90,6 +90,7 @@ struct AssignmentInfo_s
 #define PCP_TASK_BLOCK_DUMMY 13					//Bloquear el Dummy y actualizar la CPU desalojada
 #define PCP_TASK_BLOCK_DTB 14					//Desalojar la CPU correspondiente y pasar su DTB de EXEC a BLOCK
 #define PCP_TASK_UNLOCK_DTB 15					//Pasar DTB bloqueado a READY (cuando DAM aviso que termino I/O)
+#define PCP_TASK_ABORT_DTB 16					//Ṕasar DTB a la cola de EXIT (si debio abortarse por algo)
 
 //Estados de los DTB (del diagrama de 5 estados)
 #define DTB_STATUS_NEW 21
@@ -165,4 +166,4 @@ void* ScheduleVRR(int maxQuantum);
 
 t_dictionary* BuildDictionary(void* flattened, int amount);
 
-#endif /* INCS_SCHEDULING_H_ */
+#endif /* HEADERFILES_SCHEDULING_H_ */
