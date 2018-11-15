@@ -15,16 +15,16 @@ int main(int argc, char *argv[])
 
 	while(1)
 	{
-		int err,messageType;
+		int err,messageType,msglength;
 //		waitSafaOrders();
-		void* msgFromSafa = SocketCommons_ReceiveData(safa,&messageType,&err);
+		void* msgFromSafa = SocketCommons_ReceiveData(safa,&messageType,&msglength,&err);
 
 		DeserializedData data;
 		Serialization_Deserialize(msgFromSafa,&data);
 
 		if ( *(int*)data.parts[0] == 0)
 			{
-			//TODO cambiar protocolo, hablar con pepe sobre flag
+			//TODO cambiar protocolo, hablar con pepe sobre flag y sobre el recurso
 				executeDummy(data, safa, diego);
 
 				sleep(settings->retardo);
@@ -39,6 +39,8 @@ int main(int argc, char *argv[])
 				int updatedProgramCounter = *((int*)data.parts[4]);
 				CommandInterpreter_Init();
 
+				t_dictionary* dictionary= BuildDictionary(&data.parts[5],*((int*)data.parts[6]));
+
 				CommandInterpreter_RegisterCommand("abrir",(void*)CommandAbrir);
 				CommandInterpreter_RegisterCommand("concentrar",(void*)CommandConcentrar);
 				CommandInterpreter_RegisterCommand("asignar",(void*)CommandAsignar);
@@ -48,6 +50,7 @@ int main(int argc, char *argv[])
 				CommandInterpreter_RegisterCommand("close",(void*)CommandClose);
 				CommandInterpreter_RegisterCommand("crear",(void*)CommandCrear);
 				CommandInterpreter_RegisterCommand("borrar",(void*)CommandBorrar);
+				//pensar como ignorar cuando empiece con #
 
 
 
@@ -57,16 +60,23 @@ int main(int argc, char *argv[])
 
 
 					char* line = askLineToFM9(data, fm9); //Pido una linea
-					Operation extraData = {.dtb =*((int*)data.parts[0]) , .programCounter = updatedProgramCounter, .quantum = totalQuantum,
-											.socketSAFA = safa, .socketFM9 = fm9, .socketDIEGO = diego};
-					bool res = CommandInterpreter_Do(line, " ",&extraData);
-					if(res==1){
-						continue;
+					if(strcmp(line,"error") != 0){
+						Operation extraData = {.dtb =*((int*)data.parts[0]) , .programCounter = updatedProgramCounter, .quantum = totalQuantum,
+												.dictionary = dictionary ,.socketSAFA = safa, .socketFM9 = fm9, .socketDIEGO = diego};
+						bool res = CommandInterpreter_Do(line, " ",&extraData);
+						if(res == 1 ){
+							continue;
+						}
+						sleep(settings->retardo); //retardo por operacion
+						updatedProgramCounter ++;;
+					// TODO terminar el command interpretar siempre ejecutando linea por linea y actualizando el PC de SAFA,
+					// NO OLVIDAR RETARDO POR OPERACION
 					}
-					sleep(settings->retardo); //retardo por operacion
-					updatedProgramCounter ++;;
-				// TODO terminar el command interpretar siempre ejecutando linea por linea y actualizando el PC de SAFA,
-				// NO OLVIDAR RETARDO POR OPERACION
+					else{
+							totalQuantum +=1;
+							continue;
+					}
+
 
 				}
 
