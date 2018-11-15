@@ -72,7 +72,7 @@ void DAM_Flush(void* arriveData)
 	//una vez que recibimos todo por parte del FM9 se lo mandamos al mdj:
 
 	int offset = 0;
-	int len = strlen(archivo);
+	int len = strlen(archivo); //TODO: Verificar que tenga un \0 lo que recibimos al final sino el strlen() falla, si no tiene agregarlo
 	int sizeToSend = 0;
 	int msg_type, length, status;
 
@@ -89,7 +89,9 @@ void DAM_Flush(void* arriveData)
 		len -= sizeToSend;
 
 		SocketCommons_SendData(socketMDJ, MESSAGETYPE_MDJ_PUTDATA, (void*)(archivo + offset), sizeToSend);
-		offset += config->transferSize;
+		offset += sizeToSend;
+
+		//Aguardamos validacion del MDJ
 		void* data = SocketCommons_ReceiveData(socketMDJ, &msg_type, &length, &status);
 
 		if(msg_type == MESSAGETYPE_INT)
