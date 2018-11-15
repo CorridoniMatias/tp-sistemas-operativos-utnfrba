@@ -596,3 +596,44 @@ t_dictionary* BuildDictionary(void* flattened, int amount)
 	return dict;
 
 }
+
+///PRUEBA BUILDDICTIONARY///
+
+/*void ShowKeyAndValue(char* key, void* value)
+{
+	printf("%s : ", key);
+	printf("%d\n",*((int*)value));
+}
+
+int main(void)
+{
+
+	void* aplanado = malloc(100);
+	int offset = 0;
+	int* dir1 = (int*)malloc(sizeof(int));
+	*dir1 = 12560;
+	int* dir2 = (int*)malloc(sizeof(int));
+	*dir2 = 1310;
+	int* dir3 = (int*)malloc(sizeof(int));
+	*dir3 = 8826;
+	memcpy(aplanado + offset, "script1.txt:", 12);
+	offset += 12;
+	memcpy(aplanado + offset, dir1, sizeof(int));
+	offset += sizeof(int);
+	memcpy(aplanado + offset, ",script2.txt:", 13);
+	offset += 13;
+	memcpy(aplanado + offset, dir2, sizeof(int));
+	offset += sizeof(int);
+	memcpy(aplanado + offset, ",otroArch.bat:", 14);
+	offset += 14;
+	memcpy(aplanado + offset, dir3, sizeof(int));
+	offset += sizeof(int);
+	memcpy(aplanado + offset, ";\0", 2);
+
+	t_dictionary* d = BuildDictionary(aplanado, 3);
+
+	dictionary_iterator(d, ShowKeyAndValue);
+
+	return 0;
+
+}*/

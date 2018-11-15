@@ -8,7 +8,7 @@ void InitCPUsHolder()
 void AddCPU(int* socketID)
 {
 
-	CPU* newCPU = (CPU*) malloc(sizeof(CPU));
+	CPU* newCPU = (CPU*) malloc(sizeof(CPU));		//free no hace falta aca, va con el destroyer
 	newCPU->socket = *socketID;
 	newCPU->busy = false;
 	list_add(cpus, newCPU);
@@ -59,10 +59,17 @@ int CPUsCount()
 
 }
 
+void CPUDestroyer(CPU* aCPU)
+{
+
+	free(aCPU);
+
+}
+
 void DestroyCPUsHolder()
 {
 
-	list_destroy(cpus);
+	list_destroy_and_destroy_elements(cpus, CPUDestroyer);
 
 }
 
