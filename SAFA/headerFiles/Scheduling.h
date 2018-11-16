@@ -1,14 +1,14 @@
-#ifndef INCS_SCHEDULING_H_
-#define INCS_SCHEDULING_H_
+#ifndef HEADERFILES_SCHEDULING_H_
+#define HEADERFILES_SCHEDULING_H_
 
 #include "commons/collections/queue.h"
 #include "commons/collections/dictionary.h"
 #include "kemmens/Serialization.h"
-#include "CPUsManager.h"
-#include "bibliotecaSAFA.h"
 #include <pthread.h>
 #include <semaphore.h>
 #include <unistd.h>
+#include "../headerFiles/bibliotecaSAFA.h"
+#include "../headerFiles/CPUsManager.h"
 
 ///-------------ESTRUCTURAS DEFINIDAS-------------///
 
@@ -19,7 +19,7 @@
  * 		pathEscriptorio: Ruta del script a ejecutar asociado al DTB, como cadena (mejor para CPU y MDJ)
  * 		pathLogicalAddress: Direccion logica del path asociado, empleada por el FM9 (el la define al cargar tras el Dummy)
  * 		programCounter: Contador que indica que linea del script se debe leer; 0 indica la primer linea
- * 		initialized: Flag numerico que indica si el DTB ha sido inicializado (puede pasar a READY) o no
+ * 		initialized: Flag numerico que indica si el DTB ha sido inicializado; todos lo tienen en 1, salvo el Dummy
  * 		status:	Codigo numerico que representa el estado del DTB (diagrama de 5 estados)
  * 		openedFilesAmount: Cantidad de archivos abiertos por el DTB
  * 		openedFiles: Diccionario que representa la tabla de archivos abiertos por el DTB. Key: path, Value: dirLogica
@@ -51,6 +51,7 @@ struct CreatableGDT_s
 {
 	int dtbID;
 	char* script;
+	uint32_t logicalAddress;
 } typedef CreatableGDT;
 
 /*
@@ -80,23 +81,24 @@ struct AssignmentInfo_s
 ///-------------CONSTANTES DEFINIDAS-------------///
 
 //Codigos de tareas del PLP
-#define PLP_TASK_NORMAL_SCHEDULE 1 				//Planificar de NEW a READY, si se puede
-#define PLP_TASK_CREATE_DTB 2					//Crear el DTB a inicializar mediante la operacion Dummy
-#define PLP_TASK_INITIALIZE_DTB 3				//Inicializar el DTB cuyo DUMMY fue exitoso
+#define PLP_TASK_NORMAL_SCHEDULE 11 			//Planificar de NEW a READY, si se puede
+#define PLP_TASK_CREATE_DTB 12					//Crear DTBs con scripts que haya en la cola
+#define PLP_TASK_INITIALIZE_DTB 13				//Inicializar el DTB cuyo DUMMY fue exitoso
 
 //Codigos de tareas del PCP
-#define PCP_TASK_NORMAL_SCHEDULE 11				//Planificar e ir pasando procesos de READY a EXEC
-#define PCP_TASK_LOAD_DUMMY	12					//Pasar el Dummy de BLOCKED (no usado) a READY
-#define PCP_TASK_BLOCK_DUMMY 13					//Bloquear el Dummy y actualizar la CPU desalojada
-#define PCP_TASK_BLOCK_DTB 14					//Desalojar la CPU correspondiente y pasar su DTB de EXEC a BLOCK
-#define PCP_TASK_UNLOCK_DTB 15					//Pasar DTB bloqueado a READY (cuando DAM aviso que termino I/O)
+#define PCP_TASK_NORMAL_SCHEDULE 21				//Planificar e ir pasando procesos de READY a EXEC
+#define PCP_TASK_LOAD_DUMMY	22					//Pasar el Dummy de BLOCKED (no usado) a READY
+#define PCP_TASK_BLOCK_DUMMY 23					//Bloquear el Dummy y actualizar la CPU desalojada
+#define PCP_TASK_BLOCK_DTB 24					//Desalojar la CPU correspondiente y pasar su DTB de EXEC a BLOCK
+#define PCP_TASK_UNLOCK_DTB 25					//Pasar DTB bloqueado a READY (cuando DAM aviso que termino I/O)
+#define PCP_TASK_ABORT_DTB 26					//Ṕasar DTB a la cola de EXIT (si debio abortarse por algo)
 
 //Estados de los DTB (del diagrama de 5 estados)
-#define DTB_STATUS_NEW 21
-#define DTB_STATUS_READY 22
-#define DTB_STATUS_EXEC 23
-#define DTB_STATUS_BLOCKED 24
-#define DTB_STATUS_EXIT 25
+#define DTB_STATUS_NEW 31
+#define DTB_STATUS_READY 32
+#define DTB_STATUS_EXEC 33
+#define DTB_STATUS_BLOCKED 34
+#define DTB_STATUS_EXIT 35
 
 ///-------------VARIABLES GLOBALES-------------///
 
@@ -111,8 +113,9 @@ int PLPtask;
 int PCPtask;
 
 int nextID;										//ID a asignarle al proximo DTB que se cree
+int inMemoryAmount;								//Cantidad de procesos actualmente en memoria; para el grado de multiprogr.
 
-t_list* NEWqueue;								//"Cola" NEW, gestionada por PLP con FIFO; es lista para ser modificable
+t_queue* NEWqueue;								//"Cola" NEW, gestionada por PLP con FIFO; es lista para ser modificable
 t_queue* READYqueue;							//Cola READY, gestionada por PCP
 t_list* EXECqueue;								//"Cola" EXEC, en realidad es una lista (mas manejable), gestionada por PCP
 t_list* BLOCKEDqueue;							//"Cola" BLOCKED, en realidad es una lista (mas manejable), gest. por PCP
@@ -122,13 +125,16 @@ DTB* dummyDTB;									//DTB que se usara como Dummy
 
 extern Configuracion* settings;					//Estructura con la configuracion, externa desde bibliotecaSAFA.h
 
-//Estas tres son externas en main
+//Estas cuatro son externas en main y los que las usen
+
 CreatableGDT* toBeCreated;						//Estructura con el path del script cuyo DTB quiero crear, y el ID del
 												//DTB a inicializar al terminar la correspondiente operacion Dummy; para PLP
 
-DeassignmentInfo* toBeMoved;						//Estructura con el DTB a mover de cola y el CPU a desalojar (si hace falta)
+DeassignmentInfo* toBeMoved;					//Estructura con el DTB a mover de cola y el CPU a desalojar (si hace falta)
 
 AssignmentInfo* toBeAssigned;					//Estructura con el mensaje a enviar y el CPU elegido en un ciclo de PCP
+
+t_queue* scriptsQueue;							//Cola con los scripts que van quedando para ejecutar (por si se acumularan)
 
 
 ///-------------FUNCIONES DEFINIDAS------------///
@@ -156,6 +162,7 @@ bool IsToBeMoved(DTB* myDTB);
 DTB* GetNextDTB();
 
 void PlanificadorLargoPlazo(void* gradoMultiprogramacion);
+void SetDummy(int id, char* path);
 
 void PlanificadorCortoPlazo(void* algoritmo);
 void* FlattenPathsAndAddresses(char** openedFiles);
@@ -165,4 +172,4 @@ void* ScheduleVRR(int maxQuantum);
 
 t_dictionary* BuildDictionary(void* flattened, int amount);
 
-#endif /* INCS_SCHEDULING_H_ */
+#endif /* HEADERFILES_SCHEDULING_H_ */

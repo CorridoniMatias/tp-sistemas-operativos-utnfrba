@@ -1,11 +1,12 @@
-#include "incs/Scheduling.h"
+#include "headerFiles/Scheduling.h"
 
 ////////////////////////////////////////////////////////////
 
 void InitQueuesAndLists()
 {
 
-	NEWqueue = list_create();
+	scriptsQueue = queue_create();
+	NEWqueue = queue_create();
 	READYqueue = queue_create();
 	BLOCKEDqueue = list_create();
 	EXECqueue = list_create();
@@ -27,7 +28,7 @@ void CreateDummy()
 
 	dummyDTB = (DTB*) malloc(sizeof(DTB));
 
-	dummyDTB->id = 0;
+	dummyDTB->id = 0;									//Valor basura, siempre tendra el del DTB que este cargando
 	dummyDTB->initialized = 0;
 	dummyDTB->programCounter = 0;
 	dummyDTB->status = -1;								//Valor basura, todavia no esta en ninguna cola
@@ -40,6 +41,7 @@ void InitGlobalVariables()
 {
 
 	nextID = 1;										//Arrancan en 1, la 0 es reservada para el Dummy
+inMemoryAmount = 0;									//Al principio, no hay nadie en memoria; se iran cargando
 
 	InitSemaphores();
 	InitQueuesAndLists();
@@ -134,8 +136,8 @@ DTB* CreateDTB(char* script)
 	DTB* newDTB = (DTB*) malloc(dtbSize);
 
 	newDTB->id = nextID++;
-	//Le pongo 0 para saber que no lo inicialice; nunca llegara a PCP con 0, solo el Dummy lo haria
-	newDTB->initialized = 0;
+	//Le pongo 1 para saber que no es el Dummy; solo el dummy lo tiene en 0
+	newDTB->initialized = 1;
 	newDTB->pathEscriptorio = malloc(strlen(script) + 1);
 	strcpy(newDTB->pathEscriptorio, script);
 	newDTB->programCounter = 0;
@@ -156,7 +158,7 @@ void AddToNew(DTB* myDTB)
 
 	myDTB->status = DTB_STATUS_NEW;
 	//Todavia no prendo el flag initialized, falta la operacion Dummy
-	list_add(NEWqueue, myDTB);
+	queue_push(NEWqueue, myDTB);
 
 }
 
@@ -263,16 +265,8 @@ void PlanificadorLargoPlazo(void* gradoMultiprogramacion)
 		if(PLPtask == PLP_TASK_NORMAL_SCHEDULE)
 		{
 
-			int inMemoryAmount = queue_size(READYqueue) + list_size(BLOCKEDqueue) + list_size(EXECqueue);
-			//Descuento el dummy de la cantidad de procesos en memoria (no afecta para el grado de multiprogramacion)
-			//No lo descuento si su estado es basura (esto solo pasaria si aun no se lo utilizo)
-			if(dummyDTB->status > 0)
-			{
-				inMemoryAmount--;
-			}
-
 			//Si el grado de multiprogramacion no lo permite, o no hay procesos en NEW, voy a la proxima iteracion del while
-			if(inMemoryAmount >= multiprogrammingDegree || list_is_empty(NEWqueue))
+			if(inMemoryAmount >= multiprogrammingDegree || queue_is_empty(NEWqueue))
 			{
 				sleep(3);				//Retardo ficticio, para debuggear; puede servir, para esperar
 				continue;
@@ -281,73 +275,70 @@ void PlanificadorLargoPlazo(void* gradoMultiprogramacion)
 			//Si el Dummy esta en estado BLOCKED (no en la cola, sino esperando a ser asignado), agarro el primero de la cola
 			if(dummyDTB->status == DTB_STATUS_BLOCKED)
 			{
-				DTB* queuesFirst = list_remove(NEWqueue, 1);
-
-				//Si el primero no esta inicializado, es porque debo avisar al PCP que haga la operacion Dummy
-				if(queuesFirst->initialized == 0)
-				{
-
-					//Devuelvo el que saque a NEW
-					AddToNew(queuesFirst);
-
-					//Realloco el dummyDTB, porque su char* cambio; cargo el path del DTB a inicializar (no lo hace el PCP)
-					int pathLength = strlen(queuesFirst->pathEscriptorio) + 1;
-					int newSize = (sizeof(int) * 5) + pathLength;		//Medio cabeza, mejorar; 5 por los 5 enteros fijos
-					dummyDTB = realloc(dummyDTB, newSize);
-					dummyDTB->pathEscriptorio = realloc(dummyDTB->pathEscriptorio, pathLength);
-					strcpy(dummyDTB->pathEscriptorio, queuesFirst->pathEscriptorio);
-
-					//Le aviso al PCP que debe hacer la tarea de LOAD_DUMMY (pasarlo a READY, nada mas)
-					SetPCPTask(PCP_TASK_LOAD_DUMMY);
-
-				}
-				//Si el primero esta inicializado, lo agrego a READY; no aviso al PCP, ya deberia estar planificando (?)
-				else if(queuesFirst->initialized == 1)
-				{
-					AddToReady(queuesFirst);
-				}
+				//Saco el primero de la cola, y seteo su informacion en el Dummy; borro su referencia?
+				DTB* queuesFirst = queue_pop(NEWqueue);
+				//Aumento en uno la cantidad de procesos en memoria, asi ya le guardo un lugar
+				inMemoryAmount++;
+				//Aca seteo su info en el Dummy, y le indico al PCP que lo pase a READY
+				SetDummy(queuesFirst->id, queuesFirst->pathEscriptorio);
+				free(queuesFirst);
 			}
-
-			//Si el Dummy esta en READY o en EXEC, es porque no puede usarse para ningun DTB a inicializar
-			//Por eso, agarro el primero que ya este inicializado (que posea el flag en 1)
-			else if(dummyDTB->status == DTB_STATUS_READY || dummyDTB->status == DTB_STATUS_EXEC)
+			//Si el Dummy esta en READY o en EXEC, esta ocupado; espero un poco mas y reactivo el semaforo
+			else if(dummyDTB -> status == DTB_STATUS_READY || dummyDTB -> status == DTB_STATUS_EXEC)
 			{
-
-				//Si no hay ninguno inicializado, no hay nada que hacer, voy a la siguiente iteracion (bloqueo en el semaforo)
-				if(!list_any_satisfy(NEWqueue, (void*)IsInitialized))
-				{
-					sleep(3);
-					continue;
-				}
-				DTB* firstInitialized = list_remove_by_condition(NEWqueue, (void*)IsInitialized);
-				AddToReady(firstInitialized);
-
+				sleep(3);
+				SetPLPTask(PLP_TASK_NORMAL_SCHEDULE);
 			}
 
 		}
 
 		else if(PLPtask == PLP_TASK_CREATE_DTB)
 		{
-			DTB* newDTB;
-			newDTB = CreateDTB(toBeCreated->script);
-			AddToNew(newDTB);
+			//Hasta vaciar la cola de scripts, los voy sacando y guardando en DTBs que agrego a NEW
+			while(!queue_is_empty(scriptsQueue))
+			{
+				DTB* newDTB;
+				char* newPath = (char*) queue_pop(scriptsQueue);
+				//No le hago free aca, cuando elimine todos lo hare
+				newDTB = CreateDTB(newPath);
+			    AddToNew(newDTB);
+			}
+
 			//Vuelvo a poner la tarea del PLP en Planificacion Normal (1)
 			SetPLPTask(PLP_TASK_NORMAL_SCHEDULE);
 		}
 
 		else if(PLPtask == PLP_TASK_INITIALIZE_DTB)
 		{
-			//Busco el DTB que tiene el mismo ID que indicaba el Dummy; le pongo el flag en 1
-			//Para ello, debo sacarlo de la lista, modificarlo, y ponerlo al final de nuevo (es una cola)
-			DTB* toBeInitialized = list_remove_by_condition(NEWqueue, (void*)IsDTBtoBeInitialized);
-			toBeInitialized->initialized = 1;
-			AddToNew(toBeInitialized);
+			//En base a lo que me mando el DAM (protocolo 220), creo el DTB con esa info
+			DTB* toBeInitialized = CreateDTB(toBeCreated->script);
+			toBeInitialized->id = toBeCreated->dtbID;
+			toBeInitialized->pathLogicalAddress = toBeCreated->logicalAddress;
+			//Bajo el contador en uno, el CreateDTB lo aumento por defecto
+			nextID--;
+
+			AddToReady(toBeInitialized);
 			//Vuelvo a poner la tarea del PLP en Planificacion Normal (1)
 			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 			SetPLPTask(PLP_TASK_NORMAL_SCHEDULE);
 		}
 
 	}
+
+}
+
+void SetDummy(int id, char* path)
+{
+
+	//Realloco el dummyDTB, porque su char* cambio; cargo el path del DTB a inicializar (no lo hace el PCP)
+	int pathLength = strlen(path) + 1;
+	int newSize = (sizeof(int) * 6) + pathLength;		//Medio cabeza, mejorar; 6 por los 6 enteros fijos
+	dummyDTB = realloc(dummyDTB, newSize);
+	dummyDTB->pathEscriptorio = realloc(dummyDTB->pathEscriptorio, pathLength);
+	strcpy(dummyDTB->pathEscriptorio, path);
+
+	//Le aviso al PCP que debe hacer la tarea de LOAD_DUMMY (pasarlo a READY, nada mas)
+	SetPCPTask(PCP_TASK_LOAD_DUMMY);
 
 }
 
@@ -444,8 +435,6 @@ void* FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 	void* result = malloc(1);
 	int offset = 0, totalSize = 0;
 	int nextSize;
-
-	printf("Reserve el espacio\n");
 
 	void CopyPath(char* path, void* address)
 	{
@@ -569,71 +558,3 @@ void* ScheduleVRR(int maxQuantum)
 	return packet;
 
 }
-
-/////////////////////MOVER AL CPU////////////////////
-t_dictionary* BuildDictionary(void* flattened, int amount)
-{
-
-	t_dictionary* dict = dictionary_create();
-	int i = 1;
-	int offset = 0;
-	int* logicalAddress;
-	while(i <= amount)
-	{
-		char* path;
-		//OJO: NO VA EL FREE DE ESTE PUNTERO ACA, SINO PIERDO LA REFERENCIA DEL ULTIMO PUT
-		//EL FREE SE HACE SOLO CUANDO DESTRUYA EL DICCIONARIO Y SUS ELEMENTOS
-		logicalAddress = malloc(sizeof(int));
-		path = strtok((char*)(flattened + offset), ":");
-		//No le sumo uno por los :, strlen me devuelve el largo + 1 por el \0 al final
-		offset += (strlen(path) + 1);
-		memcpy(logicalAddress, flattened + offset, sizeof(int));
-		offset += (sizeof(int) + 1);
-		dictionary_put(dict, path, logicalAddress);
-		i++;
-	}
-
-	return dict;
-
-}
-
-///PRUEBA BUILDDICTIONARY///
-
-/*void ShowKeyAndValue(char* key, void* value)
-{
-	printf("%s : ", key);
-	printf("%d\n",*((int*)value));
-}
-
-int main(void)
-{
-
-	void* aplanado = malloc(100);
-	int offset = 0;
-	int* dir1 = (int*)malloc(sizeof(int));
-	*dir1 = 12560;
-	int* dir2 = (int*)malloc(sizeof(int));
-	*dir2 = 1310;
-	int* dir3 = (int*)malloc(sizeof(int));
-	*dir3 = 8826;
-	memcpy(aplanado + offset, "script1.txt:", 12);
-	offset += 12;
-	memcpy(aplanado + offset, dir1, sizeof(int));
-	offset += sizeof(int);
-	memcpy(aplanado + offset, ",script2.txt:", 13);
-	offset += 13;
-	memcpy(aplanado + offset, dir2, sizeof(int));
-	offset += sizeof(int);
-	memcpy(aplanado + offset, ",otroArch.bat:", 14);
-	offset += 14;
-	memcpy(aplanado + offset, dir3, sizeof(int));
-	offset += sizeof(int);
-	memcpy(aplanado + offset, ";\0", 2);
-
-	t_dictionary* d = BuildDictionary(aplanado, 3);
-
-	dictionary_iterator(d, ShowKeyAndValue);
-
-	return 0;
-
-}*/

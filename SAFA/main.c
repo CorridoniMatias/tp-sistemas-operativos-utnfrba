@@ -3,10 +3,11 @@
 #include "kemmens/ThreadPool.h"
 #include "kemmens/CommandInterpreter.h"
 #include "kemmens/SocketServer.h"
-#include "incs/CPUsManager.h"
-#include "incs/ConsoleHandler.h"
-#include "incs/Scheduling.h"
-#include "incs/bibliotecaSAFA.h"
+
+#include "headerFiles/bibliotecaSAFA.h"
+#include "headerFiles/ConsoleHandler.h"
+#include "headerFiles/CPUsManager.h"
+#include "headerFiles/Scheduling.h"
 
 bool corrupt = true;
 int elDiego = -1;

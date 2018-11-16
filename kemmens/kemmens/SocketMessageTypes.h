@@ -22,6 +22,11 @@
 #define MESSAGETYPE_DAM_ABRIR	20 //Comando: abrir <pathFile>
 #define MESSAGETYPE_DAM_FLUSH	21 //Comando flush <pathFile>
 
+///PROTOCOLO S-AFA (5XX)
+//MENSAJES PARA EL CPU
+#define MESSAGETYPE_SAFA_CPU_EXECUTE 521		//Ejecutar un DTB con ciertos parametros (path, quantum, PC, etc)
+#define MESSAGETYPE_SAFA_CPU_WAITRESPONSE 522	//Respuesta a una operacion Wait hecha por un CPU; 1:aceptada, 0:denegada
+
 
 
 
