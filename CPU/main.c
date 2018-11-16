@@ -1,6 +1,5 @@
 #include "bibliotecaCPU.h"
 
-
 int main(int argc, char *argv[])
 {
 	//Loggers habituales
@@ -16,15 +15,14 @@ int main(int argc, char *argv[])
 	while(1)
 	{
 		int err,messageType,msglength;
-//		waitSafaOrders();
 		void* msgFromSafa = SocketCommons_ReceiveData(safa,&messageType,&msglength,&err);
 
 		DeserializedData data;
 		Serialization_Deserialize(msgFromSafa,&data);
 
-		if ( *(int*)data.parts[0] == 0)
+		if ( *(int*)data.parts[1] == 0)
 			{
-			//TODO cambiar protocolo, hablar con pepe sobre flag y sobre el recurso
+
 				executeDummy(data, safa, diego);
 
 				sleep(settings->retardo);
@@ -55,24 +53,40 @@ int main(int argc, char *argv[])
 
 
 			while( i < totalQuantum )
-				{
-				//TODO hacer verificacion de que verdaderamente me lleno una linea de codigo
-
-
+			{
 					char* line = askLineToFM9(data, fm9); //Pido una linea
 					if(strcmp(line,"error") != 0){
 						Operation extraData = {.dtb =*((int*)data.parts[0]) , .programCounter = updatedProgramCounter, .quantum = totalQuantum,
-												.dictionary = dictionary ,.socketSAFA = safa, .socketFM9 = fm9, .socketDIEGO = diego};
+												.dictionary = dictionary ,.socketSAFA = safa, .socketFM9 = fm9, .socketDIEGO = diego,
+												.commandResult = 0};
 						bool res = CommandInterpreter_Do(line, " ",&extraData);
-						if(res == 1 ){
+						if(res == 1 && extraData.commandResult == 0){
+							//TODO hacer todos los free
+							sleep(settings->retardo); //retardo por operacion
+							updatedProgramCounter ++;
 							continue;
 						}
-						sleep(settings->retardo); //retardo por operacion
-						updatedProgramCounter ++;;
-					// TODO terminar el command interpretar siempre ejecutando linea por linea y actualizando el PC de SAFA,
+						else if (extraData.commandResult == 2) {
+							break;
+						}
+						else {
+							continue;
+						}
+					// Terminar el command interpretar siempre ejecutando linea por linea y actualizando el PC de SAFA,
 					// NO OLVIDAR RETARDO POR OPERACION
 					}
+					else if (strcmp(line,"") != 0){
+						int* idDTB = (int*)malloc(4);
+						*idDTB = *((int*)data.parts[0]);
+						SerializedPart fieldForSAFA1 = {.size = 4, .data =&idDTB};
+						void* packetToSafa = Serialization_Serialize(1,fieldForSAFA1);
+						SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, packetToSafa, sizeof(packetToSafa));
+						free(idDTB);
+						break;
+					}
 					else{
+							//si la linea que queremos leer retorna error entonces la pedimos otra vez
+							//estaria bien o habria que salir del loop desalojando el dtb?
 							totalQuantum +=1;
 							continue;
 					}
@@ -80,16 +94,25 @@ int main(int argc, char *argv[])
 
 				}
 
+			SerializedPart fieldForSAFA1 = {.size = 4, .data = &data.parts[0]};
+			SerializedPart fieldForSAFA2 = {.size = 4, .data = &updatedProgramCounter};
+			int numberOfFiles = dictionary_size(dictionary);
+
+			// TODO TESTEAR BIEN SI ESTO QUEDARIA ACTUALIZADO CON EL ULTIMO VALOR O NO
+			SerializedPart fieldForSAFA3 = {.size = 4 , .data = &numberOfFiles};
+			SerializedPart fieldForSAFA4 = {.size = sizeof(FlattenPathsAndAddresses(dictionary)) + 1 , .data = FlattenPathsAndAddresses(dictionary)};
+ 			void* packetToSAFA = Serialization_Serialize(4, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4);
+
+			SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOQUANTUM,packetToSAFA, sizeof(packetToSAFA));
 
 			}
 
 	}
 
 
+/*
 
 
-
-		/*
 		 * EXPLICACION VILLERA TODO DOCUMENTAR BIEN
 		ACORDARME DE MANDARME EL QUANTUM QUE SOBRO A SAFA
 							bloqueado esperando recv del SAFA
@@ -103,13 +126,11 @@ int main(int argc, char *argv[])
 										y voy haciendo las acciones requeridas
 
 
+*/
 
-
-						 */
 
 	exit_gracefully(0);
 
 }
-
 
 

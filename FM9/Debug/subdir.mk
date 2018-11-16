@@ -9,6 +9,7 @@ C_SRCS += \
 ../FM9_Server.c \
 ../InvertedPageTable.c \
 ../Paging.c \
+../Segmentation.c \
 ../Storage.c \
 ../bibliotecaFM9.c \
 ../main.c 
@@ -19,6 +20,7 @@ OBJS += \
 ./FM9_Server.o \
 ./InvertedPageTable.o \
 ./Paging.o \
+./Segmentation.o \
 ./Storage.o \
 ./bibliotecaFM9.o \
 ./main.o 
@@ -29,6 +31,7 @@ C_DEPS += \
 ./FM9_Server.d \
 ./InvertedPageTable.d \
 ./Paging.d \
+./Segmentation.d \
 ./Storage.d \
 ./bibliotecaFM9.d \
 ./main.d 

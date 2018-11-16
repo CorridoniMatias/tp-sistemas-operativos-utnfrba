@@ -4,14 +4,17 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../DAMInterface.c \
 ../bibliotecaDAM.c \
 ../main.c 
 
 OBJS += \
+./DAMInterface.o \
 ./bibliotecaDAM.o \
 ./main.o 
 
 C_DEPS += \
+./DAMInterface.d \
 ./bibliotecaDAM.d \
 ./main.d 
 

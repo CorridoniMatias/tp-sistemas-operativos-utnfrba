@@ -39,6 +39,7 @@ struct Operation_s
 	int programCounter;
 	int quantum;
     t_dictionary* dictionary;
+    int commandResult;
 	int socketSAFA;
 	int socketFM9;
 	int socketDIEGO;
@@ -63,6 +64,8 @@ void* CommandCrear();
 void* CommandBorrar();
 t_dictionary* BuildDictionary(void* flattened, int amount);
 bool openFileVerificator(t_dictionary* dictionary,char* path);
+void* FlattenPathsAndAddresses(t_dictionary* openFilesTable);
+
 
 
 
