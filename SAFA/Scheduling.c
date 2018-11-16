@@ -41,7 +41,7 @@ void InitGlobalVariables()
 {
 
 	nextID = 1;										//Arrancan en 1, la 0 es reservada para el Dummy
-inMemoryAmount = 0;									//Al principio, no hay nadie en memoria; se iran cargando
+	inMemoryAmount = 0;									//Al principio, no hay nadie en memoria; se iran cargando
 
 	InitSemaphores();
 	InitQueuesAndLists();
@@ -462,16 +462,16 @@ void* FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 void* GetMessageForCPU(DTB* chosenDTB)
 {
 
-	int* idToSend = malloc(sizeof(int));
+	uint32_t* idToSend = malloc(sizeof(uint32_t));
 	*idToSend = chosenDTB->id;
-	int* pathAddressToSend = malloc(sizeof(int));
+	uint32_t* pathAddressToSend = malloc(sizeof(uint32_t));
 	*pathAddressToSend = chosenDTB->pathLogicalAddress;
-	int* pcToSend = malloc(sizeof(int));
+	uint32_t* pcToSend = malloc(sizeof(uint32_t));
 	*pcToSend = chosenDTB->programCounter;
-	int* quantumToSend = malloc(sizeof(int));
+	uint32_t* quantumToSend = malloc(sizeof(uint32_t));
 	*quantumToSend = chosenDTB->quantumRemainder;
 	//Cantidad de archivos abiertos
-	int* ofaToSend = malloc(sizeof(int));
+	uint32_t* ofaToSend = malloc(sizeof(uint32_t));
 	*ofaToSend = chosenDTB->openedFilesAmount;
 
 	//Estructuras con los datos a serializar y mandar como cadena
@@ -556,5 +556,61 @@ void* ScheduleVRR(int maxQuantum)
 	AddToExec(chosenDTB);
 	//OJO: Alguien deberia hacer free de ese packet despues
 	return packet;
+
+}
+
+////////////////////////////////////////////////////////////
+
+void DeleteSemaphores()
+{
+
+	pthread_mutex_destroy(&mutexPLPtask);
+	pthread_mutex_destroy(&mutexPCPtask);
+	sem_destroy(&workPLP);
+
+}
+
+void ScriptDestroyer(char* script)
+{
+
+	free(script);
+
+}
+
+void LogicalAddressDestroyer(void* addressPtr)
+{
+	free(addressPtr);
+}
+
+void DTBDestroyer(DTB* aDTB)
+{
+
+	free(aDTB->pathEscriptorio);
+	dictionary_destroy_and_destroy_elements(aDTB->openedFiles, LogicalAddressDestroyer);
+	free(aDTB);
+
+}
+
+void DeleteQueuesAndLists()
+{
+
+	queue_destroy_and_destroy_elements(scriptsQueue, ScriptDestroyer);
+	queue_destroy_and_destroy_elements(NEWqueue, DTBDestroyer);
+	queue_destroy_and_destroy_elements(READYqueue, DTBDestroyer);
+	list_destroy_and_destroy_elements(BLOCKEDqueue, DTBDestroyer);
+	list_destroy_and_destroy_elements(EXECqueue, DTBDestroyer);
+	list_destroy_and_destroy_elements(EXITqueue, DTBDestroyer);
+
+}
+
+void DeleteGlobalVariables()
+{
+
+	free(toBeCreated->script);
+	free(toBeCreated);
+	//El free del Dummy no se hace aca, sino al hacer el delete de Colas y Listas (estara en alguna)
+
+	DeleteSemaphores();
+	DeleteQueuesAndLists();
 
 }
