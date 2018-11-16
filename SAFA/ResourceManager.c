@@ -20,7 +20,7 @@ void AddNewResource(char* name)
 
 }
 
-bool SignalForResource(char* name)
+void SignalForResource(char* name)
 {
 
 	//Si el recurso ya existe, aumento en uno sus instancias disponibles; obtengo sus datos y actualizo
@@ -70,5 +70,27 @@ bool WaitForResource(char* name, int requesterID)
 		//Respuesta positiva
 		return false;
 	}
+
+}
+
+void WaiterDestroyer(int* waiterID)
+{
+
+	free(waiterID);
+
+}
+
+void ResourceDestroyer(ResourceStatus* rst)
+{
+
+	queue_clean_and_destroy_elements(rst->waiters, WaiterDestroyer);
+	free(rst);
+
+}
+
+void DeleteResources()
+{
+
+	dictionary_destroy_and_destroy_elements(resources, ResourceDestroyer);
 
 }
