@@ -27,6 +27,7 @@
 #define MESSAGETYPE_SAFA_CPU_EXECUTE 521		//Ejecutar un DTB con ciertos parametros (path, quantum, PC, etc)
 #define MESSAGETYPE_SAFA_CPU_WAITRESPONSE 522	//Respuesta a una operacion Wait hecha por un CPU; 1:aceptada, 0:denegada
 
+<<<<<<< HEAD
 
 
 
@@ -51,5 +52,7 @@
 
 
 
+=======
+>>>>>>> 7b3350e36f245bb4ef099e16be9f3761db2cd1f5
 
 #endif /* KEMMENS_SOCKETMESSAGETYPES_H_ */
