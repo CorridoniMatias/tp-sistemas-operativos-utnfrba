@@ -19,9 +19,19 @@
 
 //PROTOCOLO DAM (2)
 
-#define MESSAGETYPE_DAM_ABRIR	20 //Comando: abrir <pathFile>
-#define MESSAGETYPE_DAM_FLUSH	21 //Comando flush <pathFile>
+//#define MESSAGETYPE_DAM_ABRIR	20 //Comando: abrir <pathFile>
+//#define MESSAGETYPE_DAM_FLUSH	21 //Comando flush <pathFile>
 
+<<<<<<< HEAD
+=======
+#define MESSAGETYPE_DAM_SAFA_DUMMY	220 //Finaliza carga del script del dummy
+#define MESSAGETYPE_DAM_SAFA_ABRIR	221 //Comando: abrir
+#define MESSAGETYPE_DAM_SAFA_CREAR	222 //Comando: crear
+#define MESSAGETYPE_DAM_SAFA_BORRAR	223 //Comando: borrar
+#define MESSAGETYPE_DAM_SAFA_FLUSH	224 //Comando: flush
+#define MESSAGETYPE_DAM_SAFA_ERR	225 //Error en la operacion con SAFA
+
+>>>>>>> bd289d7c72ae06e771c4df5f2ddd3e18ce98d091
 ///PROTOCOLO S-AFA (5XX)
 //MENSAJES PARA EL CPU
 #define MESSAGETYPE_SAFA_CPU_EXECUTE 521		//Ejecutar un DTB con ciertos parametros (path, quantum, PC, etc)

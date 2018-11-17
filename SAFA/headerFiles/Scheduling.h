@@ -22,20 +22,20 @@
  * 		initialized: Flag numerico que indica si el DTB ha sido inicializado; todos lo tienen en 1, salvo el Dummy
  * 		status:	Codigo numerico que representa el estado del DTB (diagrama de 5 estados)
  * 		openedFilesAmount: Cantidad de archivos abiertos por el DTB
- * 		openedFiles: Diccionario que representa la tabla de archivos abiertos por el DTB. Key: path, Value: dirLogica
+ * 		openedFiles: Diccionario que representa la tabla de archivos abiertos por el DTB. Key: path, Value: dirLogica (uint32_t*)
  * 		quantumRemainder: Cantidad de UTs del quantum que le quedan al DTB para ejecutar
  */
 struct DTB_s
 {
-	int id;
+	uint32_t id;
 	char* pathEscriptorio;
 	uint32_t pathLogicalAddress;
-	int programCounter;					//0 es para la primer linea
-	int initialized;
+	uint32_t programCounter;					//0 es para la primer linea
+	uint32_t initialized;
 	int status;
-	int openedFilesAmount;
+	uint32_t openedFilesAmount;
 	t_dictionary* openedFiles;
-	int quantumRemainder;
+	uint32_t quantumRemainder;
 } typedef DTB;
 
 /*
@@ -49,7 +49,7 @@ struct DTB_s
  */
 struct CreatableGDT_s
 {
-	int dtbID;
+	uint32_t dtbID;
 	char* script;
 	uint32_t logicalAddress;
 } typedef CreatableGDT;
@@ -64,7 +64,7 @@ struct CreatableGDT_s
  */
 struct DeassignmentInfo_s
 {
-	int dtbID;
+	uint32_t dtbID;
 	int cpuSocket;
 } typedef DeassignmentInfo;
 
@@ -112,7 +112,11 @@ sem_t workPLP;									//Semaforo binario, para indicar que es hora de que el PL
 int PLPtask;
 int PCPtask;
 
+<<<<<<< HEAD:SAFA/headerFiles/Scheduling.h
 int nextID;										//ID a asignarle al proximo DTB que se cree
+=======
+uint32_t nextID;										//ID a asignarle al proximo DTB que se cree
+>>>>>>> bd289d7c72ae06e771c4df5f2ddd3e18ce98d091:SAFA/headerFiles/Scheduling.h
 int inMemoryAmount;								//Cantidad de procesos actualmente en memoria; para el grado de multiprogr.
 
 t_queue* NEWqueue;								//"Cola" NEW, gestionada por PLP con FIFO; es lista para ser modificable
@@ -170,6 +174,11 @@ void* GetMessageForCPU(DTB* chosenDTB);
 void* ScheduleRR(int quantum);
 void* ScheduleVRR(int maxQuantum);
 
-t_dictionary* BuildDictionary(void* flattened, int amount);
+void DeleteSemaphores();
+void ScriptDestroyer(char* script);
+void LogicalAddressDestroyer(void* addressPtr);
+void DTBDestroyer(DTB* aDTB);
+void DeleteQueuesAndLists();
+void DeleteGlobalVariables();
 
 #endif /* HEADERFILES_SCHEDULING_H_ */
