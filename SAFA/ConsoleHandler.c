@@ -1,4 +1,4 @@
-#include "incs/ConsoleHandler.h"
+#include "headerFiles/ConsoleHandler.h"
 
 void CommandEjecutar (int argC, char** args, char* callingLine, void* extraData)
 {
@@ -17,9 +17,9 @@ void CommandEjecutar (int argC, char** args, char* callingLine, void* extraData)
 		return;
 	}
 
-	//Copio el script a ejecutar en la variable global que usa el PLP, y le aviso
-	strcpy(toBeCreated->script, args[1]);
-	PLPtask = PLP_TASK_CREATE_DTB;
+	//Agrego el script a ejecutar en la cola de Scripts que maneja el PLP, y le aviso
+	queue_push(scriptsQueue, args[1]);
+	SetPLPTask(PLP_TASK_CREATE_DTB);
 	sem_post(&workPLP);
 
 	CommandInterpreter_FreeArguments(args);

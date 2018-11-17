@@ -112,6 +112,7 @@ typedef struct {
  *		char* i2 = (char*)malloc(6);
  *		strcpy(i2, "hola!");
  *
+ *
  *		SerializedPart p1 = {.size = 4, .data = i1};
  *		SerializedPart p2 = {.size = strlen(i2)+1, .data = i2};
  *
