@@ -7,45 +7,14 @@
 #include "kemmens/SocketClient.h"
 #include "kemmens/SocketCommons.h"
 #include "kemmens/SocketServer.h"
-
-//-------------CONSTANTES PREDEFINIDAS-------------//
-
-#define RUTA_CONFIG "DAM.config"				//Ruta de acceso al archivo de configuracion
-#define TAMMAXPUERTO 6							//Tamanio maximo de un nombre de puerto (contando \0)
-#define TAMMAXIP 20								//Tamanio maximo de un nombre de ip (contando \0)
+#include "Config.h"
+#include "DAMInterface.h"
 
 
 //-------------ESTRUCTURAS Y VARIABLES GLOBALES-------------//
 
-/*
- * Estructura para almacenar los datos de configuracion
- * CAMPOS:
- * 		puertoEscucha: Puerto a traves del cual se escucharan las conexiones entrantes de CPUs
- * 		ipSAFA:	IP del proceso S-AFA, al cual me conectare como cliente
- * 		puertoSAFA: Puerto de la IP del S-AFA al cual me conectare
- * 		ipMDJ: IP del proceso MDJ, al cual me conectare como cliente
- * 		puertoMDJ: Puerto de la IP del MDJ al cual me conectare
- * 		ipFM9: IP del proceso FM9, al cual me conectare como cliente
- * 		puertoFM9: Puerto de la IP del FM9 al cual me conectare
- * 		transferSize: Tamanio maximo de transferencia al interactuar con el FM9 y el MDJ
- */
-
-struct Configuracion_s
-{
-	int puertoEscucha;
-	char ipSAFA[TAMMAXIP];
-	char puertoSAFA[TAMMAXPUERTO];
-	char ipMDJ[TAMMAXIP];
-	char puertoMDJ[TAMMAXPUERTO];
-	char ipFM9[TAMMAXIP];
-	char puertoFM9[TAMMAXPUERTO];
-	int transferSize;
-} typedef Configuracion;
-
+ThreadPool* threadPool;		//"ThreadPool" para encolar tareas e hilos
 t_list* cpus;					//Lista de CPUs conectadas
-Configuracion* settings;		//Variable que representa los datos de configuracion de la ejecucion actual
-ThreadPool* pozoDeHebras;		//"ThreadPool" para encolar tareas e hilos
-
 
 //-------------FUNCIONES-------------//
 
@@ -118,7 +87,7 @@ void clienteDesconectado(int unSocket);
  * 		tipoMensaje: Tipo de mensaje del paquete que recien llego; determina las acciones a tomar
  * 		datos: Paquete recibido, como linea de comando entera
  */
-void llegoUnPaquete(int socket, int tipoMensaje, void* datos);
+void llegoUnPaquete(int socketID, int message_type, void* datos, int message_length);
 
 /*
  *

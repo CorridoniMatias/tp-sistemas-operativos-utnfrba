@@ -13,7 +13,7 @@
  * 			port: Puerto de la IP a la cual quiero conectarme, en forma de cadena
  * 		RETORNO: El numero de fd del socket a traves del cual se conecto, o bien -1 en caso de error
  */
-int SocketClient_ConnectToServer(char* ip,char* port);
+//int SocketClient_ConnectToServer(char* ip,char* port);
 
 /**
  * 		ACCION: Establece una conexion como cliente a un servidor con cierta IP, en cierto puerto

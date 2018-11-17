@@ -10,7 +10,7 @@ void configurar()
 			"IP_DIEGO",
 			"PUERTO_DIEGO",
 			"IP_FM9",
-			"PUERTO_FM9"
+			"PUERTO_FM9",
 			"RETARDO",
 			NULL
 	};
@@ -44,7 +44,6 @@ int conectarAProceso(char* ip, char* puerto, char* nombreProceso)
 	Logger_Log(LOG_INFO, "CPU conectado al proceso %s!", nombreProceso);	//Logueo que me conecte
 	SocketCommons_SendMessageString(socket, "iam CPU");
 
-	free(nombreProceso);				//Anti-memory leak
 
 	return socket;
 
@@ -52,8 +51,8 @@ int conectarAProceso(char* ip, char* puerto, char* nombreProceso)
 }
 
 void executeDummy(DeserializedData dtb, int diego, int safa){
-	int* idDtb = (int*)malloc(4);
-	*idDtb = (int)dtb.parts[0];
+	uint32_t* idDtb = (uint32_t*)malloc(4);
+	*idDtb = (uint32_t)dtb.parts[0];
 	char* path = (char*)malloc(sizeof(dtb.parts[1]));
 	strcpy(path,(char*)dtb.parts[1]);
 	int* pc = (int*)malloc(4);
@@ -82,10 +81,10 @@ void executeDummy(DeserializedData dtb, int diego, int safa){
 
 char* askLineToFM9(DeserializedData dtb, int fm9){
 
-	int* idDtb = (int*)malloc(4);
-	*idDtb = (int)dtb.parts[0];
-	int* logicDir = (int*)malloc(sizeof(dtb.parts[2]));
-	*logicDir = (int)dtb.parts[2];
+	uint32_t* idDtb = (uint32_t*)malloc(4);
+	*idDtb = (uint32_t)dtb.parts[0];
+	uint32_t* logicDir = (uint32_t*)malloc(sizeof(dtb.parts[2]));
+	*logicDir = (uint32_t)dtb.parts[2];
 	int*pc = (int*)malloc(4);
 	*pc = (int)dtb.parts[3];
 
@@ -161,8 +160,8 @@ void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 	if(argC == 3){
 		if(openFileVerificator(((Operation*)extraData)->dictionary,args[0])){
 
-			int logicDirToWrite = *((int*)dictionary_get(((Operation*)extraData)->dictionary,args[0]));
-			int lineToWrite = atoi(args[1]);
+			uint32_t logicDirToWrite = *((uint32_t*)dictionary_get(((Operation*)extraData)->dictionary,args[0]));
+			uint32_t lineToWrite = atoi(args[1]);
 			char* dataToWrite = args[2];
 			logicDirToWrite = ((Operation*)extraData)->programCounter + lineToWrite - 1;
 			SerializedPart fieldForFM91 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
@@ -190,12 +189,27 @@ void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 				if(*(int*)data.parts[0] == 2){
 					free(dataToWrite);
 					Logger_Log(LOG_INFO, "Error fallo de segmento/memoria en FM9");
-					((Operation*)extraData)->commandResult = 1; // 0 SALIO to MAL
+
+					SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
+
+
+					void* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
+					SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA, sizeof(packetToSAFA));
+					StringUtils_FreeArray(args);
+					((Operation*)extraData)->commandResult = 2;
 				}
 				else {
 					free(dataToWrite);
 					Logger_Log(LOG_INFO, "Espacio insuficiente en FM9");
-					((Operation*)extraData)->commandResult = 1; // 0 SALIO to MAL
+
+					SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
+
+
+					void* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
+					SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA, sizeof(packetToSAFA));
+
+					StringUtils_FreeArray(args);
+					((Operation*)extraData)->commandResult = 2;
 				}
 			}
 
@@ -248,7 +262,7 @@ void* CommandWait(int argC, char** args, char* callingLine, void* extraData){
 			SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
 			SerializedPart fieldForSAFA2 = {.size = sizeof(((Operation*)extraData)->programCounter), .data = &(((Operation*)extraData)->programCounter)};
 			SerializedPart fieldForSAFA3 = {.size = 4, .data = &(((Operation*)extraData)->quantum)};
-			int numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
+			uint32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
 			SerializedPart fieldForSAFA4 = {.size = 4 , .data = &numberOfFiles};
 			SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
  			void* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
@@ -263,7 +277,7 @@ void* CommandWait(int argC, char** args, char* callingLine, void* extraData){
 		SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
 		SerializedPart fieldForSAFA2 = {.size = sizeof(((Operation*)extraData)->programCounter), .data = &(((Operation*)extraData)->programCounter)};
 		SerializedPart fieldForSAFA3 = {.size = 4, .data = &(((Operation*)extraData)->quantum)};
-		int numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
+		uint32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
 		SerializedPart fieldForSAFA4 = {.size = 4 , .data = &numberOfFiles};
 		SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
 			void* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4, fieldForSAFA5);
@@ -333,7 +347,7 @@ void* CommandFlush(int argC, char** args, char* callingLine, void* extraData){
 		SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
 		SerializedPart fieldForSAFA2 = {.size = sizeof(((Operation*)extraData)->programCounter), .data = &(((Operation*)extraData)->programCounter)};
 		SerializedPart fieldForSAFA3 = {.size = 4, .data = &(((Operation*)extraData)->quantum)};
-		int numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
+		uint32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
 		SerializedPart fieldForSAFA4 = {.size = 4 , .data = &numberOfFiles};
 	    SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
 		void* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
@@ -352,7 +366,7 @@ void* CommandClose(int argC, char** args, char* callingLine, void* extraData){
 	if(argC == 1){
 			if(openFileVerificator(((Operation*)extraData)->dictionary,args[0])){
 
-				int logicDirToClose = *((int*)dictionary_get(((Operation*)extraData)->dictionary,args[0]));
+				uint32_t logicDirToClose = *((uint32_t*)dictionary_get(((Operation*)extraData)->dictionary,args[0]));
 
 				SerializedPart fieldForFM91 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
 				SerializedPart fieldForFM92 = {.size = 4, .data =&logicDirToClose};
@@ -373,7 +387,11 @@ void* CommandClose(int argC, char** args, char* callingLine, void* extraData){
 				}
 				else {
 						Logger_Log(LOG_INFO, "Error fallo de segmento/memoria en FM9");
-						((Operation*)extraData)->commandResult = 2;
+						SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
+
+
+						void* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
+						SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA, sizeof(packetToSAFA));
 				}
 
 		}
@@ -412,7 +430,7 @@ void* CommandCrear(int argC, char** args, char* callingLine, void* extraData){
 	SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
 	SerializedPart fieldForSAFA2 = {.size = sizeof(((Operation*)extraData)->programCounter), .data = &(((Operation*)extraData)->programCounter)};
 	SerializedPart fieldForSAFA3 = {.size = 4, .data = &(((Operation*)extraData)->quantum)};
-	int numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
+	uint32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
 	SerializedPart fieldForSAFA4 = {.size = 4 , .data = &numberOfFiles};
     SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
 	void* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
@@ -436,7 +454,7 @@ void* CommandBorrar(int argC, char** args, char* callingLine, void* extraData){
 	SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
 	SerializedPart fieldForSAFA2 = {.size = sizeof(((Operation*)extraData)->programCounter), .data = &(((Operation*)extraData)->programCounter)};
 	SerializedPart fieldForSAFA3 = {.size = 4, .data = &(((Operation*)extraData)->quantum)};
-	int numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
+	uint32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
 	SerializedPart fieldForSAFA4 = {.size = 4 , .data = &numberOfFiles};
     SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
 	void* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
