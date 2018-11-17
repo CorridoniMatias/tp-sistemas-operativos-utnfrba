@@ -4,7 +4,8 @@
 #include <stdio.h>
 #include <commons/collections/list.h>
 #include "kemmens/logger.h"
-#include "bibliotecaFM9.h"
+
+#include "FM9lib.h"
 #include "Storage.h"
 
 //FM9 General Errors:
@@ -21,16 +22,15 @@ t_list* framesLibres;
 
 //Requerimiento: Inicializa las estructuras de la paginación, que son el tamanio del frame, la cantidad de frames y los frames libres.
 /*
- * 		Descripción: Inicializa la variable freeFrames con una lista con todos los frames indicados por la cantidad
- * 		de frames, que se obtiene en base al tamanio de la memoria y el tamanio del frame, ya que cuando inicia el FM9
- * 		no hay ningun frame ocupado.
+ * 	Descripción: Inicializa la variable freeFrames con una lista con todos los frames indicados por la cantidad
+ * 	de frames, que se obtiene en base al tamanio de la memoria y el tamanio del frame, ya que cuando inicia el FM9
+ * 	no hay ningun frame ocupado.
  */
 void createPagingStructures();
 
 //Requerimiento: Liberar lista de frames libres.
 /*
- *
- * 		Descripción: Libera la memoria ocupada por la lista de frames.
+ * 	Descripción: Libera la memoria ocupada por la lista de frames.
  */
 void freePagingStructures();
 
@@ -44,7 +44,6 @@ void addFreeFrame(int numFrame);
 
 //Requerimiento: Obtener un frame libre.
 /*
- *
  *	Descripción: Devuelve el primer frame libre de la lista, eliminandolo de la misma
  *
  *	Retorna: El número de frame libre, en caso de no haber ninguno devuelve NO_FRAMES_AVAILABLE.

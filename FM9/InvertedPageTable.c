@@ -1,6 +1,6 @@
 #include "headers/InvertedPageTable.h"
 
-void createStructuresIPT() {
+void createIPTStructures() {
 
 	Logger_Log(LOG_INFO, "FM9 -> Creando tabla de páginas invertida.");
 
@@ -17,18 +17,18 @@ void createStructuresIPT() {
 	Logger_Log(LOG_INFO, "FM9 -> Se creó tabla de páginas invertida.");
 }
 
-void freeStructuresIPT(){
+void freeIPTStructures(){
 
 	free(IPTable);
 
-	void elementDestroyer(void* DTBPages){
+	void dictionaryDestroyer(void* DTBPages){
 		void listDestroyer(void* pages){
 			list_destroy_and_destroy_elements(pages,free);
 		}
 		dictionary_clean_and_destroy_elements(DTBPages,listDestroyer);
 	}
 
-	dictionary_clean_and_destroy_elements(DTBsPages,elementDestroyer);
+	dictionary_clean_and_destroy_elements(DTBsPages,dictionaryDestroyer);
 
 	Logger_Log(LOG_INFO, "FM9 -> Tabla de páginas invertida liberada.");
 }

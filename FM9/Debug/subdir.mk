@@ -7,33 +7,33 @@ C_SRCS += \
 ../CPUsManager.c \
 ../ConsoleHandler.c \
 ../FM9_Server.c \
+../FM9lib.c \
 ../InvertedPageTable.c \
 ../Paging.c \
 ../Segmentation.c \
 ../Storage.c \
-../bibliotecaFM9.c \
 ../main.c 
 
 OBJS += \
 ./CPUsManager.o \
 ./ConsoleHandler.o \
 ./FM9_Server.o \
+./FM9lib.o \
 ./InvertedPageTable.o \
 ./Paging.o \
 ./Segmentation.o \
 ./Storage.o \
-./bibliotecaFM9.o \
 ./main.o 
 
 C_DEPS += \
 ./CPUsManager.d \
 ./ConsoleHandler.d \
 ./FM9_Server.d \
+./FM9lib.d \
 ./InvertedPageTable.d \
 ./Paging.d \
 ./Segmentation.d \
 ./Storage.d \
-./bibliotecaFM9.d \
 ./main.d 
 
 

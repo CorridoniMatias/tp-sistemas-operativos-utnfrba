@@ -29,17 +29,6 @@
 #define MESSAGETYPE_DAM_SAFA_FLUSH	224 //Comando: flush
 #define MESSAGETYPE_DAM_SAFA_ERR	225 //Error en la operacion con SAFA
 
-///PROTOCOLO S-AFA (5XX)
-//MENSAJES PARA EL CPU
-#define MESSAGETYPE_SAFA_CPU_EXECUTE 521		//Ejecutar un DTB con ciertos parametros (path, quantum, PC, etc)
-#define MESSAGETYPE_SAFA_CPU_WAITRESPONSE 522	//Respuesta a una operacion Wait hecha por un CPU; 1:aceptada, 0:denegada
-
-<<<<<<< HEAD
-
-
-
-
-
 //PROTOCOLO CPU
 #define MESSAGETYPE_CPU_ASKLINE 310
 #define MESSAGETYPE_CPU_ASIGNAR 311
@@ -55,11 +44,13 @@
 #define MESSAGETYPE_CPU_BORRAR 332
 #define MESSAGETYPE_CPU_CREAR 333
 
+//PROTOCOLO FM9 (4)
+#define MESSAGETYPE_FM9_GETLINE 40 //Pedir una linea de un archivo
+///PROTOCOLO S-AFA (5XX)
+//MENSAJES PARA EL CPU
+#define MESSAGETYPE_SAFA_CPU_EXECUTE 521		//Ejecutar un DTB con ciertos parametros (path, quantum, PC, etc)
+#define MESSAGETYPE_SAFA_CPU_WAITRESPONSE 522	//Respuesta a una operacion Wait hecha por un CPU; 1:aceptada, 0:denegada
 
 
-
-
-=======
->>>>>>> 7b3350e36f245bb4ef099e16be9f3761db2cd1f5
 
 #endif /* KEMMENS_SOCKETMESSAGETYPES_H_ */

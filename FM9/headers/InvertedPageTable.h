@@ -24,14 +24,14 @@ t_dictionary* DTBsPages;
 /*
  * 		Descripción: Inicializa la variable IPTable con la cantidad de frames que existen.
  */
-void createStructuresIPT();
+void createIPTStructures();
 
 //Requerimiento: Liberar la tabla de páginas invertida y el diccionario con los procesos, sus archivos
 /* y páginas
  *
  * 		Descripción: Libera la memoria ocupada por la tabla de páginas invertida.
  */
-void freeStructuresIPT();
+void freeIPTStructures();
 
 
 //Requerimiento: Guardar datos usando la Tabla de Páginas Invertida

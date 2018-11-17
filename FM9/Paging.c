@@ -12,7 +12,7 @@ void createPagingStructures() {
 
 	Logger_Log(LOG_INFO, "FM9 -> Creando estructuras de paginado.");
 
-	tamanioFrame = settings->tam_pagina
+	tamanioFrame = settings->tam_pagina;
 	cantLineasPorFrame =  tamanioFrame / tamanioLinea;
 	cantFrames = cantLineas / cantLineasPorFrame;
 
