@@ -59,7 +59,7 @@ int CPUsCount()
 
 }
 
-void CPUDestroyer(CPU* aCPU)
+void CPUDestroyer(void* aCPU)
 {
 
 	free(aCPU);

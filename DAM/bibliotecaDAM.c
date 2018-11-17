@@ -44,23 +44,18 @@ void configurar()
 
 void inicializarVariablesGlobales()
 {
-
 	configurar();
 	CommandInterpreter_Init();
-	pozoDeHebras = ThreadPool_CreatePool(14, false);
-
+	threadPool = ThreadPool_CreatePool(14, false);
 }
 
 void liberarVariablesGlobales()
 {
-
 	free(settings);
-	//Hace falta liberar los campos de settings? No hice mallocs, y son arrays estaticos de caracteres
-	ThreadPool_FreeGracefully(pozoDeHebras);
-	//No libero el Command Interpreter, total el exit_gracefully lo hace
-
+	//Hace falta liberar los campos de settings? No hice mallocs, y son arrays estaticos de caracteres. No, no hace falta.
+	ThreadPool_FreeGracefully(threadPool);
 }
-
+/*
 int conectarAProceso(char* ip, char* puerto, char* nombreProceso)
 {
 
@@ -83,7 +78,7 @@ int conectarAProceso(char* ip, char* puerto, char* nombreProceso)
 	return socket;
 
 }
-
+*/
 /* Version con IP por parametro; por ahora no la usamos, la dejo aca
  *
 int conectarAProceso(char* ip, char* puerto, char* nombreProceso)
@@ -107,7 +102,7 @@ int conectarAProceso(char* ip, char* puerto, char* nombreProceso)
 
 }
 */
-
+/*
 void esperarRespuesta(void* socket)
 {
 
@@ -134,6 +129,8 @@ void esperarRespuesta(void* socket)
 	return;
 
 }
+*/
+
 
 void levantarServidor()
 {
@@ -182,32 +179,42 @@ void clienteConectado(int socket)
 void clienteDesconectado(int unSocket)
 {
 
-	Logger_Log(LOG_INFO, "Desconexion con el cliente que estaba en el socket %d", socket);
-	printf("Se desconecto el cliente del socket %d :(", (int) socket);
+	Logger_Log(LOG_INFO, "Desconexion con el cliente que estaba en el socket %d", unSocket);
+	printf("Se desconecto el cliente del socket %d :(", (int) unSocket);
 	return;
 
 }
 
-void llegoUnPaquete(int socket, int tipoMensaje, void* datos)
+void llegoUnPaquete(int socketID, int message_type, void* datos, int message_length)
 {
-	if(tipoMensaje == MESSAGETYPE_STRING)
+	ThreadPoolRunnable* run = ThreadPool_CreateRunnable();
+
+	OnArrivedData* arriveData;
+	arriveData = SocketServer_CreateOnArrivedData();
+
+	arriveData->calling_SocketID = socketID;
+	arriveData->receivedData = datos;
+
+	run->data = (void*)arriveData;
+
+	//TODO: al no haber un free data para arrive data (run->free_data) podrian haber memory leaks si no se ejecuta el job que se manda al pool!
+
+	switch(message_type)
 	{
-		ThreadableDoStructure* st = CommandInterpreter_MallocThreadableStructure();
+		case MESSAGETYPE_DAM_SAFA_FLUSH:
+			run->runnable = (void*)DAM_Flush;
+		break;
 
-		st->commandline = (char*)datos;
-		st->data = (void*)socket;
-		st->separator = " ";
-		st->postDo = (void*)aRealizar;				//Aca si manquie :P, no seria mas facil poner un free y listo?
-
-		ThreadPoolRunnable* ejecutable = ThreadPool_CreateRunnable();
-
-		ejecutable->data = (void*)st;
-		ejecutable->runnable = (void*)CommandInterpreter_DoThreaded;
-		//Aca si necesitamos decirle al ThreadPool que libere data (o sea el st) en caso que se liberen todos los jobs
-		ejecutable->free_data = (void*)CommandInterpreter_FreeThreadableDoStructure;
-
-		ThreadPool_AddJob(pozoDeHebras, ejecutable);
+		default:
+			free(run);
+			free(arriveData);
+			free(datos);
+			run = NULL;
+			break;
 	}
+
+	if(run != NULL)
+		ThreadPool_AddJob(threadPool, run);
 }
 
 void* aRealizar(char* cmd, char* sep, void* args, bool fired)

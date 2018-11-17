@@ -11,6 +11,9 @@ void InitQueuesAndLists()
 	BLOCKEDqueue = list_create();
 	EXECqueue = list_create();
 	EXITqueue = list_create();
+	toBeUnlocked = queue_create();
+	toBeBlocked = queue_create();
+	toBeEnded = queue_create();
 
 }
 
@@ -41,14 +44,16 @@ void InitGlobalVariables()
 {
 
 	nextID = 1;										//Arrancan en 1, la 0 es reservada para el Dummy
-	inMemoryAmount = 0;									//Al principio, no hay nadie en memoria; se iran cargando
+	inMemoryAmount = 0;								//Al principio, no hay nadie en memoria; se iran cargando
 
 	InitSemaphores();
 	InitQueuesAndLists();
 
-	//Al ser extern en main, deberian inicializarse ahi mismo
-	toBeCreated = (CreatableGDT*) malloc(sizeof(CreatableGDT));
-	toBeCreated->script = malloc(1);				//Medio paragua, para poder hacer reallocs
+	justDummied = (CreatableGDT*) malloc(sizeof(CreatableGDT));
+	justDummied->script = malloc(1);				//Medio paragua, para poder hacer reallocs
+
+	toBeAssigned = (AssignmentInfo*) malloc(sizeof(AssignmentInfo));
+	toBeAssigned->message = malloc(1);
 
 	CreateDummy();									//Malloceo y creo el DummyDTB
 
@@ -113,9 +118,9 @@ void GestorDeProgramas()
 			int pathLength = strlen(path) + 1;
 
 			//Realloco el toBeCreated, porque su char* cambio; y tambien realloco este
-			toBeCreated = realloc(toBeCreated, sizeof(int) + pathLength);
-			toBeCreated->script = realloc(toBeCreated->script, pathLength);
-			strcpy(toBeCreated->script, path);
+			justDummied = realloc(justDummied, sizeof(int) + pathLength);
+			justDummied->script = realloc(justDummied->script, pathLength);
+			strcpy(justDummied->script, path);
 
 			//Actualizo la tarea a realizar del PLP, y activo el semaforo binario
 			SetPLPTask(PLP_TASK_CREATE_DTB);
@@ -186,52 +191,18 @@ void AddToExec(DTB* myDTB)
 
 }
 
-bool IsDTBtoBeInitialized(DTB* myDTB)
+void AddToExit(DTB* myDTB)
 {
 
-	if(myDTB->id == toBeCreated->dtbID)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-
-}
-
-bool IsInitialized(DTB* myDTB)
-{
-
-	if(myDTB->initialized == 1)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	myDTB->status = DTB_STATUS_EXIT;
+	list_add(EXITqueue, myDTB);
 
 }
 
 bool IsDummy(DTB* myDTB)
 {
 
-	if(myDTB->id == 0)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-
-}
-
-bool IsToBeMoved(DTB* myDTB)
-{
-
-	if(myDTB->id == toBeMoved->dtbID)
+	if(myDTB->initialized == 0)
 	{
 		return true;
 	}
@@ -311,9 +282,9 @@ void PlanificadorLargoPlazo(void* gradoMultiprogramacion)
 		else if(PLPtask == PLP_TASK_INITIALIZE_DTB)
 		{
 			//En base a lo que me mando el DAM (protocolo 220), creo el DTB con esa info
-			DTB* toBeInitialized = CreateDTB(toBeCreated->script);
-			toBeInitialized->id = toBeCreated->dtbID;
-			toBeInitialized->pathLogicalAddress = toBeCreated->logicalAddress;
+			DTB* toBeInitialized = CreateDTB(justDummied->script);
+			toBeInitialized->id = justDummied->dtbID;
+			toBeInitialized->pathLogicalAddress = justDummied->logicalAddress;
 			//Bajo el contador en uno, el CreateDTB lo aumento por defecto
 			nextID--;
 
@@ -327,12 +298,13 @@ void PlanificadorLargoPlazo(void* gradoMultiprogramacion)
 
 }
 
-void SetDummy(int id, char* path)
+void SetDummy(uint32_t id, char* path)
 {
 
 	//Realloco el dummyDTB, porque su char* cambio; cargo el path del DTB a inicializar (no lo hace el PCP)
 	int pathLength = strlen(path) + 1;
 	int newSize = (sizeof(int) * 6) + pathLength;		//Medio cabeza, mejorar; 6 por los 6 enteros fijos
+	dummyDTB->id = id;
 	dummyDTB = realloc(dummyDTB, newSize);
 	dummyDTB->pathEscriptorio = realloc(dummyDTB->pathEscriptorio, pathLength);
 	strcpy(dummyDTB->pathEscriptorio, path);
@@ -393,24 +365,56 @@ void PlanificadorCortoPlazo(void* algoritmo)
 			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 		}
 
-		else if(PCPtask == PCP_TASK_BLOCK_DUMMY)
+		else if(PCPtask == PCP_TASK_FREE_DUMMY)
 		{
 
-			//Saco el Dummy de la cola de EXEC, y lo paso a la de BLOCKED (modifico su estado)
+			//Previo a ello, deberia haber liberado el CPU ni bien este me hablo
+			//Saco el Dummy de la lista de EXEC, y lo paso a la de BLOCKED (modifico su estado)
+			//El DAM, por su lado, me va a avisar cuando la carga del archivo termine => PLP_TASK_INITIALIZE_DTB
 			list_remove_by_condition(EXECqueue, (void*)IsDummy);
 			AddToBlocked(dummyDTB);
-			//Aca habria que liberar el CPU, con FreeCPU(toBeMoved.cpuSocket)
 			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 
 		}
 
-		//Tras aviso desde CPU
+		//Tras aviso desde CPU de que lo desaloje; se da cuando el GDT requiere un Abrir, Flush, Crear o Borrar
+		//Debe recorrer la cola entera de toBeBlocked, por si hubiera varios acumulados que deban ser movidos
 		else if(PCPtask == PCP_TASK_BLOCK_DTB)
 		{
 
-			DTB* target = list_remove_by_condition(EXECqueue, (void*)IsToBeMoved);
-			AddToBlocked(target);
-			//Aca habria que liberar el CPU, con FreeCPU(toBeMoved.cpuSocket)
+			//Cuando el CPU me aviso que lo desaloje, deberia haberlo liberado con FreeCPU desde otro modulo
+			//Puntero a uint32_t, de ahi voy leyendo el ID del proximo DTB a bloquear (segun la cola)
+			BlockableInfo* nextToBlock = (BlockableInfo*) malloc(sizeof(BlockableInfo));
+			while(!queue_is_empty(toBeBlocked))
+			{
+				nextToBlock = (BlockableInfo*) queue_pop(toBeBlocked);
+
+				//Funcion anidada, para poder comparar cada DTB de EXEC con el ultimo ID (local al while) hallado
+				bool IsDTBToBeBlocked(void* aDTB)
+				{
+					DTB* realDTB = (DTB*) aDTB;
+					if(realDTB->id == nextToBlock->id)
+					{
+						return true;
+					}
+					else
+					{
+						return false;
+					}
+				}
+
+				//Saco de EXEC el DTB que tenia la misma ID que el que acaba de salir de la cola de aBloquear
+				DTB* target = list_remove_by_condition(EXECqueue, (void*)IsDTBToBeBlocked);
+
+				//Le actualizo el PC, el quantum sobrante, y los archivos abiertos (por las dudas)
+				target->programCounter = nextToBlock->newProgramCounter;
+				target->quantumRemainder = nextToBlock->quantumRemainder;
+				UpdateOpenedFiles(target, nextToBlock->openedFilesUpdate);
+				AddToBlocked(target);
+			}
+
+			//No me olvido de este free! Ni de avisar al planificador que, tras bloquear todos, vuelva a planificar
+			free(nextToBlock);
 			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 
 		}
@@ -419,13 +423,110 @@ void PlanificadorCortoPlazo(void* algoritmo)
 		else if(PCPtask == PCP_TASK_UNLOCK_DTB)
 		{
 
-			DTB* target = list_remove_by_condition(BLOCKEDqueue, (void*)IsToBeMoved);
-			AddToReady(target);
+			//Puntero al proximo DTB a desbloquear, segun vaya sacando de la cola
+			UnlockableInfo* nextToUnlock = (UnlockableInfo*) malloc(sizeof(UnlockableInfo));
+			while(!queue_is_empty(toBeUnlocked))
+			{
+
+				nextToUnlock = (UnlockableInfo*) queue_pop(toBeUnlocked);
+
+				//Closure anidada, para poder hallar de las colas el DTB con el mismo ID que el recien sacado de la cola
+				bool IsDTBToBeUnlocked(void* aDTB)
+				{
+					DTB* realDTB = (DTB*) aDTB;
+					if(realDTB->id == nextToUnlock->id)
+					{
+						return true;
+					}
+					else
+					{
+						return false;
+					}
+				}
+
+				//Busco el DTB en EXEC (por si es fin de quantum) que tiene dicho ID; si no esta ahi, lo busco en BLOCKED
+				DTB* target = list_remove_by_condition(EXECqueue, IsDTBToBeUnlocked);
+				if(!target)
+				{
+					target = list_remove_by_condition(BLOCKEDqueue, IsDTBToBeUnlocked);
+				}
+
+				//Le actualizo el program counter (se debe haber movido) y los archivos abiertos, y lo paso a READY
+				target->programCounter = nextToUnlock->newProgramCounter;
+				UpdateOpenedFiles(target, nextToUnlock->openedFilesUpdate);
+				AddToReady(target);
+
+			}
+
+			//No me olvido de este free! Ni de avisar al planificador que, tras desbloquear todos, vuelva a planificar
+			free(nextToUnlock);
+			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
+
+		}
+
+		else if(PCPtask == PCP_TASK_END_DTB)
+		{
+
+			//Puntero a un uint32_t, que va a guardar el ID de cada DTB a abortar/finalizar de la cola
+			uint32_t* nextToEnd = (uint32_t*) malloc(sizeof(uint32_t));
+			while(!queue_is_empty(toBeEnded))
+			{
+
+				nextToEnd = (uint32_t*) queue_pop(toBeEnded);
+
+				//Funcion anidada, para poder comparar cada DTB de las colas con el ultimo ID (local al while) hallado
+				bool IsDTBToBeEnded(void* aDTB)
+				{
+					DTB* realDTB = (DTB*) aDTB;
+					if(realDTB->id == *nextToEnd)
+					{
+						return true;
+					}
+					else
+					{
+						return false;
+					}
+				}
+
+				//Busco el DTB en EXEC (por si me aviso CPU) que tiene dicho ID; si no esta ahi, lo busco en BLOCKED (aviso DAM)
+				DTB* target = list_remove_by_condition(EXECqueue, IsDTBToBeEnded);
+				if(!target)
+				{
+					target = list_remove_by_condition(BLOCKEDqueue, IsDTBToBeEnded);
+				}
+
+				//Lo muevo a la "cola" de EXIT, actualizando su estado
+				AddToExit(target);
+
+			}
+
+			//Libero este puntero, y ademas le aviso al PCP que siga planificando normal
+			free(nextToEnd);
 			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 
 		}
 
 	}
+
+}
+
+void UpdateOpenedFiles(DTB* toBeUpdated, t_dictionary* currentOFs)
+{
+
+	//Closure anidada, para que haga el put con el diccionario del DTB pasado por parametro
+	void UpdateSingleFile(char* path, void* address)
+	{
+		//Ojo, si ya existe la key debo liberar su data! Ya que sino un put sobre una key ya existente
+		//me hace perder la referencia a dicho data, y provoca un memory leak!
+		if(dictionary_has_key(toBeUpdated->openedFiles, path))
+		{
+			free(dictionary_get(toBeUpdated->openedFiles, path));
+		}
+		dictionary_put(toBeUpdated->openedFiles, path, address);
+	}
+
+	//Recorro el diccionario parametro (el actualizado) entero, y ejecuto la closure para que sobreescriba cada una
+	dictionary_iterator(currentOFs, UpdateSingleFile);
 
 }
 
@@ -464,6 +565,8 @@ void* GetMessageForCPU(DTB* chosenDTB)
 
 	uint32_t* idToSend = malloc(sizeof(uint32_t));
 	*idToSend = chosenDTB->id;
+	uint32_t* flagToSend = malloc(sizeof(uint32_t));
+	*flagToSend = chosenDTB->initialized;
 	uint32_t* pathAddressToSend = malloc(sizeof(uint32_t));
 	*pathAddressToSend = chosenDTB->pathLogicalAddress;
 	uint32_t* pcToSend = malloc(sizeof(uint32_t));
@@ -475,9 +578,11 @@ void* GetMessageForCPU(DTB* chosenDTB)
 	*ofaToSend = chosenDTB->openedFilesAmount;
 
 	//Estructuras con los datos a serializar y mandar como cadena
-	SerializedPart idSP, pathSP, pathAddressSP, pcSP, quantumSP, ofaSP, filesSP;
+	SerializedPart idSP, flagSP, pathSP, pathAddressSP, pcSP, quantumSP, ofaSP, filesSP;
 	idSP.size = sizeof(idToSend);
 	idSP.data = idToSend;
+	flagSP.size = sizeof(flagToSend);
+	flagSP.data = flagToSend;
 	pathSP.size = strlen(chosenDTB->pathEscriptorio) + 1;
 	strcpy(pathSP.data, chosenDTB->pathEscriptorio);
 	pathAddressSP.size = sizeof(pathAddressToSend);
@@ -492,33 +597,18 @@ void* GetMessageForCPU(DTB* chosenDTB)
 	filesSP.size = strlen(filesSP.data) + 1;
 
 	//La idea es armar un paquete serializado que va a tener la estructura:
-	//|IDdelDTB|PathEscriptorioAsociado|Dir.LogicaPath|ProgramCounterDelDTB|QuantumAEjecutar|CantArchivosAbiertos|Archivos
+	//|IDdelDTB|Flag|PathEscriptorioAsociado|Dir.LogicaPath|ProgramCounterDelDTB|QuantumAEjecutar|CantArchivosAbiertos|Archivos
 	//(cada cual con su respectivo tamanio antes del dato en si)
 	//Los archivos se mandan como: "arch1:d1,arch2:d2,...,archN:dN;"
-	void* message = Serialization_Serialize(7, idSP, pathSP, pathAddressSP, pcSP, quantumSP, ofaSP, filesSP);
+	void* message = Serialization_Serialize(8, idSP, flagSP, pathSP, pathAddressSP, pcSP, quantumSP, ofaSP, filesSP);
 
-	//Funcion anidada, para buscar el DTB con el mismo script que el DTB elegido, solo para el caso de estar mandando el Dummy
-	bool IsDTBWithTheSamePath(DTB* aDTB)
-	{
-		if((strcmp(aDTB->pathEscriptorio, pathSP.data)) == 0)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-
-	//Si estoy mandandole el Dummy (ID = 0), busco el DTB con el mismo script y lo guardo en mi variable global
-	//Nadie deberia modificar este toBeCreated->dtbID hasta no hacer otra operacion asi (previo a ello
-	//desbloqueando el Dummy y cerrando esta inicializacion). Guarda con eso
-	if(*idToSend == 0)
-	{
-		DTB* wanted;
-		wanted = list_find(NEWqueue, (void*)IsDTBWithTheSamePath);
-		toBeCreated->dtbID = wanted->id;
-	}
+	//Hago free de todos esos punteros que use para crear la cadena serializada
+	free(idToSend);
+	free(flagToSend);
+	free(pathAddressToSend);
+	free(pcToSend);
+	free(quantumToSend);
+	free(ofaToSend);
 
 	return message;
 
@@ -527,6 +617,7 @@ void* GetMessageForCPU(DTB* chosenDTB)
 void* ScheduleRR(int quantum)
 {
 
+	//Round Robin es un FIFO en el cual tengo en cuenta el quantum, no mucho mas que eso
 	DTB* chosenDTB = GetNextDTB();
 	chosenDTB->quantumRemainder = quantum;
 
@@ -545,7 +636,7 @@ void* ScheduleVRR(int maxQuantum)
 	DTB* chosenDTB = GetNextDTB();
 	//Si le quedara 0 de quantum (se quedo sin) o tuviera mas del maximo (por haber sido
 	//planificado con otro algoritmo antes), le actualizo el maximo quantum a ejecutar
-	if((chosenDTB->quantumRemainder == 0) || ((chosenDTB->quantumRemainder == 0) > maxQuantum))
+	if((chosenDTB->quantumRemainder == 0) || (chosenDTB->quantumRemainder > maxQuantum))
 	{
 		chosenDTB->quantumRemainder = maxQuantum;
 	}
@@ -570,7 +661,7 @@ void DeleteSemaphores()
 
 }
 
-void ScriptDestroyer(char* script)
+void ScriptDestroyer(void* script)
 {
 
 	free(script);
@@ -579,14 +670,45 @@ void ScriptDestroyer(char* script)
 
 void LogicalAddressDestroyer(void* addressPtr)
 {
+
 	free(addressPtr);
+
 }
 
-void DTBDestroyer(DTB* aDTB)
+void BlockableInfoDestroyer(void* BI)
 {
 
-	free(aDTB->pathEscriptorio);
-	dictionary_destroy_and_destroy_elements(aDTB->openedFiles, LogicalAddressDestroyer);
+	BlockableInfo* castBI = (BlockableInfo*) BI;
+	dictionary_destroy_and_destroy_elements(castBI->openedFilesUpdate, LogicalAddressDestroyer);
+	free(castBI);
+	free(castBI);
+
+}
+
+void UnlockableInfoDestroyer(void* UI)
+{
+
+	UnlockableInfo* castUI = (UnlockableInfo*) UI;
+	dictionary_destroy_and_destroy_elements(castUI->openedFilesUpdate, LogicalAddressDestroyer);
+	free(castUI);
+	free(UI);
+
+}
+
+void EndableDestroyer(void* endableID)
+{
+
+	free(endableID);
+
+}
+
+void DTBDestroyer(void* aDTB)
+{
+
+	DTB* castDTB = (DTB*) aDTB;
+	free(castDTB->pathEscriptorio);
+	dictionary_destroy_and_destroy_elements(castDTB->openedFiles, LogicalAddressDestroyer);
+	free(castDTB);
 	free(aDTB);
 
 }
@@ -600,14 +722,17 @@ void DeleteQueuesAndLists()
 	list_destroy_and_destroy_elements(BLOCKEDqueue, DTBDestroyer);
 	list_destroy_and_destroy_elements(EXECqueue, DTBDestroyer);
 	list_destroy_and_destroy_elements(EXITqueue, DTBDestroyer);
+	queue_destroy_and_destroy_elements(toBeUnlocked, UnlockableInfoDestroyer);
+	queue_destroy_and_destroy_elements(toBeBlocked, BlockableInfoDestroyer);
+	queue_destroy_and_destroy_elements(toBeEnded, EndableDestroyer);
 
 }
 
 void DeleteGlobalVariables()
 {
 
-	free(toBeCreated->script);
-	free(toBeCreated);
+	free(justDummied->script);
+	free(justDummied);
 	//El free del Dummy no se hace aca, sino al hacer el delete de Colas y Listas (estara en alguna)
 
 	DeleteSemaphores();

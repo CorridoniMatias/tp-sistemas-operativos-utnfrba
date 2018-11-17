@@ -16,9 +16,8 @@ int elDiego = -1;
 extern int PLPtask;
 extern int PCPtask;
 extern sem_t workPLP;
-extern CreatableGDT* toBeCreated;
-extern DeassignmentInfo* toBeMoved;
-extern AssignmentInfo* toBeAsigned;
+extern CreatableGDT* justDummied;
+extern AssignmentInfo* toBeAssigned;
 
 void *CommandIAm (int argC, char** args, char* callingLine, void* extraData)
 {

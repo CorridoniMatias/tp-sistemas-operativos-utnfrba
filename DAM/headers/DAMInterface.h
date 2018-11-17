@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include "Config.h"
 #include "kemmens/SocketServer.h"
+#include "kemmens/SocketClient.h"
 #include "kemmens/Serialization.h"
 #include "kemmens/SocketMessageTypes.h"
 
