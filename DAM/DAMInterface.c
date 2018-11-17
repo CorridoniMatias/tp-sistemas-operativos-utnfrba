@@ -10,13 +10,11 @@ void DAM_Abrir(void* arriveData)
 
 void DAM_Flush(void* arriveData)
 {
-	DeserializedData* dest = malloc(sizeof(DeserializedData));
-	Serialization_Deserialize(arriveData, dest);
+	DeserializedData* dest = Serialization_Deserialize(arriveData);
 
+	//TODO: verificar que el paquete tenga al menos 2 elementos.
 	char* filePath = (char*)dest->parts[0];
 	uint32_t direccionLogica = *((int*)dest->parts[1]);
-
-
 
 	/*
 	 * TODO: PEPE!
@@ -83,7 +81,7 @@ void DAM_Flush(void* arriveData)
 		*psize = sizeToSend;
 		SerializedPart p_size = {.size = sizeof(uint32_t), .data = psize};
 
-		SerializedPart p_path = {.size = 14, .data = "/testfile.bin"};
+		SerializedPart p_path = {.size = strlen(filePath)+1, .data = filePath};
 
 		void* buffer = malloc(sizeToSend);
 		memcpy(buffer, ((void*)(archivo + offset)), sizeToSend);
