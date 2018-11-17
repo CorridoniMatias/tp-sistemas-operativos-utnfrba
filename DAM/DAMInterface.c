@@ -1,4 +1,5 @@
 #include "headers/DAMInterface.h"
+#include "kemmens/Utils.h"
 
 
 //para el comando abrir
@@ -73,12 +74,10 @@ void DAM_Flush(void* arriveData)
 		len -= sizeToSend;
 		printf("ENVIANDO AL MDJ %d BYTES\n", sizeToSend );
 
-		uint32_t* poffset = (uint32_t*)malloc(sizeof(uint32_t));
-		*poffset = offset;
+		declare_and_init(poffset, uint32_t, offset);
 		SerializedPart p_offset = {.size = sizeof(uint32_t), .data = poffset};
 
-		uint32_t* psize = (uint32_t*)malloc(sizeof(uint32_t));
-		*psize = sizeToSend;
+		declare_and_init(psize, uint32_t, sizeToSend);
 		SerializedPart p_size = {.size = sizeof(uint32_t), .data = psize};
 
 		SerializedPart p_path = {.size = strlen(filePath)+1, .data = filePath};

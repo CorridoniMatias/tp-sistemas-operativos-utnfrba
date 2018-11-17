@@ -2,6 +2,7 @@
 #include "kemmens/logger.h"
 #include "headers/bibliotecaDAM.h"
 #include "headers/DAMInterface.h"
+#include "kemmens/Utils.h"
 
 
 int main(int argc, char **argv)
@@ -9,7 +10,6 @@ int main(int argc, char **argv)
 	Logger_CreateLog("./DAM.log", "DAM", true);
 	inicializarVariablesGlobales();
 	Logger_Log(LOG_INFO, "Proceso DAM iniciado; escuchando en el puerto %d", settings->puertoEscucha);
-
 
 	levantarServidor();
 
