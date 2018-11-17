@@ -42,7 +42,7 @@ void InitGlobalVariables()
 {
 
 	nextID = 1;										//Arrancan en 1, la 0 es reservada para el Dummy
-	inMemoryAmount = 0;									//Al principio, no hay nadie en memoria; se iran cargando
+	inMemoryAmount = 0;								//Al principio, no hay nadie en memoria; se iran cargando
 
 	InitSemaphores();
 	InitQueuesAndLists();

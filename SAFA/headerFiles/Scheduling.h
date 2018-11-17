@@ -147,7 +147,7 @@ sem_t workPLP;									//Semaforo binario, para indicar que es hora de que el PL
 int PLPtask;
 int PCPtask;
 
-uint32_t nextID;										//ID a asignarle al proximo DTB que se cree
+uint32_t nextID;								//ID a asignarle al proximo DTB que se cree
 int inMemoryAmount;								//Cantidad de procesos actualmente en memoria; para el grado de multiprogr.
 
 t_queue* NEWqueue;								//"Cola" NEW, gestionada por PLP con FIFO; es lista para ser modificable
