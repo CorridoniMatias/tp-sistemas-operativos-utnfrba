@@ -7,10 +7,10 @@ int main(int argc, char *argv[])
 	Logger_Log(LOG_INFO, "Proceso CPU iniciado...");
 	//Configuro bajo la variable settings
 	configurar();
+
 	int safa = conectarAProceso(settings->ipSAFA,settings->puertoSAFA,"SAFA");
 	int diego = conectarAProceso(settings->ipDIEGO,settings->puertoDIEGO,"DIEGO");
 	int fm9 = conectarAProceso(settings->ipFM9,settings->puertoFM9,"FM9");
-
 
 	while(1)
 	{
@@ -33,11 +33,14 @@ int main(int argc, char *argv[])
 		else
 			{
 				int i = 0;
-				int totalQuantum = *((int*)data.parts[4]);
-				int updatedProgramCounter = *((int*)data.parts[4]);
+				uint32_t totalQuantum = *((uint32_t*)data.parts[4]);
+				uint32_t updatedProgramCounter = *((uint32_t*)data.parts[4]);
 				CommandInterpreter_Init();
 
 				t_dictionary* dictionary= BuildDictionary(&data.parts[5],*((int*)data.parts[6]));
+				//Defino aca el struct para que se vaya actualizando el diccionario dependiendo cualquier cambio
+				Operation extraData;
+				extraData.dictionary = dictionary;
 
 				CommandInterpreter_RegisterCommand("abrir",(void*)CommandAbrir);
 				CommandInterpreter_RegisterCommand("concentrar",(void*)CommandConcentrar);
@@ -56,39 +59,53 @@ int main(int argc, char *argv[])
 			{
 					char* line = askLineToFM9(data, fm9); //Pido una linea
 					if(strcmp(line,"error") != 0){
-						Operation extraData = {.dtb =*((int*)data.parts[0]) , .programCounter = updatedProgramCounter, .quantum = totalQuantum,
-												.dictionary = dictionary ,.socketSAFA = safa, .socketFM9 = fm9, .socketDIEGO = diego,
-												.commandResult = 0};
+
+						extraData.dtb =*((uint32_t*)data.parts[0]);
+		 				extraData.programCounter = updatedProgramCounter;
+						extraData.quantum = totalQuantum;
+						extraData.dictionary = dictionary;
+						extraData.socketSAFA = safa;
+						extraData.socketFM9 = fm9;
+						extraData.socketDIEGO = diego;
+						extraData.commandResult = 0;
+
 						bool res = CommandInterpreter_Do(line, " ",&extraData);
+
 						if(res == 1 && extraData.commandResult == 0){
 							//TODO hacer todos los free
 							sleep(settings->retardo); //retardo por operacion
+
 							updatedProgramCounter ++;
+
 							continue;
 						}
 						else if (extraData.commandResult == 2) {
+
 							break;
+
 						}
-						else {
-							continue;
-						}
+
 					// Terminar el command interpretar siempre ejecutando linea por linea y actualizando el PC de SAFA,
-					// NO OLVIDAR RETARDO POR OPERACION
 					}
 					else if (strcmp(line,"") != 0){
-						int* idDTB = (int*)malloc(4);
-						*idDTB = *((int*)data.parts[0]);
+						uint32_t* idDTB = (uint32_t*)malloc(4);
+						*idDTB = *((uint32_t*)data.parts[0]);
+
 						SerializedPart fieldForSAFA1 = {.size = 4, .data =&idDTB};
+
 						void* packetToSafa = Serialization_Serialize(1,fieldForSAFA1);
+
 						SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, packetToSafa, sizeof(packetToSafa));
+
 						free(idDTB);
 						break;
 					}
 					else{
-							//si la linea que queremos leer retorna error entonces la pedimos otra vez
-							//estaria bien o habria que salir del loop desalojando el dtb?
-							totalQuantum +=1;
-							continue;
+						uint32_t idDTB = *((uint32_t*)data.parts[0]);
+						SerializedPart fieldForSAFA1 = {.size = 4, .data = &idDTB};
+						void* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
+						SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA, sizeof(packetToSAFA));
+						break;
 					}
 
 
@@ -96,7 +113,7 @@ int main(int argc, char *argv[])
 
 			SerializedPart fieldForSAFA1 = {.size = 4, .data = &data.parts[0]};
 			SerializedPart fieldForSAFA2 = {.size = 4, .data = &updatedProgramCounter};
-			int numberOfFiles = dictionary_size(dictionary);
+			uint32_t numberOfFiles = dictionary_size(dictionary);
 
 			// TODO TESTEAR BIEN SI ESTO QUEDARIA ACTUALIZADO CON EL ULTIMO VALOR O NO
 			SerializedPart fieldForSAFA3 = {.size = 4 , .data = &numberOfFiles};
@@ -110,8 +127,8 @@ int main(int argc, char *argv[])
 	}
 
 
-/*
 
+/*
 
 		 * EXPLICACION VILLERA TODO DOCUMENTAR BIEN
 		ACORDARME DE MANDARME EL QUANTUM QUE SOBRO A SAFA
@@ -127,7 +144,6 @@ int main(int argc, char *argv[])
 
 
 */
-
 
 	exit_gracefully(0);
 

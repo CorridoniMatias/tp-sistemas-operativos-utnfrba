@@ -35,9 +35,9 @@ struct Configuracion_s
 //ESTO ES EL STRUCT DE EXTRADATA QUE LE PASO AL COMMAND INTERPRETER
 struct Operation_s
 {
-	int dtb;
-	int programCounter;
-	int quantum;
+	uint32_t dtb;
+	uint32_t programCounter;
+	uint32_t quantum;
     t_dictionary* dictionary;
     int commandResult;
 	int socketSAFA;
