@@ -12,8 +12,7 @@
 extern int PLPtask;
 extern int PCPtask;
 extern sem_t workPLP;
-extern CreatableGDT* toBeCreated;
-extern DeassignmentInfo* toBeMoved;
+extern CreatableGDT* justDummied;
 extern t_queue* scriptsQueue;
 
 void CommandEjecutar (int argC, char** args, char* callingLine, void* extraData);

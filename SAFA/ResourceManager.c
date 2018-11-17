@@ -8,6 +8,8 @@ void CreateResourcesTable()
 
 }
 
+//NOTA: Antes de cada consulta/update al diccionario, deberia hacer lock y unlock del mutex (region critica)
+
 void AddNewResource(char* name)
 {
 
