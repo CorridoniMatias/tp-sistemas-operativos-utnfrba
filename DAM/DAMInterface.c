@@ -1,4 +1,5 @@
 #include "headers/DAMInterface.h"
+#include "kemmens/Utils.h"
 
 
 //para el comando abrir
@@ -8,27 +9,11 @@ void DAM_Abrir(void* arriveData)
 }
 
 
-
-void DAM_Abrir(void* arriveData)
-{
-	free(arriveData);
-}
-
-void DAM_Abrir(void* arriveData)
-{
-	free(arriveData);
-}
-
-void DAM_Abrir(void* arriveData)
-{
-	free(arriveData);
-}
-
 void DAM_Flush(void* arriveData)
 {
-	DeserializedData* dest = malloc(sizeof(DeserializedData));
-	Serialization_Deserialize(arriveData, dest);
+	DeserializedData* dest = Serialization_Deserialize(arriveData);
 
+	//TODO: verificar que el paquete tenga al menos 2 elementos.
 	char* filePath = (char*)dest->parts[0];
 	uint32_t direccionLogica = *((int*)dest->parts[1]);
 
@@ -51,8 +36,8 @@ void DAM_Flush(void* arriveData)
 	//de lo contrario si hubiera una sola conexion con estos servicios habria que sincronizar todos los hilos para que solo 1 de ellos pueda hacer send() y recv() a la vez
 	//sino podria pasar que dos hilos hacen send() y recv() y reciban datos cruzados!
 
-	int socketMDJ = SocketClient_ConnectToServer(config->IPMDJ, config->puertoMDJ);
-	int socketFM9 = SocketClient_ConnectToServer(config->IPFM9, config->puertoFM9);
+	int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
+	int socketFM9 = SocketClient_ConnectToServerIP(settings->ipFM9, settings->puertoFM9);
 
 	char* tmpData;
 	char* archivo;
@@ -64,9 +49,9 @@ void DAM_Flush(void* arriveData)
 		//le mandamos el paquete al FM9 y esperamos que nos envia los bytes solicitados
 
 		//si recibimos vacio hacer break!
-
-
 	}
+
+	//char* archivo = "MAKE c:/1/2/3.txt\nPULL d:/9/8/.bat\nULTIMA LINEA\nMAKE c:/1/2/3.txt\nPULL d:/9/8/.bat\nULTIMA LINEA";
 
 
 	//una vez que recibimos todo por parte del FM9 se lo mandamos al mdj:
@@ -81,22 +66,47 @@ void DAM_Flush(void* arriveData)
 		if(len <= 0)
 			break;
 
-		if(len < config->transferSize)
+		if(len < settings->transferSize)
 			sizeToSend = len;
 		else
-			sizeToSend = config->transferSize;
+			sizeToSend = settings->transferSize;
 
 		len -= sizeToSend;
+		printf("ENVIANDO AL MDJ %d BYTES\n", sizeToSend );
 
-		SocketCommons_SendData(socketMDJ, MESSAGETYPE_MDJ_PUTDATA, (void*)(archivo + offset), sizeToSend);
+		declare_and_init(poffset, uint32_t, offset);
+		SerializedPart p_offset = {.size = sizeof(uint32_t), .data = poffset};
+
+		declare_and_init(psize, uint32_t, sizeToSend);
+		SerializedPart p_size = {.size = sizeof(uint32_t), .data = psize};
+
+		SerializedPart p_path = {.size = strlen(filePath)+1, .data = filePath};
+
+		void* buffer = malloc(sizeToSend);
+		memcpy(buffer, ((void*)(archivo + offset)), sizeToSend);
+
+		SerializedPart p_buffer = {.size = sizeToSend, .data = buffer};
+
+		SerializedPart* serializedContent = Serialization_Serialize(4, p_path, p_offset, p_size, p_buffer);
+
+		printf("ENVIANDO AL MDJ %d BYTES de buffer, tamaño del paquete: %d\n", sizeToSend , serializedContent->size);
+
+		SocketCommons_SendData(socketMDJ, MESSAGETYPE_MDJ_PUTDATA, (void*)serializedContent->data, serializedContent->size);
+
+		free(serializedContent->data);
+		free(serializedContent);
+		free(poffset);
+		free(psize);
+		free(buffer);
 		offset += sizeToSend;
 
 		//Aguardamos validacion del MDJ
 		void* data = SocketCommons_ReceiveData(socketMDJ, &msg_type, &length, &status);
+		printf("RESPUESTA DEL MDJ: %d \n", *((uint32_t*)data) );
 
 		if(msg_type == MESSAGETYPE_INT)
 		{
-			switch(((uint32_t)data))
+			switch(*((uint32_t*)data))
 			{
 				case 0: //OPERATION_SUCCESSFUL
 				break;
@@ -121,8 +131,12 @@ void DAM_Flush(void* arriveData)
 	de El Diego y S-AFA lo bloqueará.
 	*/
 
+
+
 	Serialization_CleanupDeserializationStruct(dest);
 
 	free(arriveData);
+
+
 }
 
