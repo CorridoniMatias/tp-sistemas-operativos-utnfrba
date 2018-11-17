@@ -112,11 +112,7 @@ sem_t workPLP;									//Semaforo binario, para indicar que es hora de que el PL
 int PLPtask;
 int PCPtask;
 
-<<<<<<< HEAD:SAFA/headerFiles/Scheduling.h
-int nextID;										//ID a asignarle al proximo DTB que se cree
-=======
-uint32_t nextID;										//ID a asignarle al proximo DTB que se cree
->>>>>>> bd289d7c72ae06e771c4df5f2ddd3e18ce98d091:SAFA/headerFiles/Scheduling.h
+uint32_t nextID;								//ID a asignarle al proximo DTB que se cree
 int inMemoryAmount;								//Cantidad de procesos actualmente en memoria; para el grado de multiprogr.
 
 t_queue* NEWqueue;								//"Cola" NEW, gestionada por PLP con FIFO; es lista para ser modificable

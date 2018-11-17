@@ -22,8 +22,6 @@
 //#define MESSAGETYPE_DAM_ABRIR	20 //Comando: abrir <pathFile>
 //#define MESSAGETYPE_DAM_FLUSH	21 //Comando flush <pathFile>
 
-<<<<<<< HEAD
-=======
 #define MESSAGETYPE_DAM_SAFA_DUMMY	220 //Finaliza carga del script del dummy
 #define MESSAGETYPE_DAM_SAFA_ABRIR	221 //Comando: abrir
 #define MESSAGETYPE_DAM_SAFA_CREAR	222 //Comando: crear
@@ -31,17 +29,11 @@
 #define MESSAGETYPE_DAM_SAFA_FLUSH	224 //Comando: flush
 #define MESSAGETYPE_DAM_SAFA_ERR	225 //Error en la operacion con SAFA
 
->>>>>>> bd289d7c72ae06e771c4df5f2ddd3e18ce98d091
 ///PROTOCOLO S-AFA (5XX)
+
 //MENSAJES PARA EL CPU
 #define MESSAGETYPE_SAFA_CPU_EXECUTE 521		//Ejecutar un DTB con ciertos parametros (path, quantum, PC, etc)
 #define MESSAGETYPE_SAFA_CPU_WAITRESPONSE 522	//Respuesta a una operacion Wait hecha por un CPU; 1:aceptada, 0:denegada
-
-<<<<<<< HEAD
-
-
-
-
 
 //PROTOCOLO CPU
 #define MESSAGETYPE_CPU_ASKLINE 310
@@ -57,12 +49,5 @@
 #define MESSAGETYPE_CPU_FLUSH 331
 #define MESSAGETYPE_CPU_BORRAR 332
 #define MESSAGETYPE_CPU_CREAR 333
-
-
-
-
-
-=======
->>>>>>> 7b3350e36f245bb4ef099e16be9f3761db2cd1f5
 
 #endif /* KEMMENS_SOCKETMESSAGETYPES_H_ */

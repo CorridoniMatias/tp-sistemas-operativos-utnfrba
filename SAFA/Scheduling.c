@@ -41,11 +41,7 @@ void InitGlobalVariables()
 {
 
 	nextID = 1;										//Arrancan en 1, la 0 es reservada para el Dummy
-<<<<<<< HEAD
-inMemoryAmount = 0;									//Al principio, no hay nadie en memoria; se iran cargando
-=======
-	inMemoryAmount = 0;									//Al principio, no hay nadie en memoria; se iran cargando
->>>>>>> bd289d7c72ae06e771c4df5f2ddd3e18ce98d091
+	inMemoryAmount = 0;								//Al principio, no hay nadie en memoria; se iran cargando
 
 	InitSemaphores();
 	InitQueuesAndLists();
@@ -562,8 +558,6 @@ void* ScheduleVRR(int maxQuantum)
 	return packet;
 
 }
-<<<<<<< HEAD
-=======
 
 ////////////////////////////////////////////////////////////
 
@@ -620,4 +614,3 @@ void DeleteGlobalVariables()
 	DeleteQueuesAndLists();
 
 }
->>>>>>> bd289d7c72ae06e771c4df5f2ddd3e18ce98d091
