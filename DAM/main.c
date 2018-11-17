@@ -1,8 +1,8 @@
 #include "kemmens/megekemmen.h"
 #include "kemmens/logger.h"
 #include "headers/bibliotecaDAM.h"
-
 #include "headers/DAMInterface.h"
+
 
 int main(int argc, char **argv)
 {
@@ -11,9 +11,7 @@ int main(int argc, char **argv)
 	Logger_Log(LOG_INFO, "Proceso DAM iniciado; escuchando en el puerto %d", settings->puertoEscucha);
 
 
-	//levantarServidor();
-
-	DAM_Flush(0);
+	levantarServidor();
 
 
 	liberarVariablesGlobales();					//Libero la memoria de las variables globales

@@ -11,6 +11,7 @@ void InitQueuesAndLists()
 	BLOCKEDqueue = list_create();
 	EXECqueue = list_create();
 	EXITqueue = list_create();
+	toBeUnlocked = queue_create();
 
 }
 
@@ -41,7 +42,7 @@ void InitGlobalVariables()
 {
 
 	nextID = 1;										//Arrancan en 1, la 0 es reservada para el Dummy
-	inMemoryAmount = 0;									//Al principio, no hay nadie en memoria; se iran cargando
+	inMemoryAmount = 0;								//Al principio, no hay nadie en memoria; se iran cargando
 
 	InitSemaphores();
 	InitQueuesAndLists();
@@ -217,7 +218,7 @@ bool IsInitialized(DTB* myDTB)
 bool IsDummy(DTB* myDTB)
 {
 
-	if(myDTB->id == 0)
+	if(myDTB->initialized == 0)
 	{
 		return true;
 	}
@@ -327,12 +328,13 @@ void PlanificadorLargoPlazo(void* gradoMultiprogramacion)
 
 }
 
-void SetDummy(int id, char* path)
+void SetDummy(uint32_t id, char* path)
 {
 
 	//Realloco el dummyDTB, porque su char* cambio; cargo el path del DTB a inicializar (no lo hace el PCP)
 	int pathLength = strlen(path) + 1;
 	int newSize = (sizeof(int) * 6) + pathLength;		//Medio cabeza, mejorar; 6 por los 6 enteros fijos
+	dummyDTB->id = id;
 	dummyDTB = realloc(dummyDTB, newSize);
 	dummyDTB->pathEscriptorio = realloc(dummyDTB->pathEscriptorio, pathLength);
 	strcpy(dummyDTB->pathEscriptorio, path);
@@ -393,13 +395,13 @@ void PlanificadorCortoPlazo(void* algoritmo)
 			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 		}
 
-		else if(PCPtask == PCP_TASK_BLOCK_DUMMY)
+		else if(PCPtask == PCP_TASK_FREE_DUMMY)
 		{
 
-			//Saco el Dummy de la cola de EXEC, y lo paso a la de BLOCKED (modifico su estado)
+			//Previo a ello, deberia haber liberado el CPU ni bien este me hablo
+			//Saco el Dummy de la lista de EXEC, y lo paso a la de BLOCKED (modifico su estado)
 			list_remove_by_condition(EXECqueue, (void*)IsDummy);
 			AddToBlocked(dummyDTB);
-			//Aca habria que liberar el CPU, con FreeCPU(toBeMoved.cpuSocket)
 			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 
 		}
@@ -570,7 +572,7 @@ void DeleteSemaphores()
 
 }
 
-void ScriptDestroyer(char* script)
+void ScriptDestroyer(void* script)
 {
 
 	free(script);
@@ -579,7 +581,16 @@ void ScriptDestroyer(char* script)
 
 void LogicalAddressDestroyer(void* addressPtr)
 {
+
 	free(addressPtr);
+
+}
+
+void UnlockableIDDestroyer(void* idPtr)
+{
+
+	free(idPtr);
+
 }
 
 void DTBDestroyer(DTB* aDTB)
@@ -600,6 +611,7 @@ void DeleteQueuesAndLists()
 	list_destroy_and_destroy_elements(BLOCKEDqueue, DTBDestroyer);
 	list_destroy_and_destroy_elements(EXECqueue, DTBDestroyer);
 	list_destroy_and_destroy_elements(EXITqueue, DTBDestroyer);
+	queue_destroy_and_destroy_elements(toBeUnlocked, UnlockableIDDestroyer);
 
 }
 
