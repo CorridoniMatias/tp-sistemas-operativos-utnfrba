@@ -63,4 +63,6 @@ int getOffsetFromAddress(int virtualAddress);
 
 int getNewSegmentNumber();
 
+int virtualSegmentationAddressTranslation(int virtualAddress, int dtbID);
+
 #endif /* #define SEGMENTATION_H_ */
