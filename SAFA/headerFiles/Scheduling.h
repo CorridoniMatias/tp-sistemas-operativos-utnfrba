@@ -39,6 +39,40 @@ struct DTB_s
 } typedef DTB;
 
 /*
+ * 	Estructura que va a ir a la cola toBeUnlocked, con la info necesaria y polimorfica para pasar DTBs a READY
+ * 	CAMPOS:
+ * 		id: ID del DTB que quiero mover a READY
+ * 		newProgramCounter: Valor actualizado del program counter del DTB en su script
+ * 		openedFilesUpdate: Diccionario con los archivos a (posiblemente) actualizar en la tabla de archivos abiertos
+ * 						   Puede informar tanto nuevos archivos abiertos como cerrados; CPU pasa todos, DAM nuevo abierto
+ */
+struct UnlockableInfo_s
+{
+	uint32_t id;
+	uint32_t newProgramCounter;
+	t_dictionary openedFilesUpdate;
+} typedef UnlockableInfo;
+
+/*
+ * 	Estructura que va a ir a la cola toBeBlocked, con la info necesaria a actualizar en un DTB que pasara a BLOCKED
+ * 	CAMPOS:
+ * 		id: ID del DTB que quiero mover a BLOCKED
+ * 		newProgramCounter: Valor actualizado del program counter del DTB en su script
+ *		quantumRemainder: Unidades de quantum que sobraron de la ejecucion del DTB
+ *		openedFilesUpdate: Diccionario con los archivos a (posiblemente) actualizar en la tabla de abiertos,
+ *						   por si se hubiera hecho una operacion close o un cambio de DL
+ */
+struct BlockableInfo_s
+{
+	uint32_t id;
+	uint32_t newProgramCounter;
+	uint32_t quantumRemainder;
+	t_dictionary openedFilesUpdate;
+} typedef BlockableInfo;
+
+////DEPRECADOS////
+
+/*
  * 	Estructura que sirve para almacenar el DTB y el script involucrados en la operacion a ejecutar por el PLP
  * 	Solo se utiliza cuando se le indica al PLP que debe crear un DTB para inicializarlo, o bien inicializar
  * 	el flag del DTB_Dummy y asi poder pasarlo a READY; o bien cuando se va a crear un GDT (no inicializado
@@ -88,10 +122,11 @@ struct AssignmentInfo_s
 //Codigos de tareas del PCP
 #define PCP_TASK_NORMAL_SCHEDULE 21				//Planificar e ir pasando procesos de READY a EXEC
 #define PCP_TASK_LOAD_DUMMY	22					//Pasar el Dummy de BLOCKED (no usado) a READY
-#define PCP_TASK_BLOCK_DUMMY 23					//Bloquear el Dummy y actualizar la CPU desalojada
+#define PCP_TASK_FREE_DUMMY 23					//Liberar el Dummy (ponerlo en BLOCKED) y actualizar la CPU desalojada
 #define PCP_TASK_BLOCK_DTB 24					//Desalojar la CPU correspondiente y pasar su DTB de EXEC a BLOCK
-#define PCP_TASK_UNLOCK_DTB 25					//Pasar DTB bloqueado a READY (cuando DAM aviso que termino I/O)
-#define PCP_TASK_ABORT_DTB 26					//Ṕasar DTB a la cola de EXIT (si debio abortarse por algo)
+#define PCP_TASK_UNLOCK_DTB 25					//Pasar DTB bloqueado a READY (cuando DAM aviso que termino I/O
+												//o una operacion de signal libero un recurso que esperaba)
+#define PCP_TASK_END_DTB 26						//Ṕasar DTB a la cola de EXIT (si debio abortarse o termino)
 
 //Estados de los DTB (del diagrama de 5 estados)
 #define DTB_STATUS_NEW 31
@@ -125,7 +160,7 @@ DTB* dummyDTB;									//DTB que se usara como Dummy
 
 extern Configuracion* settings;					//Estructura con la configuracion, externa desde bibliotecaSAFA.h
 
-//Estas cuatro son externas en main y los que las usen
+//Todas son externas en main y los que las usen
 
 CreatableGDT* toBeCreated;						//Estructura con el path del script cuyo DTB quiero crear, y el ID del
 												//DTB a inicializar al terminar la correspondiente operacion Dummy; para PLP
@@ -134,8 +169,19 @@ DeassignmentInfo* toBeMoved;					//Estructura con el DTB a mover de cola y el CP
 
 AssignmentInfo* toBeAssigned;					//Estructura con el mensaje a enviar y el CPU elegido en un ciclo de PCP
 
-t_queue* scriptsQueue;							//Cola con los scripts que van quedando para ejecutar (por si se acumularan)
+t_queue* scriptsQueue;							//Cola de char*s con los scripts que van quedando para ejecutar
 
+t_queue* toBeUnlocked;							//Cola de UnlockableInfo*s con los IDs de los DTBs que deben ser
+												//pasados a READY cuando el PCP tenga posibilidad de hacerlo
+												//Tocada por mensajes del CPU, del DAM y del ResourceManager
+
+t_queue* toBeBlocked;							//Cola de int*s con los IDs de los DTBs que deben ser pasados a
+												//BLOCKED porque volvieron de IO o se bloquearon con un wait recurso
+												//Tocada solo por mensajes del CPU (de desalojo)
+
+t_queue* toBeAborted;							//Cola de int*s con los IDs de los DTBs que deben ser pasados a
+												//EXIT por haber terminado su archivo o haberse producido un error
+												//Tocada solo por mensajes del CPU (error o fin de script)
 
 ///-------------FUNCIONES DEFINIDAS------------///
 

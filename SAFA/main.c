@@ -18,7 +18,7 @@ extern int PCPtask;
 extern sem_t workPLP;
 extern CreatableGDT* toBeCreated;
 extern DeassignmentInfo* toBeMoved;
-extern AssignmentInfo* toBeAsigned;
+extern AssignmentInfo* toBeAssigned;
 
 void *CommandIAm (int argC, char** args, char* callingLine, void* extraData)
 {

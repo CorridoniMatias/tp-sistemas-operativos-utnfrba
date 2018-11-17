@@ -2,6 +2,7 @@
 #define HEADERFILES_RESOURCEMANAGER_H_
 
 #include <commons/collections/dictionary.h>
+#include "../headerFiles/Scheduling.h"
 
 ///-------------ESTRUCTURAS DEFINIDAS-------------///
 
@@ -22,10 +23,12 @@ struct ResourceStatus_s
 
 t_dictionary* resources;						//Tabla de recursos; las keys son los nombres, los values son ResourceStatus
 
+pthread_mutex_t tableMutex;						//Mutex para evitar concurrencia sobre la tabla de recursos
+
 ///-------------FUNCIONES DEFINIDAS------------///
 
 /*
- * 	ACCION: Inicializa la tabla de recursos; deberia llamarse al inicializar todas las variables globales
+ * 	ACCION: Inicializa la tabla de recursos y su mutex; deberia llamarse al inicializar todas las variables globales
  */
 void CreateResourcesTable();
 
@@ -68,7 +71,8 @@ void WaiterDestroyer(int* waiterID);
 void ResourceDestroyer(ResourceStatus* rst);
 
 /*
- * 	ACCION: Libera la memoria ocupada por la tabla de recursos y por cada uno de ellos (los borra); deberia ir al final
+ * 	ACCION: Libera la memoria ocupada por la tabla de recursos y por cada uno de ellos (los borra);
+ * 			tambien destruye el mutex; deberia ir al final
  */
 void DeleteResources();
 

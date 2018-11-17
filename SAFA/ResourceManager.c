@@ -4,6 +4,7 @@ void CreateResourcesTable()
 {
 
 	resources = dictionary_create();
+	pthread_mutex_init(&tableMutex, NULL);
 
 }
 
@@ -26,6 +27,7 @@ void SignalForResource(char* name)
 	//Si el recurso ya existe, aumento en uno sus instancias disponibles; obtengo sus datos y actualizo
 	if(dictionary_has_key(resources, name))
 	{
+		//Puntero a los datos del recurso al que se le hizo signal
 		ResourceStatus* signaled = (ResourceStatus*) dictionary_get(resources, name);
 		signaled->availables++;
 		dictionary_put(resources, name, signaled);
@@ -35,8 +37,30 @@ void SignalForResource(char* name)
 	{
 		AddNewResource(name);
 	}
-	//ToDo: Revisar como quedo el availables del recurso, y ver si avisar al primero de la cola
-	//En caso de ser asi, deberia avisarle al PCP que lo mueva de BLOCKED a EXEC
+
+	//Otro puntero, apunta a los datos del recurso al que se le hizo signal
+	ResourceStatus* involved = (ResourceStatus*) dictionary_get(resources, name);
+
+	//Si el recurso tenia DTBs esperando a que se libere, debo desbloquear el primero y darle la instancia
+	if(!queue_is_empty(involved->waiters))
+	{
+		int* requesterID = malloc(sizeof(uint32_t));
+		//Bajo la cantidad de instancias disponibles, ya que recien ahora habria podido hacer el wait
+		involved->availables--;
+		//Me guardo el ID del primer DTB que lo estaba esperando
+		*requesterID = (uint32_t*) queue_pop(involved->waiters);
+		//Actualizo los datos del recurso en el diccionario, hago un put sobre la misma key
+		dictionary_put(resources, name, involved);
+		//Agrego el DTB a desbloquear a la cola de DTBs a mover de nuevo a READY; y le aviso al PCP
+		queue_push(toBeUnlocked, requesterID);
+		SetPCPTask(PCP_TASK_UNLOCK_DTB);
+		//free(signaled)??			Tecnicamente esta referencia no la necesito mas, debo liberarla?
+	}
+
+	else
+	{
+		//free(involved)??			Tecnicamente esta referencia no la necesito mas, debo liberarla?
+	}
 
 }
 
@@ -92,5 +116,6 @@ void DeleteResources()
 {
 
 	dictionary_destroy_and_destroy_elements(resources, ResourceDestroyer);
+	pthread_mutex_destroy(&tableMutex);
 
 }
