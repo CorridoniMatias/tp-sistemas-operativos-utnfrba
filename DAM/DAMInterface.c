@@ -54,7 +54,6 @@ void DAM_Crear(void* arriveData)
 	free(arriveData);
 }
 
-//para el comando abrir
 void DAM_Abrir(void* arriveData)
 {
 	DeserializedData* data = Serialization_Deserialize(arriveData);
@@ -85,20 +84,13 @@ void DAM_Abrir(void* arriveData)
 			case 0: //EL ARCHIVO NO EXISTE
 				//printf("El archivo solicitado con ubicacion %s no existe!\n", filePath);
 				Logger_Log(LOG_ERROR, "DAM::DAM_Abrir -> El archivo solicitado con ubicacion %s no existe!\n", filePath);
-
-				//le comunico del error al SAFA y le paso el id del DTB
-				int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoSAFA);
-				SerializedPart idForSAFA = {.size = sizeof(uint32_t), .data = idDTB};
-				SerializedPart* serializedContent = Serialization_Serialize(1, idForSAFA);
-				printf("Enviando error de operacion al SAFA\n");
-				SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ERR, (void*)serializedContent->data, serializedContent->size);
-				free(serializedContent->data);
-				free(serializedContent);
+				DAM_ErrorOperacion(idDTB);
 				break;
 			case 1: //EL ARCHIVO EXISTE
 				//establecemos conexion con el FM9
 				int socketFM9 = SocketClient_ConnectToServerIP(settings->ipFM9, settings->puertoFM9);
-
+				//aca tengo que usar el getdata del MDJ y cuando tenga todo, lo cargo al FM9
+				//y le aviso al SAFA
 				break;
 		}
 	}
@@ -240,3 +232,68 @@ void DAM_Flush(void* arriveData)
 
 }
 
+void DAM_Borrar(void* arriveData)
+{
+	DeserializedData* data = Serialization_Deserialize(arriveData);
+
+	//verificamos que nos pasen los dos campos necesarios para la operacion
+	if(data->count < 2) {
+		//no tenemos los datos necesarios para seguir adelante
+		Logger_Log(LOG_ERROR, "DAM::DAM_Borrar -> Recibido menos de 2 parametros.");
+		Serialization_CleanupDeserializationStruct(data);
+		free(arriveData);
+		return;
+	}
+
+	uint32_t idDTB = *((uint32_t*)data->parts[0]);
+	char* filePath = (char*)data->parts[1];
+
+	//abrimos conexion con el MDJ
+	int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
+
+	//le mandamos los datos al MDJ para que elimine el archivo
+	SocketCommons_SendStringAsContent(socketMDJ, filePath, MESSAGETYPE_MDJ_DELETEFILE);
+	int msg_type, length, status;
+	void* response = SocketCommons_ReceiveData(socketMDJ, &msg_type, &length, &status);
+	if(msg_type == MESSAGETYPE_INT)
+	{
+		switch(*((uint32_t*)response))
+		{
+			case 0: //OK
+				//El DAM se conecta con el SAFA para avisarle que se elimino OK el archivo
+				//No tengo que conectarme al FM9 para pedir la direccion logica
+				int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoSAFA);
+				SerializedPart idForSAFA = {.size = sizeof(uint32_t), .data = idDTB};
+				SerializedPart* packetForSAFA = Serialization_Serialize(1, idForSAFA);
+				Logger_Log(LOG_INFO, "DAM::DAM_Borrar -> Se elimino correctamente el archivo de path %s.", filePath);
+				SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_BORRAR, (void*)packetForSAFA->data, packetForSAFA->size);
+				free(packetForSAFA->data);
+				free(packetForSAFA);
+				break;
+			case 10: //INSUFFICIENT_SPACE
+			break;
+			case 11: //METADATA_OPEN_ERROR
+			break;
+			case 12: //FILE_NOT_EXISTS
+				Logger_Log(LOG_ERROR, "DAM::DAM_Borrar -> El archivo solicitado con ubicacion %s no existe!\n", filePath);
+				DAM_ErrorOperacion(idDTB);
+				break;
+		}
+	}
+	free(response);
+	free(data);
+	Serialization_CleanupDeserializationStruct(data);
+	free(arriveData);
+}
+
+void DAM_ErrorOperacion(uint32_t idDTB)
+{
+	//le comunico del error al SAFA y le paso el id del DTB
+	int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoSAFA);
+	SerializedPart idForSAFA = {.size = sizeof(uint32_t), .data = idDTB};
+	SerializedPart* packetForSAFA = Serialization_Serialize(1, idForSAFA);
+	printf("Enviando error de operacion al SAFA\n");
+	SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ERR, (void*)packetForSAFA->data, packetForSAFA->size);
+	free(packetForSAFA->data);
+	free(packetForSAFA);
+}

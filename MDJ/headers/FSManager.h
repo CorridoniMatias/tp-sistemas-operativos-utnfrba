@@ -73,7 +73,7 @@ int FIFA_WriteFile(char* path, int offset, int size, void* data);
 /*
  * 	Parámetros: [Path]
  *
-	Descripción: Ante un pedido de eliminación de un archivo, el MDJ deberá liberar los bloqueas asociado en el Bitmap y
+	Descripción: Ante un pedido de eliminación de un archivo, el MDJ deberá liberar los bloques asociados en el Bitmap y
 	eliminar el archivo que contenga la metadata. En caso que se trate de eliminar un archivo inexistente, el File System
 	deberá retornar un error de Archivo no encontrado.
  */
