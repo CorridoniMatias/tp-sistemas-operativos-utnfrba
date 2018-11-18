@@ -103,6 +103,8 @@ void Serialization_ShowDeserializedParts(DeserializedData* showable)
 	int i;
 	int amount = showable->count;
 
+	printf("Cantidad de partes: %d\n", amount);
+
 	for(i = 0; i < amount; i++)
 	{
 		printf("Parte %d: %s\n", i + 1, (char*) showable->parts[i]);

@@ -93,7 +93,7 @@ struct CreatableGDT_s
  */
 struct AssignmentInfo_s
 {
-	void* message;
+	SerializedPart* message;
 	int cpuSocket;
 } typedef AssignmentInfo;
 
@@ -191,14 +191,14 @@ void InitGlobalVariables();
 
 /*
  * 	ACCION: Setea la tarea a realizar por el PLP, garantizando mutua exclusion, y le avisa al mismo que ha de trabajar
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		taskCode: Codigo de la tarea a realizar; ver mas arriba
  */
 void SetPLPTask(int taskCode);
 
 /*
  * 	ACCION: Setea la tarea a realizar por el PCP, garantizando mutua exclusion
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		taskCode: Codigo de la tarea a realizar; ver mas arriba
  */
 void SetPCPTask(int taskCode);
@@ -215,49 +215,49 @@ void GestorDeProgramas();
 
 /*
  * 	ACCION: Crea un DTB nuevo con un cierto script asociado, sin estado y solo pre-malloceado
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		script: Script de lenguaje Escriptorio que tendra asociado el DTB
  */
 DTB* CreateDTB(char* script);
 
 /*
  * 	ACCION: Alterar el estado interno de un DTB, y ponerlo en la cola de NEW
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		myDTB: DTB, en forma de estructura, que quiero mover
  */
 void AddToNew(DTB* myDTB);
 
 /*
  * 	ACCION: Alterar el estado interno de un DTB, y ponerlo en la cola de READY
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		myDTB: DTB, en forma de estructura, que quiero mover
  */
 void AddToReady(DTB* myDTB);
 
 /*
  * 	ACCION: Alterar el estado interno de un DTB, y ponerlo en la cola de BLOCKED
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		myDTB: DTB, en forma de estructura, que quiero mover
  */
 void AddToBlocked(DTB* myDTB);
 
 /*
  * 	ACCION: Alterar el estado interno de un DTB, y ponerlo en la cola de EXEC
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		myDTB: DTB, en forma de estructura, que quiero mover
  */
 void AddToExec(DTB* myDTB);
 
 /*
  * 	ACCION: Alterar el estado interno de un DTB, y ponerlo en la cola de EXIT
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		myDTB: DTB, en forma de estructura, que quiero mover
  */
 void AddToExit(DTB* myDTB);
 
 /*
  * 	ACCION: Closure para verificar si cada DTB de una lista es el Dummy o no (por el flag)
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		myDTB: DTB elemento de la lista, pasado automaticamente por parametro al aplicarle una funcion de orden superior
  */
 bool IsDummy(DTB* myDTB);
@@ -270,13 +270,13 @@ DTB* GetNextDTB();
 
 /*
  * 	ACCION: Funcion para el hilo del PLP, con todas sus posibles acciones a llevar a cabo
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		gradoMultiprogramacion: Grado de multiprogramacion del sistema al ejecutar el PLP, determinara el pase de procesos
  */
 void PlanificadorLargoPlazo(void* gradoMultiprogramacion);
 /*
  * 	ACCION: Cargar los datos del DTB elegido para inicializar en la estructura del Dummy; NO LO MUEVE A READY
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		id: ID del DTB que estaba en NEW y fue elegido para hacersele la carga en memoria
  * 		path: Path del script asociado a dicho DTB; sera el que el DAM debe hablar para cargar en memoria
  */
@@ -284,14 +284,14 @@ void SetDummy(uint32_t id, char* path);
 
 /*
  * 	ACCION: Funcion para el hilo del PCP, con todas sus posibles acciones a llevar a cabo
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		algoritmo: Nombre del algoritmo de planificacion que se esta usando; debe ser un puntero, por si cambia en tiempo real
  */
 void PlanificadorCortoPlazo(void* algoritmo);
 
 /*
  * 	ACCION: Actualiza y sobreescribe toda clave de una tabla de archivos de un DTB con los datos de un diccionario
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		toBeUpdated: DTB cuyo diccionario quiero actualizar
  * 		currentOFs: Diccionario con los datos ya actualizados, desde donde voy a copiar
  */
@@ -299,33 +299,33 @@ void UpdateOpenedFiles(DTB* toBeUpdated, t_dictionary* currentOFs);
 
 /*
  * 	ACCION: Generar cadena del formato arch1:dl1,arch2:dl2,...,archN,dlN; en base a un diccionario
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		openFilesTable: Tabla de archivos abiertos de la cual hallar los paths y las direcciones logicas
  */
 void* FlattenPathsAndAddresses(t_dictionary* openFilesTable);
 
 /*
- * 	ACCION: Obtener la cadena serializada con todos los datos a mandarle a un CPU para indicarle una ejecucion
- * 	CAMPOS:
+ * 	ACCION: Obtener la cadena serializada (y su tamanio) con todos los datos a mandarle a un CPU para indicarle una ejecucion
+ * 	PARAMETROS:
  * 		chosenDTB: DTB del cual sacar los datos para el mensaje serializado
  */
-void* GetMessageForCPU(DTB* chosenDTB);
+SerializedPart* GetMessageForCPU(DTB* chosenDTB);
 
 /*
  * 	ACCION:	Planificar con el algoritmo Round Robin para obtener el proximo DTB a ejecutar,
  * 			moverlo a la cola de EXEC y obtener el mensaje a enviarle al CPU que luego se asigne
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		quantum: Quantum definido por el sistema como maximo de ejecucion
  */
-void* ScheduleRR(int quantum);
+SerializedPart* ScheduleRR(int quantum);
 
 /*
  * 	ACCION: Planificar con el algoritmo Virtual Round RObin para obtener el proximo DTB a ejecutar,
  * 			moverlo a la cola de EXEC y obtener el mensaje a enviarle al CPU que luego se asigne
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		maxQuantum: Maximo quantum posible, segun definio el sistema, que podria asignarsele al DTB elegido
  */
-void* ScheduleVRR(int maxQuantum);
+SerializedPart* ScheduleVRR(int maxQuantum);
 
 
 /*
@@ -335,42 +335,42 @@ void DeleteSemaphores();
 
 /*
  * 	ACCION: Closure para poder liberar la memoria de los scripts de la scriptsQueue
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		script: Script (char*) que representa un elemento de dicha cola, pasado automaticamente como parametro en el destroy
  */
 void ScriptDestroyer(void* script);
 
 /*
  * 	ACCION: Closure para poder liberar la memoria de los data* de las tablas de archivos abiertos
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		addressPtr: Puntero que representa el value del diccionario que esta siendo destruido; parametro automatico
  */
 void LogicalAddressDestroyer(void* addressPtr);
 
 /*
  * 	ACCION: Closure para poder liberar a memoria de cada BlockableInfo de la cola de DTBs a bloquear
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		BI: Estructura de info a bloquear (debe castearse), parametro automatico en el destroy
  */
 void BlockableInfoDestroyer(void* BI);
 
 /*
  * 	ACCION: Closure para poder liberar a memoria de cada UnlockableInfo de la cola de DTBs a desbloquear
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		UI: Estructura de info a desbloquear (debe castearse), parametro automatico en el destroy
  */
 void UnlockableInfoDestroyer(void* UI);
 
 /*
  * 	ACCION: Closure para poder liberar a memoria de la cola de IDs de procesos a enviar a EXIT
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		endableID: Puntero con el ID del DTB a eliminar de la cola de procesos a terminar; parametro automatico
  */
 void EndableDestroyer(void* endableID);
 
 /*
  * 	ACCION: Closure para liberar la memoria de una estructura de DTB de una cola o lista de DTBs
- * 	CAMPOS:
+ * 	PARAMETROS:
  * 		aDTB: void*, como cualquier parametro de destroyer, automatico, para saber cual liberar
  */
 void DTBDestroyer(void* aDTB);

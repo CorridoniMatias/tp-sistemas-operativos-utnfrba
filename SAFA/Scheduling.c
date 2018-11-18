@@ -337,7 +337,7 @@ void PlanificadorCortoPlazo(void* algoritmo)
 			CPU* chosenCPU = list_remove_by_condition(cpus, (void*)IsIdle);
 			toBeAssigned->cpuSocket = chosenCPU->socket;
 
-			void* messageToSend;
+			SerializedPart* messageToSend;
 
 			//Elegir el DTB adecuado, y obtener el mensaje a enviarle al CPU; ponerlo en EXEC
 			if((strcmp((char*)algoritmo, "RR")) == 0)
@@ -350,7 +350,8 @@ void PlanificadorCortoPlazo(void* algoritmo)
 			}
 			//if(algoritmo == "PROPIO") => scheduleSelf()
 
-			memcpy(toBeAssigned->message, messageToSend, strlen(messageToSend) + 1);
+			toBeAssigned->message = messageToSend;
+			//memcpy(toBeAssigned->message, messageToSend, strlen(messageToSend) + 1);
 
 			//Enviarle el mensaje al CPU, y actualizarle el estado en la lista
 			//Deberia activar algun semaforo para que sepa que debe mandarselo por el socket?
@@ -560,7 +561,7 @@ void* FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 
 }
 
-void* GetMessageForCPU(DTB* chosenDTB)
+SerializedPart* GetMessageForCPU(DTB* chosenDTB)
 {
 
 	uint32_t* idToSend = malloc(sizeof(uint32_t));
@@ -600,7 +601,7 @@ void* GetMessageForCPU(DTB* chosenDTB)
 	//|IDdelDTB|Flag|PathEscriptorioAsociado|Dir.LogicaPath|ProgramCounterDelDTB|QuantumAEjecutar|CantArchivosAbiertos|Archivos
 	//(cada cual con su respectivo tamanio antes del dato en si)
 	//Los archivos se mandan como: "arch1:d1,arch2:d2,...,archN:dN;"
-	void* message = Serialization_Serialize(8, idSP, flagSP, pathSP, pathAddressSP, pcSP, quantumSP, ofaSP, filesSP);
+	SerializedPart* message = Serialization_Serialize(8, idSP, flagSP, pathSP, pathAddressSP, pcSP, quantumSP, ofaSP, filesSP);
 
 	//Hago free de todos esos punteros que use para crear la cadena serializada
 	free(idToSend);
@@ -614,7 +615,7 @@ void* GetMessageForCPU(DTB* chosenDTB)
 
 }
 
-void* ScheduleRR(int quantum)
+SerializedPart* ScheduleRR(int quantum)
 {
 
 	//Round Robin es un FIFO en el cual tengo en cuenta el quantum, no mucho mas que eso
@@ -630,7 +631,7 @@ void* ScheduleRR(int quantum)
 
 }
 
-void* ScheduleVRR(int maxQuantum)
+SerializedPart* ScheduleVRR(int maxQuantum)
 {
 
 	DTB* chosenDTB = GetNextDTB();
