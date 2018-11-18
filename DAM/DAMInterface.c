@@ -62,36 +62,50 @@ void DAM_Abrir(void* arriveData)
 	//verificamos que nos esten enviando los dos campos necesarios
 	if(data->count < 2) {
 		//no tenemos los datos necesarios para seguir adelante
-		printf("HAY UN PROBLEMA CON LOS DATOS RECIBIDOS\n");
-		return;
-	}
-
-	uint32_t idDTB = (uint32_t)data->parts[0];
-	char* filePath = (char*)data->parts[1];
-
-	//abrimos conexiones con el MDJ y el FM9
-	int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
-	int socketFM9 = SocketClient_ConnectToServerIP(settings->ipFM9, settings->puertoFM9);
-
-	//verificamos que el archivo exista
-	uint32_t fStatus = SocketCommons_SendStringAsContent(socketMDJ, filePath, MESSAGETYPE_MDJ_CHECKFILE);
-	if (fStatus == 0) {
-		printf("El archivo solicitado con ubicacion %s no existe!\n", filePath);
-
-		//le comunico del error al SAFA y le paso el id del DTB
-		int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoSAFA);
-		SerializedPart idForSAFA = {.size = sizeof(uint32_t), .data = idDTB};
-		SerializedPart* serializedContent = Serialization_Serialize(1, idForSAFA);
-		printf("Enviando error de operacion al SAFA\n");
-		SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ERR, (void*)serializedContent->data, serializedContent->size);
-		free(serializedContent->data);
-		free(serializedContent);
-		free(data);
+		Logger_Log(LOG_ERROR, "DAM::DAM_Abrir -> Recibido menos de 2 parametros.");
 		Serialization_CleanupDeserializationStruct(data);
 		free(arriveData);
 		return;
 	}
 
+	uint32_t idDTB = *((uint32_t*)data->parts[0]);
+	char* filePath = (char*)data->parts[1];
+
+	//abrimos conexion con el MDJ
+	int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
+
+	//verificamos que el archivo exista
+	SocketCommons_SendStringAsContent(socketMDJ, filePath, MESSAGETYPE_MDJ_CHECKFILE);
+	int msg_type, length, status;
+	void* response = SocketCommons_ReceiveData(socketMDJ, &msg_type, &length, &status);
+	if(msg_type == MESSAGETYPE_INT)
+	{
+		switch(*((uint32_t*)response))
+		{
+			case 0: //EL ARCHIVO NO EXISTE
+				//printf("El archivo solicitado con ubicacion %s no existe!\n", filePath);
+				Logger_Log(LOG_ERROR, "DAM::DAM_Abrir -> El archivo solicitado con ubicacion %s no existe!\n", filePath);
+
+				//le comunico del error al SAFA y le paso el id del DTB
+				int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoSAFA);
+				SerializedPart idForSAFA = {.size = sizeof(uint32_t), .data = idDTB};
+				SerializedPart* serializedContent = Serialization_Serialize(1, idForSAFA);
+				printf("Enviando error de operacion al SAFA\n");
+				SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ERR, (void*)serializedContent->data, serializedContent->size);
+				free(serializedContent->data);
+				free(serializedContent);
+				break;
+			case 1: //EL ARCHIVO EXISTE
+				//establecemos conexion con el FM9
+				int socketFM9 = SocketClient_ConnectToServerIP(settings->ipFM9, settings->puertoFM9);
+
+				break;
+		}
+	}
+
+	free(response);
+	free(data);
+	Serialization_CleanupDeserializationStruct(data);
 	free(arriveData);
 }
 
