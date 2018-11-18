@@ -13,4 +13,6 @@ void DAM_Abrir(void* arriveData);
 
 void DAM_Flush(void* arriveData);
 
+void DAM_Crear(void* arriveData);
+
 #endif /* DAMINTERFACE_H_ */

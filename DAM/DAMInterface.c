@@ -2,6 +2,58 @@
 #include "kemmens/Utils.h"
 
 
+void DAM_Crear(void* arriveData)
+{
+	DeserializedData* data = Serialization_Deserialize(arriveData);
+
+	if(data->count < 2) {
+		Logger_Log(LOG_ERROR, "DAM::DAM_Crear -> Recibido menos de 2 parametros.");
+		Serialization_CleanupDeserializationStruct(data);
+		free(arriveData);
+		return;
+	}
+
+	//TODO: basicmanet estamos haciendo un middle man aca, ver de hacer una funcion para obtener el largo de un paquete serializado y forwardear el arrivedata.
+
+	char* filePath = (char*)data->parts[0];
+	uint32_t cantNewLines = *((uint32_t*)data->parts[1]);
+
+	int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
+
+	declare_and_init(newlines, uint32_t, cantNewLines);
+	SerializedPart p_newlines = {.size = sizeof(uint32_t), .data = newlines};
+	SerializedPart p_filepath = {.size = strlen(filePath)+1, .data = filePath};
+	SerializedPart* packet = Serialization_Serialize(2, p_filepath, p_newlines);
+
+	SocketCommons_SendData(socketMDJ, MESSAGETYPE_MDJ_CREATEFILE, packet->data, packet->size);
+
+	int msg_type, length, status;
+	void* response = SocketCommons_ReceiveData(socketMDJ, &msg_type, &length, &status);
+
+	if(msg_type == MESSAGETYPE_INT)
+	{
+		switch(*((uint32_t*)response))
+		{
+			case 0: //OK
+			break;
+			case 1: //EXISTING_FILE
+			break;
+			case 2: //METADATA_CREATE_ERROR
+			break;
+			case 10: //INSUFFICIENT_SPACE
+			break;
+			case 11: //METADATA_OPEN_ERROR
+			break;
+		}
+	}
+	free(response);
+
+	Serialization_CleanupSerializedPacket(packet);
+	Serialization_CleanupDeserializationStruct(data);
+	free(newlines);
+	free(arriveData);
+}
+
 //para el comando abrir
 void DAM_Abrir(void* arriveData)
 {
@@ -126,10 +178,9 @@ void DAM_Flush(void* arriveData)
 
 		printf("ENVIANDO AL MDJ %d BYTES de buffer, tamaño del paquete: %d\n", sizeToSend , serializedContent->size);
 
-		SocketCommons_SendData(socketMDJ, MESSAGETYPE_MDJ_PUTDATA, (void*)serializedContent->data, serializedContent->size);
+		SocketCommons_SendData(socketMDJ, MESSAGETYPE_MDJ_PUTDATA, serializedContent->data, serializedContent->size);
 
-		free(serializedContent->data);
-		free(serializedContent);
+		Serialization_CleanupSerializedPacket(serializedContent);
 		free(poffset);
 		free(psize);
 		free(buffer);
