@@ -255,7 +255,14 @@ static int* FIFA_ReserveBlocks(int cantBloques)
 t_config* FIFA_OpenFile(char* path)
 {
 	char* fullPath = FIFA_GetFullPath(path);
-	t_config* metadata = config_create(fullPath);
+	t_config* metadata = NULL;
+	DIR* dir = opendir(fullPath);
+	if (!dir)
+	{
+		metadata = config_create(fullPath);
+	} else
+		closedir(dir);
+
 	free(fullPath);
 
 	if(metadata == NULL)

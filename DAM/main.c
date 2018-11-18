@@ -1,9 +1,6 @@
 #include "kemmens/megekemmen.h"
 #include "kemmens/logger.h"
 #include "headers/bibliotecaDAM.h"
-#include "headers/DAMInterface.h"
-#include "kemmens/Utils.h"
-
 
 int main(int argc, char **argv)
 {

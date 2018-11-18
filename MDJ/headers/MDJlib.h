@@ -31,6 +31,7 @@ void* Command_md5 (int argc, char** args, char* comando, void* datos);
 void* Command_cd (int argc, char** args, char* comando, void* datos);
 void *CommandQuit (int argC, char** args, char* callingLine, void* extraData);
 
+char* BuildPath(char* path, bool hasFileAtEnd);
 int cd(char* path, char** tmp);
 
 void clientConnected(int socket);
