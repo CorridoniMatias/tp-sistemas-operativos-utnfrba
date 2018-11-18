@@ -14,6 +14,7 @@
 #include <math.h>
 #include <sys/stat.h>
 #include <pthread.h>
+#include <dirent.h>
 
 #include "Config.h"
 

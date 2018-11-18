@@ -3,6 +3,7 @@
 #include "kemmens/SocketMessageTypes.h"
 #include "kemmens/SocketServer.h"
 #include "headers/MDJInterface.h"
+#include "kemmens/Utils.h"
 
 char* CONTEXT_CURRENT_PATH_LINUX;
 char* CONTEXT_CURRENT_PATH;
@@ -247,7 +248,12 @@ static char* GetPathFromCMD(int argC, char** args)
 //Comandos de consola
 void *Command_ls (int argC, char** args, char* callingLine, void* extraData)
 {
-	char* path = GetPathFromCMD(argC, args);
+	char* parampath = string_new();
+
+	for(int i = 1; i <= argC;i++)
+	{
+		string_append(&parampath, args[i]);
+	}
 
 	void freeall(char* ppath, char** aargs)
 	{
@@ -255,11 +261,16 @@ void *Command_ls (int argC, char** args, char* callingLine, void* extraData)
 		CommandInterpreter_FreeArguments(aargs);
 	}
 
+	char* FSpath = BuildPath(parampath, false);
+	free(parampath);
+
+	char* path = StringUtils_Format("%s%s", config->filesPath, FSpath);
+	printf("ls: %s\n", FSpath);
+	free(FSpath);
+
 	struct dirent *de;
 
 	DIR *dr = opendir(path);
-
-	printf("ls: %s\n", path);
 
 	if (dr == NULL)
 	{
@@ -269,7 +280,7 @@ void *Command_ls (int argC, char** args, char* callingLine, void* extraData)
 	}
 
 	while ((de = readdir(dr)) != NULL)
-		printf("|\t\t\t %s \t\t\t|\t\t\t %s \t\t\t| \n", de->d_name, ((de->d_type == 8) ? "FILE" : "DIR"));
+		printf("Nombre: %s \t Tipo: %s \n", de->d_name, ((de->d_type == 8) ? "FILE" : "DIR"));
 
 	printf("\n");
 
@@ -279,12 +290,12 @@ void *Command_ls (int argC, char** args, char* callingLine, void* extraData)
 	return 0;
 }
 
+
 void *Command_cd (int argC, char** args, char* callingLine, void* extraData)
 {
 
 	if(argC >= 1)
 	{
-
 		char* path = string_new();
 
 		for(int i = 1; i <= argC;i++)
@@ -292,38 +303,20 @@ void *Command_cd (int argC, char** args, char* callingLine, void* extraData)
 			string_append(&path, args[i]);
 		}
 
+		char* finalPath = BuildPath(path, false);
 
-
-		char** parts = string_split(path, "/");
-
-		char* tmp = string_duplicate(CONTEXT_CURRENT_PATH);
-
-		int i = 0;
-		int error = 0;
-		//Ejemplo ruta actual: /hola/como/te/va
-		//el escaneo recursivo permite acceder por ejemplo haciendo cd ./../va/.. -> terminaria en /hola/como/te/
-		while (parts[i] != NULL) {
-			if(cd(parts[i], &tmp) == 0)
-			{
-				free(tmp);
-				error = 1;
-				break;
-			}
-			i++;
-		}
-
-		if(error == 1)
+		if(finalPath == NULL)
 		{
 			printf("cd: %s no es un directorio valido\n", path);
 		} else
 		{
 			free(CONTEXT_CURRENT_PATH);
-			CONTEXT_CURRENT_PATH = tmp;
+			CONTEXT_CURRENT_PATH = finalPath;
 			free(CONTEXT_CURRENT_PATH_LINUX);
 			CONTEXT_CURRENT_PATH_LINUX = StringUtils_Format("%s%s", config->filesPath, CONTEXT_CURRENT_PATH);
 			printf("cd: Working Directory %s\n", CONTEXT_CURRENT_PATH);
 		}
-		StringUtils_FreeArray(parts);
+
 		free(path);
 	}
 
@@ -333,34 +326,23 @@ void *Command_cd (int argC, char** args, char* callingLine, void* extraData)
 
 void *Command_md5 (int argC, char** args, char* callingLine, void* extraData)
 {
-
-
-
-	CommandInterpreter_FreeArguments(args);
-	return 0;
-}
-
-void *Command_cat (int argC, char** args, char* callingLine, void* extraData)
-{
 	if(argC > 0)
 	{
 		char* passedPath = string_new();
-		char* path;
 
 		for(int i = 1; i <= argC;i++)
 		{
 			string_append(&passedPath, args[i]);
 		}
 
-		if(StringUtils_CountOccurrences(passedPath, "/") == 0)
-		{
-			path = StringUtils_Format("%s%s", CONTEXT_CURRENT_PATH, passedPath);
-		} else
-		{
-			path = string_duplicate(passedPath);
-		}
-
+		char* path = BuildPath(passedPath, true);
 		free(passedPath);
+
+		if(path == NULL)
+		{
+			printf("md5: El path ingresado no es valido.\n");
+			return 0;
+		}
 
 		int cop = 0;
 
@@ -384,13 +366,118 @@ void *Command_cat (int argC, char** args, char* callingLine, void* extraData)
 
 		cont[cop] = '\0';
 
-		printf("Cat %s (%d bytes):\n %s\n", path, cop, cont);
+		unsigned char* digest = KemmensUtils_md5(cont);
 
+		printf("md5 %s = %x\n", path, digest);
+
+		free(digest);
+		free(cont);
 		free(path);
 	}
 
 	CommandInterpreter_FreeArguments(args);
 	return 0;
+}
+
+void *Command_cat (int argC, char** args, char* callingLine, void* extraData)
+{
+	if(argC > 0)
+	{
+		char* passedPath = string_new();
+
+		for(int i = 1; i <= argC;i++)
+		{
+			string_append(&passedPath, args[i]);
+		}
+
+		char* path = BuildPath(passedPath, true);
+		free(passedPath);
+
+		if(path == NULL)
+		{
+			printf("cat: El path ingresado no es valido.\n");
+			return 0;
+		}
+
+		int cop = 0;
+
+		t_config* metadata = FIFA_OpenFile(path);
+
+		if(metadata == NULL)
+		{
+			printf("El path ingresado no es valido.\n");
+			free(path);
+			CommandInterpreter_FreeArguments(args);
+			return 0;
+		}
+
+		int fileSize = config_get_int_value(metadata, "TAMANIO");
+
+		config_destroy(metadata);
+
+		char* cont = FIFA_ReadFile(path, 0, fileSize, &cop);
+
+		cont = realloc(cont, cop + 1);
+
+		cont[cop] = '\0';
+
+		printf("Cat %s (%d bytes):\n%s\n", path, cop, cont);
+
+		free(cont);
+		free(path);
+	}
+
+	CommandInterpreter_FreeArguments(args);
+	return 0;
+}
+
+//Constructores de paths dinamicos
+char* BuildPath(char* path, bool hasFileAtEnd)
+{
+	char* tmp;
+	int error = 0;
+
+	if(strcmp(path, "/") == 0) //queremos ir a root (caso particular)
+	{
+		tmp = string_duplicate("/");
+	} else
+	{
+		char** parts = string_split(path, "/");
+
+		if(string_starts_with(path, "/")) //es un path absoluto
+		{
+			tmp = string_duplicate("/");
+		} else //es un path relativo
+		{
+			tmp = string_duplicate(CONTEXT_CURRENT_PATH);
+		}
+		//Ejemplo ruta actual: /hola/como/te/va
+		//el escaneo recursivo permite acceder por ejemplo haciendo cd ./../va/.. -> terminaria en /hola/como/te/
+		int count = StringUtils_ArraySize(parts);
+		int max = ((hasFileAtEnd) ? count-1 : count);
+
+		for(int i = 0; i < max; i++) {
+
+			if(cd(parts[i], &tmp) == 0)
+			{
+				free(tmp);
+				error = 1;
+				break;
+			}
+		}
+
+		if(error == 0 && hasFileAtEnd)
+		{
+			string_append(&tmp, parts[count-1]);
+		}
+
+		StringUtils_FreeArray(parts);
+	}
+
+	if(error == 1)
+		return NULL;
+
+	return tmp;
 }
 
 int cd(char* path, char** tmp)
