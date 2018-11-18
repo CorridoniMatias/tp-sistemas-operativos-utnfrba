@@ -11,4 +11,7 @@
 
 unsigned char* KemmensUtils_md5(void* content);
 
+void dictionary_putMAESTRO(t_dictionary* dictionary, char* key, void* value, void (*elementDestroyer)(void*));
+
+
 #endif /* KEMMENS_UTILS_H_ */
