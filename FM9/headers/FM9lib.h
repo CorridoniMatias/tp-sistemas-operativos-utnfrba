@@ -32,6 +32,9 @@ typedef struct{
 	void (*freeStructures)();
 	int (*virtualAddressTranslation)(int, int);
 	int (*writeData)(void*,int,int);
+	int (*closeFile)(int,int);
+	int (*dump)(int);
+	int (*size)(int,int);
 	//No es necesaria esta creo, con hacer la traduccion esta bien;
 //	int (*readLine)(void*,int,int);
 } t_memoryFunctions;

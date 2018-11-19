@@ -28,7 +28,7 @@ static void FIFA_BlockPutContent(int blockNum, int offset, void* content, int le
 	FILE* fd = fopen(blockFile, "r+b");
 	if(!fd)
 	{
-		FILE* file = fopen(blockFile, "w");
+		FILE* file = fopen(blockFile, "wb");
 		if(!file)
 		{
 			return;
@@ -43,9 +43,12 @@ static void FIFA_BlockPutContent(int blockNum, int offset, void* content, int le
 		return;
 	}
 
-	fseek(fd, offset, SEEK_SET);
+	if(len != 0)
+	{
+		fseek(fd, offset, SEEK_SET);
 
-	fwrite(content, len, 1, fd);
+		fwrite(content, len, 1, fd);
+	}
 
 	fclose(fd);
 
@@ -183,6 +186,10 @@ static void FIFA_Init()
 	FIFA_MkDirFrom(config->puntoMontaje, "");
 	mkdir(config->blocksPath, 0700);
 	mkdir(config->filesPath, 0700);
+	for(int i = 0; i < config->cantidadBloques;i++) //creamos bloques vacios si es necesario
+	{
+		FIFA_BlockPutContent(i, 0, 0, 0);
+	}
 	pthread_mutex_init(&bitmapLock, NULL);
 }
 
@@ -611,22 +618,27 @@ int FIFA_DeleteFile(char* path)
 	int cantBloques = StringUtils_ArraySize(bloques);
 
 	char* blockFilePath;
-
+	FILE* tmpfile;
 	for(int i = 0; i < cantBloques;i++)
 	{
 		blockFilePath = StringUtils_Format("%s%s%s", config->blocksPath, bloques[i], ".bin");
 
-		Logger_Log(LOG_DEBUG, "FIFA -> Delete '%s' :: Eliminando y liberando bloque en '%s'" , path, blockFilePath);
+		Logger_Log(LOG_DEBUG, "FIFA -> Delete '%s' :: Limpiando y liberando bloque en '%s'" , path, blockFilePath);
 
-		if(remove(blockFilePath) != 0)
+		//No hay que borrar los bloques, solo dejarlos ahi con basura
+		if((tmpfile = fopen(blockFilePath, "w")) != 0)
+		{
+			fclose(tmpfile);
+			free(blockFilePath);
+		} else
 		{
 			//Tenemos un bloque corrupto, va a quedar inutilizable en el filesystem :c
 			Logger_Log(LOG_ERROR, "FIFA -> La eliminacion del bloque en '%s' ha fallado!", blockFilePath);
+			free(blockFilePath);
 			continue;
 		}
 
 		FIFA_FreeBlock( atoi(bloques[i]) );
-		free(blockFilePath);
 	}
 
 	Logger_Log(LOG_DEBUG, "FIFA -> Delete '%s' :: Bloques eliminados. Eliminando metadata..." , path);

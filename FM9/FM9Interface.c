@@ -33,3 +33,16 @@ int FM9_AskForLine(int virtualAddress, int dtbID, void* buffer) {
 int FM9_Open(int dtbID, void* data, int size){
 	return 	memoryFunctions->writeData(data, size, dtbID);
 }
+
+int FM9_Close(int dtbID, int virtualAddress){
+	return memoryFunctions->closeFile(dtbID,virtualAddress);
+}
+
+
+int FM9_Dump(int dtbID, int virtualAddress){
+	return memoryFunctions->dump(dtbID);
+}
+
+int FM9_Flush(int dtbID, int virtualAddress){
+
+}

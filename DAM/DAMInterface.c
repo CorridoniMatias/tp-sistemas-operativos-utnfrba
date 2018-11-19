@@ -82,16 +82,20 @@ void DAM_Abrir(void* arriveData)
 		switch(*((uint32_t*)response))
 		{
 			case 0: //EL ARCHIVO NO EXISTE
+			{
 				//printf("El archivo solicitado con ubicacion %s no existe!\n", filePath);
 				Logger_Log(LOG_ERROR, "DAM::DAM_Abrir -> El archivo solicitado con ubicacion %s no existe!\n", filePath);
 				DAM_ErrorOperacion(idDTB);
 				break;
+			}
 			case 1: //EL ARCHIVO EXISTE
+			{
 				//establecemos conexion con el FM9
 				int socketFM9 = SocketClient_ConnectToServerIP(settings->ipFM9, settings->puertoFM9);
 				//aca tengo que usar el getdata del MDJ y cuando tenga todo, lo cargo al FM9
 				//y le aviso al SAFA
 				break;
+			}
 		}
 	}
 
@@ -228,8 +232,6 @@ void DAM_Flush(void* arriveData)
 	Serialization_CleanupDeserializationStruct(dest);
 
 	free(arriveData);
-
-
 }
 
 void DAM_Borrar(void* arriveData)
@@ -260,24 +262,22 @@ void DAM_Borrar(void* arriveData)
 		switch(*((uint32_t*)response))
 		{
 			case 0: //OK
+			{
 				//El DAM se conecta con el SAFA para avisarle que se elimino OK el archivo
 				//No tengo que conectarme al FM9 para pedir la direccion logica
 				int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoSAFA);
-				SerializedPart idForSAFA = {.size = sizeof(uint32_t), .data = idDTB};
-				SerializedPart* packetForSAFA = Serialization_Serialize(1, idForSAFA);
+
 				Logger_Log(LOG_INFO, "DAM::DAM_Borrar -> Se elimino correctamente el archivo de path %s.", filePath);
-				SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_BORRAR, (void*)packetForSAFA->data, packetForSAFA->size);
-				free(packetForSAFA->data);
-				free(packetForSAFA);
-				break;
-			case 10: //INSUFFICIENT_SPACE
+				SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_BORRAR, (void*)data->parts[0], sizeof(uint32_t));
 			break;
-			case 11: //METADATA_OPEN_ERROR
-			break;
+			}
+
 			case 12: //FILE_NOT_EXISTS
+			{
 				Logger_Log(LOG_ERROR, "DAM::DAM_Borrar -> El archivo solicitado con ubicacion %s no existe!\n", filePath);
 				DAM_ErrorOperacion(idDTB);
-				break;
+			break;
+			}
 		}
 	}
 	free(response);
@@ -290,10 +290,18 @@ void DAM_ErrorOperacion(uint32_t idDTB)
 {
 	//le comunico del error al SAFA y le paso el id del DTB
 	int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoSAFA);
-	SerializedPart idForSAFA = {.size = sizeof(uint32_t), .data = idDTB};
+
+	declare_and_init(pointer_iddtb, uint32_t, idDTB);
+
+	SerializedPart idForSAFA = {.size = sizeof(uint32_t), .data = pointer_iddtb};
+
+	//TODO: Por que serializas? estas mandando un unico valor, no tiene sentido. Podes mandar directamente pointer_iddtb
 	SerializedPart* packetForSAFA = Serialization_Serialize(1, idForSAFA);
 	printf("Enviando error de operacion al SAFA\n");
 	SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ERR, (void*)packetForSAFA->data, packetForSAFA->size);
+	free(pointer_iddtb);
+
+	//TODO: hay funciones para limpiar lo asignado por un paquete, pero de nuevo, no tiene sentido usar uno.
 	free(packetForSAFA->data);
 	free(packetForSAFA);
 }

@@ -14,3 +14,15 @@ void Test_CreateFile()
 	free(newlines);
 	Serialization_CleanupSerializedPacket(packet);
 }
+
+void Test_DeleteFile()
+{
+	declare_and_init(dtbid, uint32_t, 1);
+	char* filePath = "/nuevoArchivoRePiola.algo";
+	SerializedPart p_dtb = {.size = sizeof(uint32_t), .data = dtbid};
+	SerializedPart p_filepath = {.size = strlen(filePath)+1, .data = filePath};
+	SerializedPart* packet = Serialization_Serialize(2, p_dtb, p_filepath);
+	DAM_Borrar((void*)packet->data);
+	free(dtbid);
+	Serialization_CleanupSerializedPacket(packet);
+}

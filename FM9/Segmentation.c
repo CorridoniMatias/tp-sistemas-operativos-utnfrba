@@ -204,3 +204,7 @@ void freeSegmentCompaction() {
 			index++;
 	}
 }
+
+int sizeOfSegment(int dtbID, int virtualAddress){
+	return 1;
+}

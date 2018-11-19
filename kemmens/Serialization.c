@@ -135,6 +135,8 @@ void Serialization_CleanupDeserializationStruct(DeserializedData* cleanable)
 
 void Serialization_CleanupSerializedPacket(SerializedPart* serializedPacket)
 {
+
 	free(serializedPacket->data);
 	free(serializedPacket);
+
 }

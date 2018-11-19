@@ -45,6 +45,8 @@ void configurar()
 		memoryFunctions->freeStructures = freeSegmentationStructures;
 		memoryFunctions->virtualAddressTranslation =segmentationAddressTranslation;
 		memoryFunctions->writeData = writeData_SEG;
+		memoryFunctions->closeFile = closeSegmentation;
+		memoryFunctions->dump = dumpSegmentation;
 	}
 	archivoConfigDestruir(archivoConfig);
 

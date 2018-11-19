@@ -24,7 +24,7 @@ int CPUsCount();
 
 void DestroyCPUsHolder();
 
-bool IsIdle(CPU* myCPU);
+bool IsIdle(void* myCPU);
 
 bool ExistsIdleCPU();
 
