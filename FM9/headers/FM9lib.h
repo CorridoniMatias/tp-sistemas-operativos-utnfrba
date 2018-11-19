@@ -4,6 +4,8 @@
 #include "kemmens/config.h"
 #include "kemmens/SocketClient.h"
 #include "commons/string.h"
+#include "Segmentation.h"
+#include "Paging.h"
 
 #define RUTA_CONFIG "FM9.config"
 

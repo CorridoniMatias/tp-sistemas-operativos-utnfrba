@@ -43,7 +43,7 @@ void configurar()
 	case SEG:
 		memoryFunctions->createStructures = createSegmentationStructures;
 		memoryFunctions->freeStructures = freeSegmentationStructures;
-		memoryFunctions->virtualAddressTranslation =virtualSegmentationAddressTranslation;
+		memoryFunctions->virtualAddressTranslation =segmentationAddressTranslation;
 		memoryFunctions->writeData = writeData_SEG;
 	}
 	archivoConfigDestruir(archivoConfig);

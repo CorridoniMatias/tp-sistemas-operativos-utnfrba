@@ -9,7 +9,7 @@
 //FM9 General Errors:
 
 #define INVALID_LINE_NUMBER	-1
-//#define INVALID_LINE_NUMBER	-2
+#define INSUFFICIENT_SPACE	-2
 
 int tamanioLinea;
 int cantLineas;

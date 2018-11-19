@@ -8,7 +8,7 @@
 #include "headers/InvertedPageTable.h"
 #include "headers/Segmentation.h"
 #include <stdlib.h>
-#include "Tests.c"
+#include "headers/Tests.h"
 
 int main(int argc, char **argv) {
 	Logger_CreateLog("./FM9.log", "FM9", true);
@@ -16,8 +16,7 @@ int main(int argc, char **argv) {
 	configurar();
 	createStorage();
 
-
-
+	testAsignar();
 
 //	StartServer();
 //	ThreadPool_FreeGracefully(threadPool);

@@ -20,7 +20,8 @@ void createSegmentationStructures() {
 void freeSegmentationStructures() {
 	list_destroy_and_destroy_elements(freeSegments, free);
 	void dictionaryDestroyer(void* segments) {
-		dictionary_destroy_and_destroy_elements(((t_segments*) segments)->segments, free);
+		dictionary_destroy_and_destroy_elements(
+				((t_segments*) segments)->segments, free);
 		free(segments);
 	}
 	dictionary_destroy_and_destroy_elements(segmentsPerDTBTable,
@@ -41,6 +42,9 @@ int writeData_SEG(void* data, int size, int dtbID) {
 	t_segment* freeSegment = list_remove_by_condition(freeSegments,
 			enoughSpaceSegment);
 
+	if(freeSegment==NULL){
+		return INSUFFICIENT_SPACE;
+	}
 	for (int i = 0; i < lineasNecesarias; i++) {
 		if (writeLine(((char*) data) + i * tamanioLinea,
 				freeSegment->base + i) == INVALID_LINE_NUMBER) {
@@ -66,9 +70,8 @@ int writeData_SEG(void* data, int size, int dtbID) {
 	int segmentNumber = getNewSegmentNumber(segments);
 	//IMPLEMENTAR ALGUNA LOGICA PARA PONER NUMERO DE SEGMENTO QUE NO SE REPITA
 	char* segmentKey = string_itoa(segmentNumber);
-	if (dictionary_has_key(segments->segments, segmentKey)){
-		Logger_Log(LOG_DEBUG, "FM9 -> se encontro la key repetida shittttttttttttttt.");
-		free(dictionary_get(segments->segments,segmentKey));
+	if (dictionary_has_key(segments->segments, segmentKey)) {
+		free(dictionary_get(segments->segments, segmentKey));
 	}
 	dictionary_put(segments->segments, segmentKey, newSegment);
 	free(segmentKey);
@@ -128,4 +131,76 @@ int getOffsetFromAddress(int virtualAddress) {
 
 int getNewSegmentNumber(t_segments* segments) {
 	return segments->nextSegmentNumber;
+}
+
+int dumpSegmentation(int dtbID) {
+	char* dtbKey = string_itoa(dtbID);
+	if (dictionary_has_key(segmentsPerDTBTable, dtbKey))
+		return -1;
+
+	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
+	free(dtbKey);
+	Logger_Log(LOG_INFO, "Proceso %d", dtbID);
+	void segmentDumper(char* key, void * data) {
+		t_segment* segment = data;
+		Logger_Log(LOG_INFO, "Segmento %s : Base = %d : Límite = %d", key,
+				segment->base, segment->limit);
+		char* buffer = malloc(tamanioLinea);
+		Logger_Log(LOG_INFO, "Contenido Segmento %s", key);
+		for (int i = 0; i < segment->limit; i++) {
+			readLine(buffer, segment->base + i);
+		}
+	}
+	dictionary_iterator(segments->segments, segmentDumper);
+	return 1;
+
+}
+
+int closeSegmentation(int dtbID, int virtualAddress) {
+	char* dtbKey = string_itoa(dtbID);
+	if (dictionary_has_key(segmentsPerDTBTable, dtbKey))
+		return -1;
+
+	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
+
+	int segmentNumber = getSegmentFromAddress(virtualAddress);
+	char* segmentKey = string_itoa(segmentNumber);
+	if (!dictionary_has_key(segments->segments, segmentKey)) {
+		return -1;
+	}
+	t_segment* segment = dictionary_remove(segments->segments, segmentKey);
+	addFreeSegment(segment);
+	free(segment);
+	return 1;
+}
+
+void addFreeSegment(t_segment* segment) {
+	list_add(freeSegments);
+	sortFreeSegments();
+	freeSegmentCompaction();
+}
+
+void sortFreeSegments() {
+	bool comparator(void* firstElement, void* secondElement) {
+		t_segment* firstSegment = firstElement;
+		t_segment* secondSegment = secondElement;
+		return firstSegment->base < secondSegment->base;
+	}
+	list_sort(freeSegments, comparator);
+}
+
+void freeSegmentCompaction() {
+	t_segment* firstSegment;
+	t_segment* secondSegment;
+	int index = 0;
+	while (index < list_size(freeSegments)) {
+		firstSegment = list_get(index);
+		secondSegment = list_get(index + 1);
+		if (firstSegment->base + firstSegment->limit == secondSegment->base) {
+			firstSegment->limit += secondSegment->limit;
+			list_remove_and_destroy_element(freeSegments, index + 1, free);
+		}
+		else
+			index++;
+	}
 }

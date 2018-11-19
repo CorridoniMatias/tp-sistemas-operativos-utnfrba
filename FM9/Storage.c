@@ -1,9 +1,9 @@
 #include "headers/Storage.h"
 
-int verifyLineNumber(int numLinea){
+bool verifyLineNumber(int numLinea){
 	if (numLinea >= cantLineas)
-		return INVALID_LINE_NUMBER;
-	return 1;
+		return false;
+	return true;
 }
 
 void createStorage() {
@@ -37,28 +37,30 @@ int writeLine(void* data, int numLinea) {
 
 	verifyLineNumber(numLinea);
 
-//	Logger_Log(LOG_DEBUG, "FM9 -> Contenido de Data: %s.", data);
+	Logger_Log(LOG_DEBUG, "Contenido de Data: %s.", data);
 
 	memcpy(storage[numLinea], data, tamanioLinea);
 
 //	Logger_Log(LOG_DEBUG, "FM9 -> Contenido guardado en Storage = %s - En linea = %d.", storage[numLinea], numLinea);
-
-	Logger_Log(LOG_INFO, "FM9 -> Escritura en Storage exitosa en linea %d.", numLinea);
+//
+//	Logger_Log(LOG_INFO, "FM9 -> Escritura en Storage exitosa en linea %d.", numLinea);
 
 	return 1;
 }
 
 int readLine(void* target, int numLinea) {
 
-	verifyLineNumber(numLinea);
+	if(!verifyLineNumber(numLinea)){
+		return INVALID_LINE_NUMBER;
+	}
 
-//	Logger_Log(LOG_DEBUG, "FM9 -> Contenido de Storage = %s -- En linea = %d.", storage[numLinea], numLinea);
+	Logger_Log(LOG_DEBUG, "Contenido de Storage = %s -- En linea = %d.", storage[numLinea], numLinea);
 
 	memcpy(target, storage[numLinea], tamanioLinea);
 
-//	Logger_Log(LOG_DEBUG, "FM9 -> Contenido guardado en target = %s.", (char*)target);
+	Logger_Log(LOG_DEBUG, "Contenido guardado en target = %s.", (char*)target);
 
-	Logger_Log(LOG_INFO, "FM9 -> Lectura de Storage exitosa de linea %d.", numLinea);
+//	Logger_Log(LOG_INFO, "FM9 -> Lectura de Storage exitosa de linea %d.", numLinea);
 
 	return 1;
 }
