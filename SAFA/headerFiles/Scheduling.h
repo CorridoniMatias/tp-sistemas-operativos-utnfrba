@@ -25,6 +25,7 @@
  * 		openedFilesAmount: Cantidad de archivos abiertos por el DTB
  * 		openedFiles: Diccionario que representa la tabla de archivos abiertos por el DTB. Key: path, Value: dirLogica (uint32_t*)
  * 		quantumRemainder: Cantidad de UTs del quantum que le quedan al DTB para ejecutar
+ * 		ioOperations: Cantidad de operaciones de entrada/salida (MDJ) realizadas por el DTB; para el algoritmo Propio (IOBF)
  */
 struct DTB_s
 {
@@ -37,6 +38,7 @@ struct DTB_s
 	uint32_t openedFilesAmount;
 	t_dictionary* openedFiles;
 	uint32_t quantumRemainder;
+	uint32_t ioOperations;
 } typedef DTB;
 
 /*
@@ -319,6 +321,21 @@ void SetDummy(uint32_t id, char* path);
  * 		algoritmo: Nombre del algoritmo de planificacion que se esta usando; debe ser un puntero, por si cambia en tiempo real
  */
 void PlanificadorCortoPlazo();
+
+bool DescendantPriority(void* dtbOne, void* dtbTwo);
+/*
+ * 	ACCION: Closure para poder ordenar una lista por prioridad de DTBs, de manera descendiente (algoritmo IOBF, propio)
+ * 	PARAMETROS:
+ * 		dtbOne, dtbTwo: DTBs a comparar por su cantidad de operaciones de E/S, son elementos de la lista
+ */
+
+/*
+ * 	ACCION: Acomodar las colas (copiar y mover DTBs entre ellas) de READY previo a un ciclo del PCP,
+ * 			por si hubiera habido un cambio de algoritmo mediante factores externos
+ * 	PARAMETROS:
+ * 		changeCode: Codigo del tipo de cambio de algoritmo (de cual a cual fue)
+ */
+void MoveQueues(int changeCode);
 
 /*
  * 	ACCION: Actualiza y sobreescribe toda clave de una tabla de archivos de un DTB con los datos de un diccionario

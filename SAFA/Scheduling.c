@@ -40,6 +40,7 @@ void CreateDummy()
 	dummyDTB->initialized = 0;
 	dummyDTB->programCounter = 0;
 	dummyDTB->status = -1;								//Valor basura, todavia no esta en ninguna cola
+	dummyDTB->ioOperations = 0;							//Nunca las tendra; ya lo preseteo asi
 
 	return;
 
@@ -161,6 +162,7 @@ DTB* CreateDTB(char* script)
 	//Le pongo un valor basura, para su primera ejecucion (por si fuera con VRR)
 	newDTB->quantumRemainder = -1;
 	newDTB->status = -1;										//Valor basura, todavia no esta en NEW
+	newDTB->ioOperations = 0;									//Al arrancar no tiene ninguna
 
 	return newDTB;
 
@@ -358,6 +360,13 @@ void PlanificadorCortoPlazo()
 		}
 		pthread_mutex_unlock(&mutexAlgorithm);
 
+		if(schedulingRules.changeType != ALGORITHM_CHANGE_UNALTERED)
+		{
+			MoveQueues(schedulingRules.changeType);
+		}
+
+		//ToDo: En el NORMAL_SCHEDULE, separar la ejecucion segun el scheduleRules.name
+
 		if(PCPtask == PCP_TASK_NORMAL_SCHEDULE)
 		{
 
@@ -545,6 +554,66 @@ void PlanificadorCortoPlazo()
 		}
 
 	}
+
+}
+
+bool DescendantPriority(void* dtbOne, void* dtbTwo)
+{
+
+	DTB* firstDTB = (DTB*) dtbOne;
+	DTB* secondDTB = (DTB*) dtbTwo;
+	if(firstDTB->ioOperations >= secondDTB->ioOperations)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+
+}
+
+void MoveQueues(int changeCode)
+{
+
+	switch(changeCode)
+	{
+
+		case ALGORITHM_CHANGE_RR_TO_VRR :
+			list_clean(READYqueue_VRR);				//Todo: Testear si hace falta destruir los elementos
+			queue_to_list(READYqueue_RR, READYqueue_VRR);
+			break;
+
+		case ALGORITHM_CHANGE_RR_TO_OWN :
+			list_clean(READYqueue_Own);
+			queue_to_list(READYqueue_RR, READYqueue_Own);
+			list_sort(READYqueue_Own, DescendantPriority);
+			break;
+
+		case ALGORITHM_CHANGE_VRR_TO_RR :
+			list_clean(READYqueue_RR);
+			list_to_queue(READYqueue_VRR, READYqueue_RR);
+			break;
+
+		case ALGORITHM_CHANGE_VRR_TO_OWN :
+			list_clean(READYqueue_Own);
+			list_copy(READYqueue_VRR, READYqueue_Own);
+			list_sort(READYqueue_Own, DescendantPriority);
+			break;
+
+		case ALGORITHM_CHANGE_OWN_TO_RR :
+			list_clean(READYqueue_RR);
+			list_to_queue(READYqueue_Own, READYqueue_RR);
+			break;
+
+		case ALGORITHM_CHANGE_OWN_TO_VRR :
+			list_clean(READYqueue_VRR);
+			list_copy(READYqueue_Own, READYqueue_VRR);
+			break;
+
+	}
+
+	return;
 
 }
 
