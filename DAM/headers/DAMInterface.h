@@ -17,4 +17,6 @@ void DAM_Crear(void* arriveData);
 
 void DAM_Borrar(void* arriveData);
 
+void DAM_ErrorOperacion(uint32_t idDTB);
+
 #endif /* DAMINTERFACE_H_ */
