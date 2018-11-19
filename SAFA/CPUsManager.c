@@ -73,10 +73,11 @@ void DestroyCPUsHolder()
 
 }
 
-bool IsIdle(CPU* myCPU)
+bool IsIdle(void* myCPU)
 {
 
-	if(myCPU->busy == false)
+	CPU* realCPU = (CPU*) myCPU;
+	if(realCPU->busy == false)
 	{
 		return true;
 	}
@@ -91,7 +92,7 @@ bool ExistsIdleCPU()
 {
 
 	bool exists;
-	exists = list_any_satisfy(cpus, (void*)IsIdle);
+	exists = list_any_satisfy(cpus, IsIdle);
 	return exists;
 
 }

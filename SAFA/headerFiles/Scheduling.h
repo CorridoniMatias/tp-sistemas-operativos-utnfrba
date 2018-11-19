@@ -4,6 +4,7 @@
 #include "commons/collections/queue.h"
 #include "commons/collections/dictionary.h"
 #include "kemmens/Serialization.h"
+#include "kemmens/Utils.h"
 #include <pthread.h>
 #include <semaphore.h>
 #include <unistd.h>
@@ -97,36 +98,59 @@ struct AssignmentInfo_s
 	int cpuSocket;
 } typedef AssignmentInfo;
 
+/*
+ * 	Estructura usada por el hilo del PCP, para poder guardar el nombre y el flag de cambio de su algoritmo
+ * 	y asi poder consultarla directamente, sin necesidad de hacer una region critica enorme o varios lock-unlock
+ */
+struct AlgorithmStatus_s
+{
+	char name[8];
+	int changeType;
+} typedef AlgorithmStatus;
+
 ///-------------CONSTANTES DEFINIDAS-------------///
 
 //Codigos de tareas del PLP
 #define PLP_TASK_NORMAL_SCHEDULE 11 			//Planificar de NEW a READY, si se puede
-#define PLP_TASK_CREATE_DTB 12					//Crear DTBs con scripts que haya en la cola
-#define PLP_TASK_INITIALIZE_DTB 13				//Inicializar el DTB cuyo DUMMY fue exitoso
+#define PLP_TASK_CREATE_DTB 	 12				//Crear DTBs con scripts que haya en la cola
+#define PLP_TASK_INITIALIZE_DTB  13				//Inicializar el DTB cuyo DUMMY fue exitoso
 
 //Codigos de tareas del PCP
 #define PCP_TASK_NORMAL_SCHEDULE 21				//Planificar e ir pasando procesos de READY a EXEC
-#define PCP_TASK_LOAD_DUMMY	22					//Pasar el Dummy de BLOCKED (no usado) a READY
-#define PCP_TASK_FREE_DUMMY 23					//Liberar el Dummy (ponerlo en BLOCKED); actualizar la CPU desalojada (por afuera)
-#define PCP_TASK_BLOCK_DTB 24					//Desalojar la CPU correspondiente y pasar su DTB de EXEC a BLOCK
-#define PCP_TASK_UNLOCK_DTB 25					//Pasar DTB bloqueado a READY (cuando DAM aviso que termino I/O
+#define PCP_TASK_LOAD_DUMMY		 22				//Pasar el Dummy de BLOCKED (no usado) a READY
+#define PCP_TASK_FREE_DUMMY 	 23				//Liberar el Dummy (ponerlo en BLOCKED); actualizar la CPU desalojada (por afuera)
+#define PCP_TASK_BLOCK_DTB 		 24				//Desalojar la CPU correspondiente y pasar su DTB de EXEC a BLOCK
+#define PCP_TASK_UNLOCK_DTB 	 25				//Pasar DTB bloqueado a READY (cuando DAM aviso que termino I/O
 												//o una operacion de signal libero un recurso que esperaba)
 #define PCP_TASK_END_DTB 26						//Ṕasar DTB a la cola de EXIT (si debio abortarse o termino)
 
 //Estados de los DTB (del diagrama de 5 estados)
-#define DTB_STATUS_NEW 31
-#define DTB_STATUS_READY 32
-#define DTB_STATUS_EXEC 33
-#define DTB_STATUS_BLOCKED 34
-#define DTB_STATUS_EXIT 35
+#define DTB_STATUS_NEW 			31
+#define DTB_STATUS_READY 		32
+#define DTB_STATUS_EXEC 		33
+#define DTB_STATUS_BLOCKED 		34
+#define DTB_STATUS_EXIT 		35
+
+//Tipos de cambio de algoritmo del PCP, a ver en la ejecucion del mismo
+#define ALGORITHM_CHANGE_UNALTERED		40
+#define ALGORITHM_CHANGE_RR_TO_VRR 		41
+#define ALGORITHM_CHANGE_RR_TO_OWN		42
+#define ALGORITHM_CHANGE_VRR_TO_RR		43
+#define ALGORITHM_CHANGE_VRR_TO_OWN		44
+#define ALGORITHM_CHANGE_OWN_TO_RR		45
+#define ALGORITHM_CHANGE_OWN_TO_VRR		46
+
 
 ///-------------VARIABLES GLOBALES-------------///
 
 //Semaforos a emplear; no deberian ser globales al programa main?
 pthread_mutex_t mutexPLPtask;
 pthread_mutex_t mutexPCPtask;
-//ESte no seria externo del main tambien?
+pthread_mutex_t mutexAlgorithm;					//Esta seguro lo es, es para que no jodan la variable del algoritmo
+pthread_mutex_t mutexREADY;						//Garantiza mutua exclusion sobre las colas READY (la actual)
+//Estos no seria externos para el main tambien?
 sem_t workPLP;									//Semaforo binario, para indicar que es hora de que el PLP trabaje
+sem_t assignmentPending;						//Semaforo binario, para indicar que hay se debe avisar lo de toBeAssigned
 
 //Tareas a realizar de los planificadores, son externas en main para que se puedan modificar desde cualquier modulo
 int PLPtask;
@@ -135,12 +159,19 @@ int PCPtask;
 uint32_t nextID;								//ID a asignarle al proximo DTB que se cree
 int inMemoryAmount;								//Cantidad de procesos actualmente en memoria; para el grado de multiprogr.
 
-//Estas colas no necesitan mutexes, las usa el SAFA de a uno??
+char* currentAlgorithm;							//Variable global con el nombre del actual algoritmo del PCP; ojo con inotify
+int algorithmChange;							//Codigo del cambio de algoritmo sufrido; constantes definidas arriba
+
+//Estas colas no necesitan mutexes, las usa cada planificador de a uno??
 t_queue* NEWqueue;								//Cola NEW, gestionada por PLP con FIFO; es lista para ser modificable
-t_queue* READYqueue;							//Cola READY, gestionada por PCP
 t_list* EXECqueue;								//"Cola" EXEC, en realidad es una lista (mas manejable), gestionada por PCP
 t_list* BLOCKEDqueue;							//"Cola" BLOCKED, en realidad es una lista (mas manejable), gest. por PCP
 t_list* EXITqueue;								//"Cola EXIT, en realidad es una lista (mas manejable)
+
+//Colas de READY, estas si irian con mutex ya que son usadas por ambos planificadores a la vez; una para cada algoritmo
+t_queue* READYqueue_RR;
+t_list* READYqueue_VRR;							//Lista para buscar por remanente de quantum y simular doble cola
+t_list* READYqueue_Own;							//Lista para poder ordenar por prioridad IO
 
 DTB* dummyDTB;									//DTB que se usara como Dummy
 
@@ -287,7 +318,7 @@ void SetDummy(uint32_t id, char* path);
  * 	PARAMETROS:
  * 		algoritmo: Nombre del algoritmo de planificacion que se esta usando; debe ser un puntero, por si cambia en tiempo real
  */
-void PlanificadorCortoPlazo(void* algoritmo);
+void PlanificadorCortoPlazo();
 
 /*
  * 	ACCION: Actualiza y sobreescribe toda clave de una tabla de archivos de un DTB con los datos de un diccionario

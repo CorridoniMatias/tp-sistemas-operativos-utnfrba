@@ -7,7 +7,9 @@ void InitQueuesAndLists()
 
 	scriptsQueue = queue_create();
 	NEWqueue = queue_create();
-	READYqueue = queue_create();
+	READYqueue_RR = queue_create();
+	READYqueue_VRR = list_create();
+	READYqueue_Own = list_create();
 	BLOCKEDqueue = list_create();
 	EXECqueue = list_create();
 	EXITqueue = list_create();
@@ -22,7 +24,10 @@ void InitSemaphores()
 
 	pthread_mutex_init(&mutexPLPtask, NULL);
 	pthread_mutex_init(&mutexPCPtask, NULL);
+	pthread_mutex_init(&mutexAlgorithm, NULL);
+	pthread_mutex_init(&mutexREADY, NULL);
 	sem_init(&workPLP, 0, 0);
+	sem_init(&assignmentPending, 0, 0);
 
 }
 
@@ -56,6 +61,9 @@ void InitGlobalVariables()
 	toBeAssigned->message = malloc(1);
 
 	CreateDummy();									//Malloceo y creo el DummyDTB
+
+	currentAlgorithm = malloc(1);					//Para poder reallocar despues, paragua
+	algorithmChange = ALGORITHM_CHANGE_UNALTERED;	//Arranca en nada, cuando el inotify la cambie debe ser true
 
 	return;
 
@@ -171,7 +179,24 @@ void AddToReady(DTB* myDTB)
 {
 
 	myDTB->status = DTB_STATUS_READY;
-	queue_push(READYqueue, myDTB);
+	//Uso mutexes para no concurrir a la cola READY ni hacer esto durante un cambio de algoritmo
+	pthread_mutex_lock(&mutexREADY);
+	pthread_mutex_lock(&mutexAlgorithm);
+	//Me fijo el algoritmo actual y asi se a cual de todas las colas agregarlo; ante un cambio, deberia moverse solo
+	if((strcmp(currentAlgorithm, "RR")) == 0)
+	{
+		queue_push(READYqueue_RR, myDTB);
+	}
+	else if((strcmp(currentAlgorithm, "VRR")) == 0)
+	{
+		queue_push(READYqueue_VRR, myDTB);
+	}
+	else if((strcmp(currentAlgorithm, "PROPIO")) == 0)
+	{
+		queue_push(READYqueue_Own, myDTB);
+	}
+	pthread_mutex_unlock(&mutexAlgorithm);
+	pthread_mutex_unlock(&mutexREADY);
 
 }
 
@@ -217,7 +242,7 @@ DTB* GetNextDTB()
 {
 
 	DTB* nextToExecute;
-	nextToExecute = queue_pop(READYqueue);
+	nextToExecute = queue_pop(READYqueue_RR);
 	return nextToExecute;
 
 }
@@ -226,7 +251,7 @@ DTB* GetNextDTB()
 
 void PlanificadorLargoPlazo(void* gradoMultiprogramacion)
 {
-	int multiprogrammingDegree = (int) gradoMultiprogramacion;
+	int multiprogrammingDegree = *((int*) gradoMultiprogramacion);
 
 	while(1)
 	{
@@ -316,11 +341,22 @@ void SetDummy(uint32_t id, char* path)
 
 ////////////////////////////////////////////////////////////
 
-void PlanificadorCortoPlazo(void* algoritmo)
+void PlanificadorCortoPlazo()
 {
 
+	AlgorithmStatus schedulingRules;				//Para consultar aca y reducir la region critica
 	while(1)
 	{
+
+		pthread_mutex_lock(&mutexAlgorithm);
+		//Copio la info necesaria para planificar y mover colas; si hubo cambio, actualizo para la proxima iteracion
+		strcpy(schedulingRules.name, currentAlgorithm);
+		schedulingRules.changeType = algorithmChange;
+		if(algorithmChange)
+		{
+			algorithmChange = ALGORITHM_CHANGE_UNALTERED;
+		}
+		pthread_mutex_unlock(&mutexAlgorithm);
 
 		if(PCPtask == PCP_TASK_NORMAL_SCHEDULE)
 		{
@@ -334,24 +370,25 @@ void PlanificadorCortoPlazo(void* algoritmo)
 			}
 
 			//Agarro el primer CPU libre que haya, lo saco de la lista y lo pongo aca
-			CPU* chosenCPU = list_remove_by_condition(cpus, (void*)IsIdle);
+			CPU* chosenCPU = list_remove_by_condition(cpus, IsIdle);
 			toBeAssigned->cpuSocket = chosenCPU->socket;
 
 			SerializedPart* messageToSend;
 
 			//Elegir el DTB adecuado, y obtener el mensaje a enviarle al CPU; ponerlo en EXEC
-			if((strcmp((char*)algoritmo, "RR")) == 0)
+			if((strcmp(schedulingRules.name, "RR")) == 0)
 			{
 				messageToSend = ScheduleRR(settings->quantum);
 			}
-			else if((strcmp((char*)algoritmo, "VRR")) == 0)
+			else if((strcmp(schedulingRules.name, "VRR")) == 0)
 			{
 				messageToSend = ScheduleVRR(settings->quantum);
 			}
-			//if(algoritmo == "PROPIO") => scheduleSelf()
+			//if(schedulingRules.name == "PROPIO") => scheduleSelf()
 
+			//No hace falta un free de ese SP*, si lo hago borrare lo de toBeAssigned->message
+			//Liberare esa memoria al final, con los deleters de cierre de programa
 			toBeAssigned->message = messageToSend;
-			//memcpy(toBeAssigned->message, messageToSend, strlen(messageToSend) + 1);
 
 			//Enviarle el mensaje al CPU, y actualizarle el estado en la lista
 			//Deberia activar algun semaforo para que sepa que debe mandarselo por el socket?
@@ -517,13 +554,8 @@ void UpdateOpenedFiles(DTB* toBeUpdated, t_dictionary* currentOFs)
 	//Closure anidada, para que haga el put con el diccionario del DTB pasado por parametro
 	void UpdateSingleFile(char* path, void* address)
 	{
-		//Ojo, si ya existe la key debo liberar su data! Ya que sino un put sobre una key ya existente
-		//me hace perder la referencia a dicho data, y provoca un memory leak!
-		if(dictionary_has_key(toBeUpdated->openedFiles, path))
-		{
-			free(dictionary_get(toBeUpdated->openedFiles, path));
-		}
-		dictionary_put(toBeUpdated->openedFiles, path, address);
+		//Uso el putMAESTRO para que si no existe lo inserte, y si existe lo reemplace liberando la memoria adecuadamente
+		dictionary_putMAESTRO(toBeUpdated, path, address, LogicalAddressDestroyer);
 	}
 
 	//Recorro el diccionario parametro (el actualizado) entero, y ejecuto la closure para que sobreescriba cada una
@@ -658,7 +690,10 @@ void DeleteSemaphores()
 
 	pthread_mutex_destroy(&mutexPLPtask);
 	pthread_mutex_destroy(&mutexPCPtask);
+	pthread_mutex_destroy(&mutexAlgorithm);
+	pthread_mutex_destroy(&mutexREADY);
 	sem_destroy(&workPLP);
+	sem_destroy(&assignmentPending);
 
 }
 
@@ -719,7 +754,7 @@ void DeleteQueuesAndLists()
 
 	queue_destroy_and_destroy_elements(scriptsQueue, ScriptDestroyer);
 	queue_destroy_and_destroy_elements(NEWqueue, DTBDestroyer);
-	queue_destroy_and_destroy_elements(READYqueue, DTBDestroyer);
+	queue_destroy_and_destroy_elements(READYqueue_RR, DTBDestroyer);
 	list_destroy_and_destroy_elements(BLOCKEDqueue, DTBDestroyer);
 	list_destroy_and_destroy_elements(EXECqueue, DTBDestroyer);
 	list_destroy_and_destroy_elements(EXITqueue, DTBDestroyer);
@@ -735,6 +770,12 @@ void DeleteGlobalVariables()
 	free(justDummied->script);
 	free(justDummied);
 	//El free del Dummy no se hace aca, sino al hacer el delete de Colas y Listas (estara en alguna)
+
+	free(currentAlgorithm);
+
+	//Libero la memoria de la estructura para guardar asignaciones pendientes y su mensaje
+	Serialization_CleanupDeserializationStruct(toBeAssigned->message);
+	free(toBeAssigned);
 
 	DeleteSemaphores();
 	DeleteQueuesAndLists();

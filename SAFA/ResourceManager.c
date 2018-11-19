@@ -19,7 +19,7 @@ void AddNewResource(char* name)
 	rst->availables = 1;
 	//Creo la cola, vacia
 	rst->waiters = queue_create();
-	dictionary_put(resources, name, rst);
+	dictionary_putMAESTRO(resources, name, rst, ResourceDestroyer);
 
 }
 
@@ -32,7 +32,7 @@ void SignalForResource(char* name)
 		//Puntero a los datos del recurso al que se le hizo signal
 		ResourceStatus* signaled = (ResourceStatus*) dictionary_get(resources, name);
 		signaled->availables++;
-		dictionary_put(resources, name, signaled);
+		dictionary_putMAESTRO(resources, name, signaled, ResourceDestroyer);
 	}
 	//Si no, creo uno nuevo
 	else
@@ -52,7 +52,7 @@ void SignalForResource(char* name)
 		//Me guardo el ID del primer DTB que lo estaba esperando
 		*requesterID = (uint32_t*) queue_pop(involved->waiters);
 		//Actualizo los datos del recurso en el diccionario, hago un put sobre la misma key
-		dictionary_put(resources, name, involved);
+		dictionary_putMAESTRO(resources, name, involved, ResourceDestroyer);
 		//Agrego el DTB a desbloquear a la cola de DTBs a mover de nuevo a READY; y le aviso al PCP
 		queue_push(toBeUnlocked, requesterID);
 		SetPCPTask(PCP_TASK_UNLOCK_DTB);
@@ -86,7 +86,7 @@ bool WaitForResource(char* name, int requesterID)
 		*newWaiter = requesterID;
 		queue_push(waited->waiters, newWaiter);
 		//Actualizo mis registros de los recursos
-		dictionary_put(resources, name, waited);
+		dictionary_putMAESTRO(resources, name, waited, ResourceDestroyer);
 		//Respuesta positiva
 		return true;
 	}
