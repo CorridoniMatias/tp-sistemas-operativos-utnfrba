@@ -46,7 +46,7 @@ void CreateDummy()
 
 }
 
-void InitGlobalVariables()
+void InitSchedulingGlobalVariables()
 {
 
 	nextID = 1;										//Arrancan en 1, la 0 es reservada para el Dummy
@@ -558,6 +558,9 @@ void PlanificadorCortoPlazo()
 
 		}
 
+		//Aplico retardo de planificacion; divido por mil, ya que son milisegundos
+		sleep((settings->retardo) / 1000);
+
 	}
 
 }
@@ -912,7 +915,7 @@ void DeleteQueuesAndLists()
 
 }
 
-void DeleteGlobalVariables()
+void DeleteSchedulingGlobalVariables()
 {
 
 	free(justDummied->script);
