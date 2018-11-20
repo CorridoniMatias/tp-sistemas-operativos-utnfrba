@@ -1,6 +1,54 @@
 #include "headers/DAMInterface.h"
 #include "kemmens/Utils.h"
 
+void* DAM_ReadFile(char* filePath, int socketMDJ, int* received_content_length)
+{
+	int bufferSize = 0;
+	void* buffer = malloc(1);
+
+	while(1)
+	{
+		declare_and_init(poffset, uint32_t, bufferSize);
+		SerializedPart p_offset = {.size = sizeof(uint32_t), .data = poffset};
+
+		declare_and_init(psize, uint32_t, settings->transferSize);
+		SerializedPart p_size = {.size = sizeof(uint32_t), .data = psize};
+		SerializedPart p_path = {.size = strlen(filePath)+1, .data = filePath};
+		SerializedPart* serializedContent = Serialization_Serialize(3, p_path, p_offset, p_size);
+
+		SocketCommons_SendData(socketMDJ, MESSAGETYPE_MDJ_GETDATA, serializedContent->data, serializedContent->size);
+		free(psize);
+		free(poffset);
+		Serialization_CleanupSerializedPacket(serializedContent);
+
+		int message_type, error_status, message_length;
+		void* recvData = SocketCommons_ReceiveData(socketMDJ, &message_type, &message_length, &error_status);
+
+		if(message_length == 0) //recvData es NULL por definicion de las kemmens, si llegamos a length 0 es porque no hay mas nada para recibir, tenemos el archivo completo.
+			break;
+
+		switch(message_type)
+		{
+			case MESSAGETYPE_INT: //codigo de error.
+			break;
+			case MESSAGETYPE_STRING:
+			{
+				bufferSize += message_length;
+				buffer = realloc(buffer, bufferSize);
+				memcpy(buffer+(bufferSize-message_length), recvData, message_length);
+				free(recvData);
+				break;
+			}
+		}
+	}
+
+	if(bufferSize == 0)
+		free(buffer);
+
+	*received_content_length = bufferSize;
+
+	return buffer;
+}
 
 void DAM_Crear(void* arriveData)
 {
@@ -47,7 +95,7 @@ void DAM_Crear(void* arriveData)
 		}
 	}
 	free(response);
-
+	close(socketMDJ);
 	Serialization_CleanupSerializedPacket(packet);
 	Serialization_CleanupDeserializationStruct(data);
 	free(newlines);
@@ -92,8 +140,13 @@ void DAM_Abrir(void* arriveData)
 			{
 				//establecemos conexion con el FM9
 				int socketFM9 = SocketClient_ConnectToServerIP(settings->ipFM9, settings->puertoFM9);
-				//aca tengo que usar el getdata del MDJ y cuando tenga todo, lo cargo al FM9
-				//y le aviso al SAFA
+				int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
+				int file_size;
+				void* file_content = DAM_ReadFile(filePath, socketMDJ, &file_size);
+				//TODO: mandarle el contenido a FM9!
+
+				close(socketFM9);
+				close(socketMDJ);
 				break;
 			}
 		}
@@ -218,7 +271,8 @@ void DAM_Flush(void* arriveData)
 	}
 
 	free(archivo);
-
+	close(socketFM9);
+	close(socketMDJ);
 	/*
 	Se enviará una solicitud a El Diego indicando que se requiere hacer un Flush del archivo,
 	enviando los parámetros necesarios para que pueda obtenerlo desde FM9 y guardarlo en MDJ.
@@ -280,6 +334,7 @@ void DAM_Borrar(void* arriveData)
 			}
 		}
 	}
+	close(socketMDJ);
 	free(response);
 	free(data);
 	Serialization_CleanupDeserializationStruct(data);
@@ -305,3 +360,5 @@ void DAM_ErrorOperacion(uint32_t idDTB)
 	free(packetForSAFA->data);
 	free(packetForSAFA);
 }
+
+

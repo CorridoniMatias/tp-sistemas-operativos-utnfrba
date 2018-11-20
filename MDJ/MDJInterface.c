@@ -76,12 +76,15 @@ void MDJ_GetData(void* arriveData)
 		}
 		else
 			SocketCommons_SendData(data->calling_SocketID, MESSAGETYPE_STRING, (void*)content, copied);
+
+		free(content);
 	} else
 	{
 		*pstatus = 400;
 		//En honor a HTTP : Bad Request
 		SocketCommons_SendData(data->calling_SocketID, MESSAGETYPE_INT, (void*)pstatus, sizeof(uint32_t));
 	}
+
 	free(pstatus);
 	Serialization_CleanupDeserializationStruct(actualData);
 	free(data->receivedData);

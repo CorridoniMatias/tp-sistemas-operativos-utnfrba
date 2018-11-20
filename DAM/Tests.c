@@ -26,3 +26,24 @@ void Test_DeleteFile()
 	free(dtbid);
 	Serialization_CleanupSerializedPacket(packet);
 }
+
+void Test_ReadFile()
+{
+	int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
+	int file_size;
+	char* file_content = (char*)DAM_ReadFile("/nuevoArchivoRePiola.algo", socketMDJ, &file_size);
+	close(socketMDJ);
+
+	if(file_size == 0)
+	{
+		printf("File size was 0\n");
+		return;
+	}
+
+	file_content = realloc(file_content, file_size + 1);
+
+	file_content[file_size] = '\0';
+
+	printf("content (%d bytes):\n'%s'\n", file_size, file_content);
+	free(file_content);
+}

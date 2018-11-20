@@ -5,4 +5,6 @@ void Test_DeleteFile();
 
 void Test_CreateFile();
 
+void Test_ReadFile();
+
 #endif /* HEADERS_TESTS_H_ */
