@@ -240,7 +240,7 @@ bool IsDummy(DTB* myDTB)
 
 }
 
-DTB* GetNextDTB()
+DTB* GetNextReadyDTB()
 {
 
 	DTB* nextToExecute;
@@ -360,19 +360,19 @@ void PlanificadorCortoPlazo()
 		}
 		pthread_mutex_unlock(&mutexAlgorithm);
 
+		//Si hubo un cambio de algoritmo, hago la mudanza de colas segun el tipo del mismo; excluyo las colas READY
 		if(schedulingRules.changeType != ALGORITHM_CHANGE_UNALTERED)
 		{
+			pthread_mutex_lock(&mutexREADY);
 			MoveQueues(schedulingRules.changeType);
+			pthread_mutex_unlock(&mutexREADY);
 		}
-
-		//ToDo: En el NORMAL_SCHEDULE, separar la ejecucion segun el scheduleRules.name
 
 		if(PCPtask == PCP_TASK_NORMAL_SCHEDULE)
 		{
 
-			//Si no hay ningun CPU libre, espero dos segundos y salgo del ciclo
-			//O deberia quedarme a esperar que haya uno libre? Puede entrar un pedido por consola...
-			if(!ExistsIdleCPU())
+			//Si no hay ningun CPU libre o ningun DTB en READY, espero dos segundos y voy a la proxima iteracion
+			if(!ExistsIdleCPU() || NoReadyDTBs(schedulingRules.name))
 			{
 				sleep(2);
 				continue;
@@ -384,7 +384,8 @@ void PlanificadorCortoPlazo()
 
 			SerializedPart* messageToSend;
 
-			//Elegir el DTB adecuado, y obtener el mensaje a enviarle al CPU; ponerlo en EXEC
+			//Elegir el DTB adecuado, y obtener el mensaje a enviarle al CPU; ponerlo en EXEC; mutexear las colas READY
+			pthread_mutex_lock(&mutexREADY);
 			if((strcmp(schedulingRules.name, "RR")) == 0)
 			{
 				messageToSend = ScheduleRR(settings->quantum);
@@ -393,14 +394,18 @@ void PlanificadorCortoPlazo()
 			{
 				messageToSend = ScheduleVRR(settings->quantum);
 			}
-			//if(schedulingRules.name == "PROPIO") => scheduleSelf()
+			else if((strcmp(schedulingRules.name, "PROPIO")) == 0)
+			{
+				messageToSend = ScheduleIOBF(settings->quantum);
+			}
+			pthread_mutex_unlock(&mutexREADY);
 
-			//No hace falta un free de ese SP*, si lo hago borrare lo de toBeAssigned->message
-			//Liberare esa memoria al final, con los deleters de cierre de programa
+			//No hare un free del SP* messageToSend de cada llamado a esta funcion (si no, joderia al campo del struct)
+			//global; pero si, tras cada envio de mensaje, deberia hacer el cleanup del campo del struct (el mensaje ya enviado)
 			toBeAssigned->message = messageToSend;
 
-			//Enviarle el mensaje al CPU, y actualizarle el estado en la lista
-			//Deberia activar algun semaforo para que sepa que debe mandarselo por el socket?
+			//Hago signal sobre el semaforo de asignacion pendiente de envio, para que el main sepa que se debe enviar
+			sem_post(&assignmentPending);
 
 		}
 
@@ -617,6 +622,41 @@ void MoveQueues(int changeCode)
 
 }
 
+bool NoReadyDTBs(char* algorithm)
+{
+
+	//Asumo, de entrada, que las colas no estan vacias y si hay DTBs en READY
+	bool noneExist = false;
+
+	//Segun el algoritmo pasado por parametro, veo en que cola fijarme; si esta vacia, pongo la respuesta en true
+	if((strcmp(algorithm, "RR")) == 0)
+	{
+		if(queue_is_empty(READYqueue_RR))
+		{
+			noneExist = true;
+		}
+	}
+
+	else if((strcmp(algorithm, "VRR")) == 0)
+	{
+		if(list_is_empty(READYqueue_VRR))
+		{
+			noneExist = true;
+		}
+	}
+
+	else if((strcmp(algorithm, "PROPIO")) == 0)
+	{
+		if(list_is_empty(READYqueue_Own))
+		{
+			noneExist = true;
+		}
+	}
+
+	return noneExist;
+
+}
+
 void UpdateOpenedFiles(DTB* toBeUpdated, t_dictionary* currentOFs)
 {
 
@@ -720,14 +760,13 @@ SerializedPart* ScheduleRR(int quantum)
 {
 
 	//Round Robin es un FIFO en el cual tengo en cuenta el quantum, no mucho mas que eso
-	DTB* chosenDTB = GetNextDTB();
+	DTB* chosenDTB = GetNextReadyDTB();
 	chosenDTB->quantumRemainder = quantum;
 
-	//Obtengo la cadena a enviarle al CPU asignado; detalle de la misma dentro de la funcion
-	void* packet = GetMessageForCPU(chosenDTB);
+	//Obtengo la cadena a enviarle al CPU asignado; detalle de la misma dentro de la funcion; el free es en otro lado
+	SerializedPart* packet = GetMessageForCPU(chosenDTB);
 
 	AddToExec(chosenDTB);
-	//OJO: Alguien deberia hacer free de ese packet despues
 	return packet;
 
 }
@@ -735,7 +774,29 @@ SerializedPart* ScheduleRR(int quantum)
 SerializedPart* ScheduleVRR(int maxQuantum)
 {
 
-	DTB* chosenDTB = GetNextDTB();
+	//Closure, interna a esta funcion para poder comparar contra el parametro; me dice si un DTB esta en la cola de prioridad
+	bool AtPriorityQueue(void* aDTB)
+	{
+		DTB* realDTB = (DTB*) aDTB;
+		if(realDTB->quantumRemainder != maxQuantum)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	//Tomo el primer DTB de la "cola de prioridad" (el primero que tenga quantum sobrante y no natural)
+	DTB* chosenDTB = list_remove_by_condition(READYqueue_VRR, AtPriorityQueue);
+
+	//Si no hubiese ninguno en dicha "cola de prioridad", agarro el primero de la cola (que es una lista, hago get(0))
+	if(!chosenDTB)
+	{
+		chosenDTB = list_remove(READYqueue_VRR, 0);
+	}
+
 	//Si le quedara 0 de quantum (se quedo sin) o tuviera mas del maximo (por haber sido
 	//planificado con otro algoritmo antes), le actualizo el maximo quantum a ejecutar
 	if((chosenDTB->quantumRemainder == 0) || (chosenDTB->quantumRemainder > maxQuantum))
@@ -743,11 +804,26 @@ SerializedPart* ScheduleVRR(int maxQuantum)
 		chosenDTB->quantumRemainder = maxQuantum;
 	}
 
-	//Obtengo la cadena a enviarle al CPU asignado; detalle de la misma dentro de la funcion
-	void* packet = GetMessageForCPU(chosenDTB);
-
+	//Analogo al Round Robin comun, obtengo el mensaje a enviarle al CPU y agrego dicho DTB a EXEC
+	SerializedPart* packet = GetMessageForCPU(chosenDTB);
 	AddToExec(chosenDTB);
-	//OJO: Alguien deberia hacer free de ese packet despues
+	return packet;
+
+}
+
+SerializedPart* ScheduleIOBF(int quantum)
+{
+
+	//Por las dudas, ordeno la "cola" (lista) de nuevo, por si no hubiera habido un cambio de algoritmo pero si de orden
+	list_sort(READYqueue_Own, DescendantPriority);
+
+	//Agarro el primero de la lista, seria como hacer el pop de la cola; le fijo el quantum, el algoritmo lo impone
+	DTB* chosenDTB = list_remove(READYqueue_Own, 0);
+	chosenDTB->quantumRemainder = quantum;
+
+	//Igual que en los otros, obtengo el mensaje a enviar y lo guardo en la estructura global; muevo DTB a EXEC
+	SerializedPart* packet = GetMessageForCPU(chosenDTB);
+	AddToExec(chosenDTB);
 	return packet;
 
 }

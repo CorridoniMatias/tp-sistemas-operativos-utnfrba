@@ -298,7 +298,7 @@ bool IsDummy(DTB* myDTB);
 /*
  * 	ACCION: Obtener un puntero al proximo DTB a ejecutar, el primero de la cola READY
  */
-DTB* GetNextDTB();
+DTB* GetNextReadyDTB();
 
 
 /*
@@ -328,6 +328,13 @@ bool DescendantPriority(void* dtbOne, void* dtbTwo);
  * 	PARAMETROS:
  * 		dtbOne, dtbTwo: DTBs a comparar por su cantidad de operaciones de E/S, son elementos de la lista
  */
+
+/*
+ * 	ACCION: Funcion para informar si no hay DTBs en READY y no tiene sentido planificar con el PCP
+ * 	PARAMETROS:
+ * 		algorithm: Nombre textual del algoritmo usado para el PCP; ayuda a decidir que cola/lista de READY revisar
+ */
+bool NoReadyDTBs(char* algorithm);
 
 /*
  * 	ACCION: Acomodar las colas (copiar y mover DTBs entre ellas) de READY previo a un ciclo del PCP,

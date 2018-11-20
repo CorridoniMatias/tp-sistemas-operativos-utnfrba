@@ -16,6 +16,7 @@ int elDiego = -1;
 extern int PLPtask;
 extern int PCPtask;
 extern sem_t workPLP;
+extern sem_t assignmentPending;
 extern CreatableGDT* justDummied;
 extern AssignmentInfo* toBeAssigned;
 
