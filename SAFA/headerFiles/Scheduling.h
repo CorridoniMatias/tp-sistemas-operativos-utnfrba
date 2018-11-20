@@ -375,13 +375,22 @@ SerializedPart* GetMessageForCPU(DTB* chosenDTB);
 SerializedPart* ScheduleRR(int quantum);
 
 /*
- * 	ACCION: Planificar con el algoritmo Virtual Round RObin para obtener el proximo DTB a ejecutar,
+ * 	ACCION: Planificar con el algoritmo Virtual Round Robin para obtener el proximo DTB a ejecutar,
  * 			moverlo a la cola de EXEC y obtener el mensaje a enviarle al CPU que luego se asigne
  * 	PARAMETROS:
  * 		maxQuantum: Maximo quantum posible, segun definio el sistema, que podria asignarsele al DTB elegido
  */
 SerializedPart* ScheduleVRR(int maxQuantum);
 
+SerializedPart* ScheduleIOBF(int quantum);
+/*
+ * 	ACCION: Planificar con el algoritmo propio asignado por la catedra para obtener el proximo DTB a ejecutar,
+ * 			moverlo a la cola de EXEC y obtener el mensaje a enviarle al CPU que luego se asigne.
+ * 			Dicho algoritmo es un Round Robin con ordenamiento por prioridades, privilegiando a aquellos
+ * 			con mas operaciones de IO hechas (en base a dicho campo). RR para seguir mandando quantum
+ * 	PARAMETROS:
+ * 		maxQuantum: Quantum definido por el sistema como maximo de ejecucion
+ */
 
 /*
  * 	ACCION: Elimina apropiadamente todos los semaforos utilizados

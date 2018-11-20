@@ -46,11 +46,11 @@ void SignalForResource(char* name)
 	//Si el recurso tenia DTBs esperando a que se libere, debo desbloquear el primero y darle la instancia
 	if(!queue_is_empty(involved->waiters))
 	{
-		int* requesterID = malloc(sizeof(uint32_t));
+		uint32_t* requesterID = malloc(sizeof(uint32_t));
 		//Bajo la cantidad de instancias disponibles, ya que recien ahora habria podido hacer el wait
 		involved->availables--;
 		//Me guardo el ID del primer DTB que lo estaba esperando
-		*requesterID = (uint32_t*) queue_pop(involved->waiters);
+		*requesterID = *((uint32_t*) queue_pop(involved->waiters));
 		//Actualizo los datos del recurso en el diccionario, hago un put sobre la misma key
 		dictionary_putMAESTRO(resources, name, involved, ResourceDestroyer);
 		//Agrego el DTB a desbloquear a la cola de DTBs a mover de nuevo a READY; y le aviso al PCP
@@ -99,18 +99,19 @@ bool WaitForResource(char* name, int requesterID)
 
 }
 
-void WaiterDestroyer(int* waiterID)
+void WaiterDestroyer(void* waiterID)
 {
 
 	free(waiterID);
 
 }
 
-void ResourceDestroyer(ResourceStatus* rst)
+void ResourceDestroyer(void* r)
 {
 
-	queue_clean_and_destroy_elements(rst->waiters, WaiterDestroyer);
-	free(rst);
+	ResourceStatus* rscInfo = (ResourceStatus*) r;
+	queue_clean_and_destroy_elements(rscInfo->waiters, WaiterDestroyer);
+	free(rscInfo);
 
 }
 

@@ -191,11 +191,11 @@ void AddToReady(DTB* myDTB)
 	}
 	else if((strcmp(currentAlgorithm, "VRR")) == 0)
 	{
-		queue_push(READYqueue_VRR, myDTB);
+		list_add(READYqueue_VRR, myDTB);
 	}
 	else if((strcmp(currentAlgorithm, "PROPIO")) == 0)
 	{
-		queue_push(READYqueue_Own, myDTB);
+		list_add(READYqueue_Own, myDTB);
 	}
 	pthread_mutex_unlock(&mutexAlgorithm);
 	pthread_mutex_unlock(&mutexREADY);
@@ -596,7 +596,7 @@ void MoveQueues(int changeCode)
 			break;
 
 		case ALGORITHM_CHANGE_VRR_TO_RR :
-			list_clean(READYqueue_RR);
+			queue_clean(READYqueue_RR);
 			list_to_queue(READYqueue_VRR, READYqueue_RR);
 			break;
 
@@ -607,7 +607,7 @@ void MoveQueues(int changeCode)
 			break;
 
 		case ALGORITHM_CHANGE_OWN_TO_RR :
-			list_clean(READYqueue_RR);
+			queue_clean(READYqueue_RR);
 			list_to_queue(READYqueue_Own, READYqueue_RR);
 			break;
 
@@ -660,11 +660,14 @@ bool NoReadyDTBs(char* algorithm)
 void UpdateOpenedFiles(DTB* toBeUpdated, t_dictionary* currentOFs)
 {
 
-	//Closure anidada, para que haga el put con el diccionario del DTB pasado por parametro
+	//Primero limpio el diccionario y borro todos sus elementos, tal vez cerro alguno y no quiero que quede de mas
+	dictionary_clean_and_destroy_elements(toBeUpdated->openedFiles, LogicalAddressDestroyer);
+
+	//Closure anidada, para que haga el put en el diccionario del DTB pasado por parametro
 	void UpdateSingleFile(char* path, void* address)
 	{
-		//Uso el putMAESTRO para que si no existe lo inserte, y si existe lo reemplace liberando la memoria adecuadamente
-		dictionary_putMAESTRO(toBeUpdated, path, address, LogicalAddressDestroyer);
+		//Uso el putMAESTRO por las dudas, las commons se la comen
+		dictionary_putMAESTRO(toBeUpdated->openedFiles, path, address, LogicalAddressDestroyer);
 	}
 
 	//Recorro el diccionario parametro (el actualizado) entero, y ejecuto la closure para que sobreescriba cada una
@@ -919,7 +922,7 @@ void DeleteGlobalVariables()
 	free(currentAlgorithm);
 
 	//Libero la memoria de la estructura para guardar asignaciones pendientes y su mensaje
-	Serialization_CleanupDeserializationStruct(toBeAssigned->message);
+	Serialization_CleanupSerializedPacket(toBeAssigned->message);
 	free(toBeAssigned);
 
 	DeleteSemaphores();

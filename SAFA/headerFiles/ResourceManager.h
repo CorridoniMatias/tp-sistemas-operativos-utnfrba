@@ -61,14 +61,14 @@ bool WaitForResource(char* name, int requesterID);
  *	PARAMETROS:
  *		waiterID: ID del solicitante, es pasado automaticamente por el queue_clean_and_destroy_elements
  */
-void WaiterDestroyer(int* waiterID);
+void WaiterDestroyer(void* waiterID);
 
 /*
  * 	ACCION: Closure para liberar el espacio ocupado por un registro de recurso de la tabla, y su cola de bloqueados
  * 	PARAMETROS:
- * 		rst: Recurso en forma de estructura, pasado automaticamente por la funcion de diccionarios
+ * 		r: Recurso en forma de estructura, pasado automaticamente por la funcion de diccionarios
  */
-void ResourceDestroyer(ResourceStatus* rst);
+void ResourceDestroyer(void* r);
 
 /*
  * 	ACCION: Libera la memoria ocupada por la tabla de recursos y por cada uno de ellos (los borra);
