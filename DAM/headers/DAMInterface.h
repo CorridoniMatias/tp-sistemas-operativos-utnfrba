@@ -19,4 +19,6 @@ void DAM_Borrar(void* arriveData);
 
 void DAM_ErrorOperacion(uint32_t idDTB);
 
+void* DAM_ReadFile(char* filePath, int socketMDJ, int* received_content_length);
+
 #endif /* DAMINTERFACE_H_ */

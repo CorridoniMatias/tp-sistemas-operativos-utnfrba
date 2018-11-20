@@ -47,7 +47,7 @@ void MDJ_CreateFile(void* arriveData);
  *					tamañoALeer: Cantidad de bytes a leer
  *
  *			Esta funcion devuelve un string o un int a traves del socket solicitante.
- *			Para recibir la respuesta usar SocketCommons_ReceiveData(int socket, int* message_type, int* error_status)
+ *			Para recibir la respuesta usar SocketCommons_ReceiveData(int socket, int* message_type, int* message_length, int* error_status)
  *
  *				message_type tomara valores de MESSAGETYPE_STRING o MESSAGETYPE_INT.
  *				En caso de ser MESSAGETYPE_INT el valor recibido es un error (404 = el archivo solicitado no existe. 400 = cantidad de argumentos no coincide con la interfaz)
