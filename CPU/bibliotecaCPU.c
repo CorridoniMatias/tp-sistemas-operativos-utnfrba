@@ -49,70 +49,82 @@ int conectarAProceso(char* ip, char* puerto, char* nombreProceso)
 
 
 }
+/*
+ * uint32_t cantNewLines = *((uint32_t*)data->parts[1])
+ * 	uint32_t cantNewLines = *((uint32_t*)data->parts[1]);
 
-void executeDummy(DeserializedData dtb, int diego, int safa){
-	uint32_t* idDtb = (uint32_t*)malloc(4);
-	*idDtb = (uint32_t)dtb.parts[0];
-	char* path = (char*)malloc(sizeof(dtb.parts[1]));
-	strcpy(path,(char*)dtb.parts[1]);
-	int* pc = (int*)malloc(4);
-	*pc = (int)dtb.parts[3];
-	int* quantum = (int*)malloc(4);
-	*quantum = (int)dtb.parts[4];
+	int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
 
-	SerializedPart fieldForDiego1 = {.size = 4, .data = idDtb};
-	SerializedPart fieldForDiego2 = {.size = sizeof(dtb.parts[1]), .data = &path};
-	void* packetToDiego = Serialization_Serialize(2, fieldForDiego1, fieldForDiego2);
+	declare_and_init(newlines, uint32_t, cantNewLines);
+	SerializedPart p_newlines = {.size = sizeof(uint32_t), .data = newlines};
+ *
+*/
+void executeDummy(DeserializedData* dtb, int diego, int safa){
+	uint32_t idDtb = *((uint32_t*)dtb->parts[0]);
+	char* path = (char*)malloc(sizeof(dtb->parts[1]));
+	strcpy(path,(char*)dtb->parts[1]);
 
-	SocketCommons_SendData(diego, MESSAGETYPE_VOIDPOINTER, packetToDiego, sizeof(packetToDiego));
+	declare_and_init(id, uint32_t,idDtb);
+	SerializedPart fieldForDiego1 = {.size = sizeof(uint32_t), .data = id};
+	SerializedPart fieldForDiego2 = {.size = strlen(path)+1, .data = path};
 
-	SerializedPart fieldForSafa1 = {.size = 4, .data = &idDtb};
+	SerializedPart* packetToDiego = Serialization_Serialize(2, fieldForDiego1, fieldForDiego2);
+
+	SocketCommons_SendData(diego, MESSAGETYPE_VOIDPOINTER, packetToDiego->data, packetToDiego->size);
+
+	SerializedPart fieldForSafa1 = {.size = sizeof(uint32_t), .data = id};
 
 
-	void* packetToSafa = Serialization_Serialize(1,fieldForSafa1);
+	SerializedPart* packetToSafa = Serialization_Serialize(1,fieldForSafa1);
 
-	SocketCommons_SendData(safa,MESSAGETYPE_CPU_BLOCKDUMMY, packetToSafa, sizeof(packetToSafa));
-	free(idDtb);
+	SocketCommons_SendData(safa,MESSAGETYPE_CPU_BLOCKDUMMY, packetToSafa->data, packetToSafa->size);
+
+	Serialization_CleanupSerializedPacket(packetToSafa);
+	Serialization_CleanupSerializedPacket(packetToDiego);
+	Serialization_CleanupDeserializationStruct(dtb);
+	free(id);
 	free(path);
-	free(pc);
-	free(quantum);
 
 }
 
-char* askLineToFM9(DeserializedData dtb, int fm9){
+char* askLineToFM9(DeserializedData* dtb, int fm9){
 
-	uint32_t* idDtb = (uint32_t*)malloc(4);
-	*idDtb = (uint32_t)dtb.parts[0];
-	uint32_t* logicDir = (uint32_t*)malloc(sizeof(dtb.parts[2]));
-	*logicDir = (uint32_t)dtb.parts[2];
-	int*pc = (int*)malloc(4);
-	*pc = (int)dtb.parts[3];
+	uint32_t idDtb = *((uint32_t*)dtb->parts[0]);
+	int32_t logicDir = *((uint32_t*)dtb->parts[2]);
+	uint32_t pc = *((uint32_t*)dtb->parts[3]);
 
-	*logicDir = *logicDir + *pc - 1;  //Sumar 1 a logicDir para pedir la siguiente linea
+	logicDir = logicDir + pc - 1;  //Sumar 1 a logicDir para pedir la siguiente linea
 
+	declare_and_init(id, uint32_t,idDtb);
+	declare_and_init(newLogicDir, uint32_t,logicDir);
 
-	SerializedPart fieldForFM91 = {.size = 4, .data = idDtb};
-	SerializedPart fieldForFM92 = {.size = sizeof(dtb.parts[2]), .data = logicDir};
+	SerializedPart fieldForFM91 = {.size = 4, .data = id};
+	SerializedPart fieldForFM92 = {.size = sizeof(int32_t), .data = newLogicDir};
 
-	void* packetToFM9 = Serialization_Serialize(2, fieldForFM91, fieldForFM92);
+	SerializedPart* packetToFM9 = Serialization_Serialize(2, fieldForFM91, fieldForFM92);
 
-	SocketCommons_SendData(fm9,MESSAGETYPE_CPU_ASKLINE, packetToFM9, sizeof(packetToFM9));
+	SocketCommons_SendData(fm9,MESSAGETYPE_CPU_ASKLINE, packetToFM9->data, packetToFM9->size);
 
 	// Me quedo esperando hasta que me devuelva la linea para ejecutar
 	int messageType, err, msglength;
 
 	void* msgFromFM9 = SocketCommons_ReceiveData(fm9,&messageType,&msglength,&err);
 
-	DeserializedData data;
-	Serialization_Deserialize(msgFromFM9,&data);
+	DeserializedData* data = Serialization_Deserialize(msgFromFM9);
 
-	if(*(int*)data.parts[0] == 1){
-		free(idDtb);
-		free(logicDir);
-		return (char *)data.parts[1];
+	if(*(int*)data->parts[0] == 1){
+		free(id);
+		free(newLogicDir);
+		Serialization_CleanupSerializedPacket(packetToFM9);
+		Serialization_CleanupDeserializationStruct(dtb);
+		Serialization_CleanupDeserializationStruct(data);
+		return (char *)data->parts[1];
 	}
-		free(idDtb);
-		free(logicDir);
+		free(id);
+		free(newLogicDir);
+		Serialization_CleanupSerializedPacket(packetToFM9);
+		Serialization_CleanupDeserializationStruct(dtb);
+		Serialization_CleanupDeserializationStruct(data);
 		Logger_Log(LOG_INFO, "Error fallo de segmento/memoria en FM9");
 		return "error"; //
 }
@@ -123,28 +135,39 @@ void* CommandAbrir(int argC, char** args, char* callingLine, void* extraData){
 		return 0;
 	}
 	else{
-		SerializedPart fieldForDAM1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
-		SerializedPart fieldForDAM2 = {.size = sizeof(args[0]), .data = &args[0]};
+		int32_t idDtb = ((Operation*)extraData)->dtb;
+		declare_and_init(id, int32_t,idDtb);
+		int32_t pc = ((Operation*)extraData)->programCounter;
+		declare_and_init(newPc,int32_t,pc);
+		int32_t quantum = ((Operation*)extraData)->quantum;
+		declare_and_init(newQ,int32_t,quantum);
+		int32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
+		declare_and_init(newNumberOfFiles,int32_t,numberOfFiles);
+		char* path = (char*)args[0];
 
-		void* packetToDAM = Serialization_Serialize(2, fieldForDAM1, fieldForDAM2);
+		SerializedPart fieldForDAM1 = {.size = sizeof(int32_t), .data =id};
+		SerializedPart fieldForDAM2 = {.size = strlen(path)+1, .data = path};
 
-		SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_ABRIR, packetToDAM, sizeof(packetToDAM));
+		SerializedPart* packetToDAM = Serialization_Serialize(2, fieldForDAM1, fieldForDAM2);
 
-		SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
-		SerializedPart fieldForSAFA2 = {.size = sizeof(((Operation*)extraData)->programCounter), .data = &(((Operation*)extraData)->programCounter)};
-		SerializedPart fieldForSAFA3 = {.size = 4, .data = &(((Operation*)extraData)->quantum)};
-		int numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
-		SerializedPart fieldForSAFA4 = {.size = 4 , .data = &numberOfFiles};
-	    SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
-		void* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
+		SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_ABRIR, packetToDAM->data, packetToDAM->size);
 
-		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT, sizeof(packetToSAFAToBlockGDT));
+		SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
+		SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
+		SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
+		SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
+	    SerializedPart fieldForSAFA5 = {.size = strlen(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
+	    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
+
+		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
 	    StringUtils_FreeArray(args);
-
+		Serialization_CleanupSerializedPacket(packetToDAM);
+		Serialization_CleanupSerializedPacket(packetToSAFAToBlockGDT);
+		free(id);
+		free(newPc);
+		free(newQ);
+		free(newNumberOfFiles);
 		((Operation*)extraData)->commandResult = 2; //el 2 significa hacer un break
-
-		//TODO me quedo esperando alguna respuesta o sigo con mi operatoria?
-
 
 	}
 return 0;
@@ -160,131 +183,200 @@ void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 	if(argC == 3){
 		if(openFileVerificator(((Operation*)extraData)->dictionary,args[0])){
 
+			int32_t idDtb = ((Operation*)extraData)->dtb;
+			declare_and_init(id, int32_t,idDtb);
 			uint32_t logicDirToWrite = *((uint32_t*)dictionary_get(((Operation*)extraData)->dictionary,args[0]));
 			uint32_t lineToWrite = atoi(args[1]);
 			char* dataToWrite = args[2];
 			logicDirToWrite = ((Operation*)extraData)->programCounter + lineToWrite - 1;
-			SerializedPart fieldForFM91 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
-			SerializedPart fieldForFM92 = {.size = 4, .data =&logicDirToWrite};
-			SerializedPart fieldForFM93 = {.size = sizeof(dataToWrite), .data = &dataToWrite};
+			declare_and_init(newLogicDir, int32_t,logicDirToWrite);
+
+			SerializedPart fieldForFM91 = {.size = sizeof(int32_t), .data =id};
+			SerializedPart fieldForFM92 = {.size = sizeof(uint32_t), .data =newLogicDir};
+			SerializedPart fieldForFM93 = {.size = strlen(dataToWrite)+1, .data = dataToWrite};
 
 
-			void* packetToFM9 = Serialization_Serialize(3, fieldForFM91, fieldForFM92, fieldForFM93);
+			SerializedPart* packetToFM9 = Serialization_Serialize(3, fieldForFM91, fieldForFM92, fieldForFM93);
 
 
-			SocketCommons_SendData(((Operation*)extraData)->socketFM9,MESSAGETYPE_CPU_ASIGNAR, packetToFM9, sizeof(packetToFM9));
+			SocketCommons_SendData(((Operation*)extraData)->socketFM9,MESSAGETYPE_CPU_ASIGNAR, packetToFM9->data,  packetToFM9->size);
 
 			int messageType, err, msglength;
 
 			void* msgFromFM9 = SocketCommons_ReceiveData(((Operation*)extraData)->socketFM9,&messageType,&msglength,&err);
 
-			DeserializedData data;
-			Serialization_Deserialize(msgFromFM9,&data);
-			if(*(int*)data.parts[0] == 1){
+			DeserializedData* data = Serialization_Deserialize(msgFromFM9);
+			if(*(int*)data->parts[0] == 1){
 				free(dataToWrite);
-				((Operation*)extraData)->commandResult = 0; // 0 SALIO to BIEN
+				free(id);
+				free(newLogicDir);
+				((Operation*)extraData)->commandResult = 0;
+				StringUtils_FreeArray(args);
+				Serialization_CleanupSerializedPacket(packetToFM9);
+				Serialization_CleanupDeserializationStruct(data);
+				return 0;  // 0 SALIO to BIEN
 			}
 			else {
 				Logger_Log(LOG_INFO, "El archivo no se encuentra abierto");
-				if(*(int*)data.parts[0] == 2){
+				if(*(int*)data->parts[0] == 2){
 					free(dataToWrite);
 					Logger_Log(LOG_INFO, "Error fallo de segmento/memoria en FM9");
+					int32_t idDtb = ((Operation*)extraData)->dtb;
+					declare_and_init(id, int32_t,idDtb);
 
-					SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
+					SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
 
 
-					void* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
-					SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA, sizeof(packetToSAFA));
+					SerializedPart* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
+					SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA->data, packetToSAFA->size);
+					free(id);
+					free(newLogicDir);
 					StringUtils_FreeArray(args);
+					Serialization_CleanupDeserializationStruct(data);
+					Serialization_CleanupSerializedPacket(packetToFM9);
 					((Operation*)extraData)->commandResult = 2;
+					return 0;
 				}
 				else {
 					free(dataToWrite);
 					Logger_Log(LOG_INFO, "Espacio insuficiente en FM9");
+					int32_t idDtb = ((Operation*)extraData)->dtb;
+					declare_and_init(id, int32_t,idDtb);
 
-					SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
+					SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
 
 
-					void* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
-					SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA, sizeof(packetToSAFA));
+					SerializedPart* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
+					SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA->data, packetToSAFA->size);
 
+					free(id);
+					free(newLogicDir);
 					StringUtils_FreeArray(args);
+					Serialization_CleanupDeserializationStruct(data);
+					Serialization_CleanupSerializedPacket(packetToSAFA);
+					Serialization_CleanupSerializedPacket(packetToFM9);
 					((Operation*)extraData)->commandResult = 2;
+					return 0;
 				}
 			}
 
 	}
 		else {
-			SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
+			int32_t idDtb = ((Operation*)extraData)->dtb;
+			declare_and_init(id, int32_t,idDtb);
+
+			SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
 
 
-			void* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
-			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA, sizeof(packetToSAFA));
+			SerializedPart* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
+			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA->data, packetToSAFA->size);
+			free(id);
+			Serialization_CleanupSerializedPacket(packetToSAFA);
 			((Operation*)extraData)->commandResult = 2; // hacer break
+			return 0;
 
 		}
+		int32_t idDtb = ((Operation*)extraData)->dtb;
+		declare_and_init(id, int32_t,idDtb);
+		SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
 
-		SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
 
+		SerializedPart* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
+		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA->data, packetToSAFA->size);
 
-		void* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
-		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA, sizeof(packetToSAFA));
+		Serialization_CleanupSerializedPacket(packetToSAFA);
+		StringUtils_FreeArray(args);
+		free(id);
 		((Operation*)extraData)->commandResult = 2; // hacer break
 
 	}
-StringUtils_FreeArray(args);
-
 return 0;
 }
 
 void* CommandWait(int argC, char** args, char* callingLine, void* extraData){
 
 	if(argC == 1){
-		SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
-		SerializedPart fieldForSAFA2 = {.size = sizeof(args[0]) , .data = &args[0]};
+		int32_t idDtb = ((Operation*)extraData)->dtb;
+		declare_and_init(id, int32_t,idDtb);
+		char* resource = args[0];
 
-		void* packetToSAFA = Serialization_Serialize(2, fieldForSAFA1, fieldForSAFA2);
+		SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
+		SerializedPart fieldForSAFA2 = {.size = strlen(args[0]) + 1 , .data = resource};
 
-		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_WAIT, packetToSAFA, sizeof(packetToSAFA));
+		SerializedPart* packetToSAFA = Serialization_Serialize(2, fieldForSAFA1, fieldForSAFA2);
+
+		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_WAIT, packetToSAFA->data, packetToSAFA->size);
 
 		int messageType,err,msglength;
 		void* msgFromSafa = SocketCommons_ReceiveData(((Operation*)extraData)->socketSAFA,&messageType,&msglength,&err);
-		DeserializedData data;
-		Serialization_Deserialize(msgFromSafa,&data);
+
+		DeserializedData* data = Serialization_Deserialize(msgFromSafa);
 
 		//Siendo code = 1, pudo ser asignado y code = 0, no pudo ser asignado. Quedaria de la siguente forma
-		if(*(int*)data.parts[0] == 1 ){
+		if(*(int*)data->parts[0] == 1 ){
 			StringUtils_FreeArray(args);
+			free(id);
+			Serialization_CleanupDeserializationStruct(data);
+			Serialization_CleanupSerializedPacket(packetToSAFA);
 			((Operation*)extraData)->commandResult = 0; // 0 SALIO to BIEN
 			return 0;
 		}
 		else {
-			SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
-			SerializedPart fieldForSAFA2 = {.size = sizeof(((Operation*)extraData)->programCounter), .data = &(((Operation*)extraData)->programCounter)};
-			SerializedPart fieldForSAFA3 = {.size = 4, .data = &(((Operation*)extraData)->quantum)};
-			uint32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
-			SerializedPart fieldForSAFA4 = {.size = 4 , .data = &numberOfFiles};
-			SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
- 			void* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
+			int32_t idDtb = ((Operation*)extraData)->dtb;
+			declare_and_init(id, int32_t,idDtb);
+			int32_t pc = ((Operation*)extraData)->programCounter;
+			declare_and_init(newPc,int32_t,pc);
+			int32_t quantum = ((Operation*)extraData)->quantum;
+			declare_and_init(newQ,int32_t,quantum);
+			int32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
+			declare_and_init(newNumberOfFiles,int32_t,numberOfFiles);
 
-			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT, sizeof(packetToSAFAToBlockGDT));
+			SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
+			SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
+			SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
+			SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
+			SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
+			SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
+
+			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
 			StringUtils_FreeArray(args);
+			Serialization_CleanupDeserializationStruct(data);
+			Serialization_CleanupSerializedPacket(packetToSAFA);
+			Serialization_CleanupSerializedPacket(packetToSAFAToBlockGDT);
+			free(id);
+			free(newPc);
+			free(newQ);
+			free(newNumberOfFiles);
 			((Operation*)extraData)->commandResult = 2;
 			return 0;
 		}
 	}
 	else {
-		SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
-		SerializedPart fieldForSAFA2 = {.size = sizeof(((Operation*)extraData)->programCounter), .data = &(((Operation*)extraData)->programCounter)};
-		SerializedPart fieldForSAFA3 = {.size = 4, .data = &(((Operation*)extraData)->quantum)};
-		uint32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
-		SerializedPart fieldForSAFA4 = {.size = 4 , .data = &numberOfFiles};
-		SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
-			void* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4, fieldForSAFA5);
+		int32_t idDtb = ((Operation*)extraData)->dtb;
+		declare_and_init(id, int32_t,idDtb);
+		int32_t pc = ((Operation*)extraData)->programCounter;
+		declare_and_init(newPc,int32_t,pc);
+		int32_t quantum = ((Operation*)extraData)->quantum;
+		declare_and_init(newQ,int32_t,quantum);
+		int32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
+		declare_and_init(newNumberOfFiles,int32_t,numberOfFiles);
 
-		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT, sizeof(packetToSAFAToBlockGDT));
+		SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
+		SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
+		SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
+		SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
+		SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
+		SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
+
+		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
 		StringUtils_FreeArray(args);
+		Serialization_CleanupSerializedPacket(packetToSAFAToBlockGDT);
+		free(id);
+		free(newPc);
+		free(newQ);
+		free(newNumberOfFiles);
 		((Operation*)extraData)->commandResult = 2;
+
 		return 0;
 	}
 
@@ -295,26 +387,34 @@ void* CommandSignal(int argC, char** args, char* callingLine, void* extraData){
 
 	if(argC == 1){
 
-		SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
-		SerializedPart fieldForSAFA2 = {.size = sizeof(args[0]) , .data = &args[0]};
+		int32_t idDtb = ((Operation*)extraData)->dtb;
+		declare_and_init(id, int32_t,idDtb);
+		char* resource = args[0];
 
-		void* packetToSAFA = Serialization_Serialize(2, fieldForSAFA1, fieldForSAFA2);
+		SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
+		SerializedPart fieldForSAFA2 = {.size = strlen(args[0]) + 1 , .data = resource};
 
-		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_SIGNAL, packetToSAFA, sizeof(packetToSAFA));
+		SerializedPart* packetToSAFA = Serialization_Serialize(2, fieldForSAFA1, fieldForSAFA2);
+
+		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_WAIT, packetToSAFA->data, packetToSAFA->size);
+
 
 		int messageType,err,msglength;
 		void* msgFromSafa = SocketCommons_ReceiveData(((Operation*)extraData)->socketSAFA,&messageType,&msglength,&err);
-		DeserializedData data;
-		Serialization_Deserialize(msgFromSafa,&data);
+		DeserializedData* data = Serialization_Deserialize(msgFromSafa);
 
-		if(*(int*)data.parts[0] == 1 ){
+		if(*(int*)data->parts[0] == 1 ){
+			Serialization_CleanupDeserializationStruct(data);
+			Serialization_CleanupSerializedPacket(packetToSAFA);
 			StringUtils_FreeArray(args);
+			free(id);
 			((Operation*)extraData)->commandResult = 0;
 			return 0;
 		}
 
 
 	}
+
 	StringUtils_FreeArray(args);
 	((Operation*)extraData)->commandResult = 1;
 	return 0;
@@ -322,39 +422,62 @@ void* CommandSignal(int argC, char** args, char* callingLine, void* extraData){
 
 }
 
-
+/*
+ *
+ *
+ * 					Serialization_CleanupDeserializationStruct(data);
+					Serialization_CleanupSerializedPacket(packetToSAFA);
+ * */
 void* CommandFlush(int argC, char** args, char* callingLine, void* extraData){
 	if(!(openFileVerificator(((Operation*)extraData)->dictionary,args[0]))){
 
-		SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
-		void* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
+		int32_t idDtb = ((Operation*)extraData)->dtb;
+		declare_and_init(id, int32_t,idDtb);
 
-		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA, sizeof(packetToSAFA));
+		SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
+		SerializedPart* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
+
+		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA->data, packetToSAFA->size);
 
 		((Operation*)extraData)->commandResult = 2;
+		Serialization_CleanupSerializedPacket(packetToSAFA);
 	    StringUtils_FreeArray(args);
 		Logger_Log(LOG_INFO, "El archivo no se encuentra abierto");
 		return 0;
 	}
 	else{
-		SerializedPart fieldForDAM1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
-		SerializedPart fieldForDAM2 = {.size = sizeof(args[0]), .data = &args[0]};
+		int32_t idDtb = ((Operation*)extraData)->dtb;
+		declare_and_init(id, int32_t,idDtb);
+		char* path = args[0];
+		int32_t pc = ((Operation*)extraData)->programCounter;
+		declare_and_init(newPc,int32_t,pc);
+		int32_t quantum = ((Operation*)extraData)->quantum;
+		declare_and_init(newQ,int32_t,quantum);
+		int32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
+		declare_and_init(newNumberOfFiles,int32_t,numberOfFiles);
 
-		void* packetToDAM = Serialization_Serialize(2, fieldForDAM1, fieldForDAM2);
+		SerializedPart fieldForDAM1 = {.size = sizeof(int32_t), .data =id};
+		SerializedPart fieldForDAM2 = {.size = strlen(path)+1, .data = path};
 
-		SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_FLUSH, packetToDAM, sizeof(packetToDAM));
+		SerializedPart* packetToDAM = Serialization_Serialize(2, fieldForDAM1, fieldForDAM2);
 
-		SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
-		SerializedPart fieldForSAFA2 = {.size = sizeof(((Operation*)extraData)->programCounter), .data = &(((Operation*)extraData)->programCounter)};
-		SerializedPart fieldForSAFA3 = {.size = 4, .data = &(((Operation*)extraData)->quantum)};
-		uint32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
-		SerializedPart fieldForSAFA4 = {.size = 4 , .data = &numberOfFiles};
+		SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_FLUSH, packetToDAM->data, packetToDAM->size);
+
+		SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
+		SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
+		SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
+		SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
 	    SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
-		void* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
+	    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
 
-		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT, sizeof(packetToSAFAToBlockGDT));
+		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
 	    StringUtils_FreeArray(args);
-
+		Serialization_CleanupSerializedPacket(packetToSAFAToBlockGDT);
+		Serialization_CleanupSerializedPacket(packetToDAM);
+		free(id);
+		free(newPc);
+		free(newQ);
+		free(newNumberOfFiles);
 		((Operation*)extraData)->commandResult = 2; //el 2 significa hacer un break
 
 		//TODO me quedo esperando alguna respuesta o sigo con mi operatoria?
@@ -365,78 +488,121 @@ return 0;
 void* CommandClose(int argC, char** args, char* callingLine, void* extraData){
 	if(argC == 1){
 			if(openFileVerificator(((Operation*)extraData)->dictionary,args[0])){
-
+				int32_t idDtb = ((Operation*)extraData)->dtb;
+				declare_and_init(id, int32_t,idDtb);
 				uint32_t logicDirToClose = *((uint32_t*)dictionary_get(((Operation*)extraData)->dictionary,args[0]));
+				declare_and_init(newLogicDirToClose, uint32_t,logicDirToClose);
 
-				SerializedPart fieldForFM91 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
-				SerializedPart fieldForFM92 = {.size = 4, .data =&logicDirToClose};
+				SerializedPart fieldForFM91 = {.size = sizeof(int32_t), .data =id};
+				SerializedPart fieldForFM92 = {.size = sizeof(uint32_t), .data =newLogicDirToClose};
 
 
-				void* packetToFM9 = Serialization_Serialize(2, fieldForFM91, fieldForFM92);
+				SerializedPart* packetToFM9 = Serialization_Serialize(2, fieldForFM91, fieldForFM92);
 
-				SocketCommons_SendData(((Operation*)extraData)->socketFM9,MESSAGETYPE_CPU_CLOSE, packetToFM9, sizeof(packetToFM9));
+				SocketCommons_SendData(((Operation*)extraData)->socketFM9,MESSAGETYPE_CPU_CLOSE, packetToFM9->data, packetToFM9->size);
 
 				int messageType, err, msglength;
 
 				void* msgFromFM9 = SocketCommons_ReceiveData(((Operation*)extraData)->socketFM9,&messageType,&msglength,&err);
 
-				DeserializedData data;
-				Serialization_Deserialize(msgFromFM9,&data);
-				if(*(int*)data.parts[0] == 1){
+				DeserializedData* data = Serialization_Deserialize(msgFromFM9);
+				if(*(int*)data->parts[0] == 1){
+				    StringUtils_FreeArray(args);
+					Serialization_CleanupDeserializationStruct(data);
+					Serialization_CleanupSerializedPacket(packetToFM9);
+					free(id);
 					((Operation*)extraData)->commandResult = 2; //SE DESALOJA SIEMPRE QUE HAYA CLOSE
+					return 0;
 				}
 				else {
 						Logger_Log(LOG_INFO, "Error fallo de segmento/memoria en FM9");
-						SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
+						int32_t idDtb = ((Operation*)extraData)->dtb;
+						declare_and_init(id, int32_t,idDtb);
+						SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
 
 
-						void* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
-						SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA, sizeof(packetToSAFA));
+						SerializedPart* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
+						SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA->data, packetToSAFA->size);
+					    StringUtils_FreeArray(args);
+						Serialization_CleanupDeserializationStruct(data);
+						Serialization_CleanupSerializedPacket(packetToFM9);
+						Serialization_CleanupSerializedPacket(packetToSAFA);
+						free(id);
+						return 0;
+
 				}
 
 		}
 			else {
-				SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
+				int32_t idDtb = ((Operation*)extraData)->dtb;
+				declare_and_init(id, int32_t,idDtb);
+				SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
 
 
-				void* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
-				SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA, sizeof(packetToSAFA));
+				SerializedPart* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
+				SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA->data, packetToSAFA->size);
 				((Operation*)extraData)->commandResult = 2; // 0 SALIO to MAL
+				free(id);
+			    StringUtils_FreeArray(args);
+				Serialization_CleanupSerializedPacket(packetToSAFA);
+
+				return 0;
+
 
 			}
+			int32_t idDtb = ((Operation*)extraData)->dtb;
+			declare_and_init(id, int32_t,idDtb);
+			SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
 
-			SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
 
-
-			void* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
-			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA, sizeof(packetToSAFA));
+			SerializedPart* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
+			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA->data, packetToSAFA->size);
 			((Operation*)extraData)->commandResult = 2; // 0 SALIO to MAL
+			free(id);
+		    StringUtils_FreeArray(args);
+			Serialization_CleanupSerializedPacket(packetToSAFA);
 
+			return 0;
 		}
-	StringUtils_FreeArray(args);
 
 	return 0;
 }
 
 void* CommandCrear(int argC, char** args, char* callingLine, void* extraData){
-	SerializedPart fieldForDAM1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
-	SerializedPart fieldForDAM2 = {.size = sizeof(args[0]), .data = &args[0]};
-	SerializedPart fieldForDAM3 = {.size = sizeof(args[0]), .data = &args[1]};
+	int32_t idDtb = ((Operation*)extraData)->dtb;
+	declare_and_init(id, int32_t,idDtb);
+	char* path = args[0];
+	char* lines = args[1];
+	int32_t pc = ((Operation*)extraData)->programCounter;
+	declare_and_init(newPc,int32_t,pc);
+	int32_t quantum = ((Operation*)extraData)->quantum;
+	declare_and_init(newQ,int32_t,quantum);
+	int32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
+	declare_and_init(newNumberOfFiles,int32_t,numberOfFiles);
 
-	void* packetToDAM = Serialization_Serialize(3, fieldForDAM1, fieldForDAM2, fieldForDAM3);
+	SerializedPart fieldForDAM1 = {.size = sizeof(int32_t), .data =id};
+	SerializedPart fieldForDAM2 = {.size = strlen(path)+1, .data = path};
+	SerializedPart fieldForDAM3 = {.size = strlen(lines)+1, .data = lines};
 
-	SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_CREAR, packetToDAM, sizeof(packetToDAM));
+	SerializedPart* packetToDAM = Serialization_Serialize(3, fieldForDAM1, fieldForDAM2, fieldForDAM3);
 
-	SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
-	SerializedPart fieldForSAFA2 = {.size = sizeof(((Operation*)extraData)->programCounter), .data = &(((Operation*)extraData)->programCounter)};
-	SerializedPart fieldForSAFA3 = {.size = 4, .data = &(((Operation*)extraData)->quantum)};
-	uint32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
-	SerializedPart fieldForSAFA4 = {.size = 4 , .data = &numberOfFiles};
+	SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_CREAR, packetToDAM->data, packetToDAM->size);
+
+	SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
+	SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
+	SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
+	SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
     SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
-	void* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
+    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
 
-	SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT, sizeof(packetToSAFAToBlockGDT));
+	SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
     StringUtils_FreeArray(args);
+    free(id);
+    free(newPc);
+    free(newQ);
+    free(newNumberOfFiles);
+	Serialization_CleanupSerializedPacket(packetToSAFAToBlockGDT);
+	Serialization_CleanupSerializedPacket(packetToDAM);
 
 	((Operation*)extraData)->commandResult = 2; //el 2 significa hacer un break
 
@@ -444,23 +610,38 @@ return 0;
 }
 
 void* CommandBorrar(int argC, char** args, char* callingLine, void* extraData){
-	SerializedPart fieldForDAM1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
-	SerializedPart fieldForDAM2 = {.size = sizeof(args[0]), .data = &args[0]};
+	int32_t idDtb = ((Operation*)extraData)->dtb;
+	declare_and_init(id, int32_t,idDtb);
+	char* path = args[0];
+	int32_t pc = ((Operation*)extraData)->programCounter;
+	declare_and_init(newPc,int32_t,pc);
+	int32_t quantum = ((Operation*)extraData)->quantum;
+	declare_and_init(newQ,int32_t,quantum);
+	int32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
+	declare_and_init(newNumberOfFiles,int32_t,numberOfFiles);
 
-	void* packetToDAM = Serialization_Serialize(2, fieldForDAM1, fieldForDAM2);
+	SerializedPart fieldForDAM1 = {.size = sizeof(int32_t), .data =id};
+	SerializedPart fieldForDAM2 = {.size = sizeof(args[0]), .data = path};
 
-	SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_BORRAR, packetToDAM, sizeof(packetToDAM));
+	SerializedPart* packetToDAM = Serialization_Serialize(2, fieldForDAM1, fieldForDAM2);
 
-	SerializedPart fieldForSAFA1 = {.size = 4, .data =&(((Operation*)extraData)->dtb)};
-	SerializedPart fieldForSAFA2 = {.size = sizeof(((Operation*)extraData)->programCounter), .data = &(((Operation*)extraData)->programCounter)};
-	SerializedPart fieldForSAFA3 = {.size = 4, .data = &(((Operation*)extraData)->quantum)};
-	uint32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
-	SerializedPart fieldForSAFA4 = {.size = 4 , .data = &numberOfFiles};
+	SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_BORRAR, packetToDAM->data, packetToDAM->size);
+
+	SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
+	SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
+	SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
+	SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
     SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
-	void* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
+    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
 
-	SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT, sizeof(packetToSAFAToBlockGDT));
+	SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
     StringUtils_FreeArray(args);
+	Serialization_CleanupSerializedPacket(packetToSAFAToBlockGDT);
+	Serialization_CleanupSerializedPacket(packetToDAM);
+	free(id);
+    free(newPc);
+    free(newQ);
+    free(newNumberOfFiles);
 
 	((Operation*)extraData)->commandResult = 2; //el 2 significa hacer un break
 
@@ -493,6 +674,7 @@ t_dictionary* BuildDictionary(void* flattened, int amount)
 	return dict;
 
 }
+
 bool openFileVerificator(t_dictionary* dictionary,char* path){
 	if(dictionary_get(dictionary,path) != NULL){
 		return true;
@@ -530,4 +712,5 @@ void* FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 	return result;											//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
 
 }
+
 

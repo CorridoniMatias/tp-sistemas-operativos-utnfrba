@@ -16,11 +16,9 @@ int main(int argc, char *argv[])
 	{
 		int err,messageType,msglength;
 		void* msgFromSafa = SocketCommons_ReceiveData(safa,&messageType,&msglength,&err);
+		DeserializedData* data = Serialization_Deserialize(msgFromSafa);
 
-		DeserializedData data;
-		Serialization_Deserialize(msgFromSafa,&data);
-
-		if ( *(int*)data.parts[1] == 0)
+		if ( *(int*)data->parts[1] == 0)
 			{
 
 				executeDummy(data, safa, diego);
@@ -33,11 +31,11 @@ int main(int argc, char *argv[])
 		else
 			{
 				int i = 0;
-				uint32_t totalQuantum = *((uint32_t*)data.parts[4]);
-				uint32_t updatedProgramCounter = *((uint32_t*)data.parts[4]);
+				uint32_t totalQuantum = *((int32_t*)data->parts[4]);
+				uint32_t updatedProgramCounter = *((int32_t*)data->parts[4]);
 				CommandInterpreter_Init();
 
-				t_dictionary* dictionary= BuildDictionary(&data.parts[5],*((int*)data.parts[6]));
+				t_dictionary* dictionary= BuildDictionary(data->parts[5],*((int*)data->parts[6]));
 				//Defino aca el struct para que se vaya actualizando el diccionario dependiendo cualquier cambio
 				Operation extraData;
 				extraData.dictionary = dictionary;
@@ -60,7 +58,7 @@ int main(int argc, char *argv[])
 					char* line = askLineToFM9(data, fm9); //Pido una linea
 					if(strcmp(line,"error") != 0){
 
-						extraData.dtb =*((uint32_t*)data.parts[0]);
+						extraData.dtb =*((int32_t*)data->parts[0]);
 		 				extraData.programCounter = updatedProgramCounter;
 						extraData.quantum = totalQuantum;
 						extraData.dictionary = dictionary;
@@ -88,48 +86,63 @@ int main(int argc, char *argv[])
 					// Terminar el command interpretar siempre ejecutando linea por linea y actualizando el PC de SAFA,
 					}
 					else if (strcmp(line,"") != 0){
-						uint32_t* idDTB = (uint32_t*)malloc(4);
-						*idDTB = *((uint32_t*)data.parts[0]);
+						int32_t idDtb = extraData.dtb;
+						declare_and_init(id, int32_t,idDtb);
 
-						SerializedPart fieldForSAFA1 = {.size = 4, .data =&idDTB};
+						SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
 
-						void* packetToSafa = Serialization_Serialize(1,fieldForSAFA1);
+						SerializedPart* packetToSafa = Serialization_Serialize(1,fieldForSAFA1);
 
-						SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, packetToSafa, sizeof(packetToSafa));
+						SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, packetToSafa->data, packetToSafa->size);
 
-						free(idDTB);
+						free(id);
+						Serialization_CleanupSerializedPacket(packetToSafa);
 						break;
 					}
 					else{
-						uint32_t idDTB = *((uint32_t*)data.parts[0]);
-						SerializedPart fieldForSAFA1 = {.size = 4, .data = &idDTB};
-						void* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
-						SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA, sizeof(packetToSAFA));
+						int32_t idDtb = extraData.dtb;
+						declare_and_init(id, int32_t,idDtb);
+
+						SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
+
+						SerializedPart* packetToSafa = Serialization_Serialize(1,fieldForSAFA1);
+
+						SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, packetToSafa->data, packetToSafa->size);
+
+						free(id);
+						Serialization_CleanupSerializedPacket(packetToSafa);
 						break;
 					}
 
 
 				}
-
-			SerializedPart fieldForSAFA1 = {.size = 4, .data = &data.parts[0]};
-			SerializedPart fieldForSAFA2 = {.size = 4, .data = &updatedProgramCounter};
+			declare_and_init(newQ, int32_t,totalQuantum);
+			declare_and_init(newUpdatedProgramCounter, int32_t,updatedProgramCounter);
+			SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data = newQ};
+			SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newUpdatedProgramCounter};
 			uint32_t numberOfFiles = dictionary_size(dictionary);
+			declare_and_init(newNumberOfFiles, int32_t,numberOfFiles);
 
 			// TODO TESTEAR BIEN SI ESTO QUEDARIA ACTUALIZADO CON EL ULTIMO VALOR O NO
-			SerializedPart fieldForSAFA3 = {.size = 4 , .data = &numberOfFiles};
+			SerializedPart fieldForSAFA3 = {.size = sizeof(uint32_t) , .data = newNumberOfFiles};
 			SerializedPart fieldForSAFA4 = {.size = sizeof(FlattenPathsAndAddresses(dictionary)) + 1 , .data = FlattenPathsAndAddresses(dictionary)};
- 			void* packetToSAFA = Serialization_Serialize(4, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4);
+			SerializedPart* packetToSAFA = Serialization_Serialize(4, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4);
 
-			SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOQUANTUM,packetToSAFA, sizeof(packetToSAFA));
+			SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOQUANTUM,packetToSAFA->data, packetToSAFA->size);
 
+			free(newQ);
+			free(newUpdatedProgramCounter);
+			free(newNumberOfFiles);
+			Serialization_CleanupSerializedPacket(packetToSAFA);
+			free(extraData.dictionary);
 			}
 
 	}
 
 
 
-/*
 
+/*
 		 * EXPLICACION VILLERA TODO DOCUMENTAR BIEN
 		ACORDARME DE MANDARME EL QUANTUM QUE SOBRO A SAFA
 							bloqueado esperando recv del SAFA

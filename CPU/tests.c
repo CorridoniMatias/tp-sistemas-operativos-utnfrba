@@ -18,7 +18,9 @@ bool openFileVerificator2(t_dictionary* dictionary,char* path){
 
 //Test para ver que esta serializando bien
 void * test (void * str){
-	SerializedPart fieldForSAFA2 = {.size = sizeof(((Operation*)str)->programCounter), .data = &(((Operation*)str)->programCounter)};
+	uint32_t pc = ((Operation*)str)->programCounter;
+	declare_and_init(newPC, uint32_t,pc); //test declare and init con struct operation
+	SerializedPart fieldForSAFA2 = {.size = sizeof(((Operation*)str)->programCounter), .data = newPC};
 
 	printf("tam : %d \n",fieldForSAFA2.size);
 	printf("pc : %d \n", *(int*)fieldForSAFA2.data);
@@ -28,6 +30,9 @@ void * test (void * str){
 	openFileVerificator2(((Operation*)str)->dictionary,"script1.txt");
 
 	return 0;
+}
+void construirDiccionario(){
+
 }
 
 
