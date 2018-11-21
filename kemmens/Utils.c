@@ -46,6 +46,7 @@ void queue_to_list(t_queue* src, t_list* dest)
 
 	//Destruyo la lista auxiliar; no sus elementos, ya que haria un doble free al final, y perderia sus referencias
 	list_destroy(aux);
+
 	return;
 
 }
