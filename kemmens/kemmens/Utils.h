@@ -18,12 +18,23 @@ unsigned char* KemmensUtils_md5(void* content);
 void dictionary_putMAESTRO(t_dictionary* dictionary, char* key, void* value, void (*elementDestroyer)(void*));
 
 /*
+ * 	ACCION: Copiar el contenido de una lista a otra (no hace create, a diferencia de list_duplicate)
+ * 	PARAMETROS
+ * 		src: Lista que tomo de fuente
+ * 		dst: Lista que sirve como destino
+ *
+ * 	NOTA: Si armo una lista con esta funcion, solo la destruyo; no a sus elementos, ya que tienen los mismos
+ * 		  punteros que la lista original; podria hacer un list_copy de todo al final y garantizar no pifiarla
+ */
+void list_copy(t_list* src, t_list* dest);
+
+/*
  * 	ACCION: Obtener una lista a partir de una cola, sin borrar la cola original
  * 	PARAMETROS:
  * 		src: Cola que sirve de base o fuente de la copia
  * 		dest: Lista a donde quiero copiar los elementos, destino
  *
- * 	NOTA: Ojo con los free necesarios, testear en el entorno del TP (ojo con memory leaks)
+ * 	NOTA: Se usa para MoveQueues; el free de los elementos deberia ser en el delete final de variables globales
  */
 void queue_to_list(t_queue* src, t_list* dest);
 
@@ -34,17 +45,6 @@ void queue_to_list(t_queue* src, t_list* dest);
  * 		dest: Cola a donde quiero copiar los elementos, destino
  */
 void list_to_queue(t_list* src, t_queue* dest);
-
-/*
- * 	ACCION: Copiar el contenido de una lista a otra (no hace create, a diferencia de list_duplicate)
- * 	PARAMETROS
- * 		src: Lista que tomo de fuente
- * 		dst: Lista que sirve como destino
- *
- * 	NOTA: Si armo una lista con esta funcion, solo la destruyo; no a sus elementos, ya que tienen los mismos
- * 		  punteros que la lista original; podria hacer un list_copy de todo al final y garantizar no pifiarla
- */
-void list_copy(t_list* src, t_list* dest);
 
 /*
  * 	ACCION: Hacer varios free en una sola llamada, con una lista variable de argumentos

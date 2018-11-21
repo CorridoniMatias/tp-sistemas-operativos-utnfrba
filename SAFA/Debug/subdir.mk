@@ -5,26 +5,29 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../CPUsManager.c \
+../Communication.c \
 ../ConsoleHandler.c \
 ../ResourceManager.c \
 ../Scheduling.c \
-../bibliotecaSAFA.c \
+../Settings.c \
 ../main.c 
 
 OBJS += \
 ./CPUsManager.o \
+./Communication.o \
 ./ConsoleHandler.o \
 ./ResourceManager.o \
 ./Scheduling.o \
-./bibliotecaSAFA.o \
+./Settings.o \
 ./main.o 
 
 C_DEPS += \
 ./CPUsManager.d \
+./Communication.d \
 ./ConsoleHandler.d \
 ./ResourceManager.d \
 ./Scheduling.d \
-./bibliotecaSAFA.d \
+./Settings.d \
 ./main.d 
 
 
