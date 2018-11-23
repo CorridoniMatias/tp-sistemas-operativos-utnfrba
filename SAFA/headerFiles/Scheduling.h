@@ -316,7 +316,6 @@ bool IsDummy(DTB* myDTB);
  */
 DTB* GetNextReadyDTB();
 
-
 /*
  * 	ACCION: Funcion para el hilo del PLP, con todas sus posibles acciones a llevar a cabo
  * 	PARAMETROS:
@@ -354,7 +353,7 @@ bool NoReadyDTBs(char* algorithm);
 
 /*
  * 	ACCION: Acomodar las colas (copiar y mover DTBs entre ellas) de READY previo a un ciclo del PCP,
- * 			por si hubiera habido un cambio de algoritmo mediante factores externos
+ * 			por si hubiera habido un cambio de algoritmo mediante factores externos; deja vacia la cola antigua
  * 	PARAMETROS:
  * 		changeCode: Codigo del tipo de cambio de algoritmo (de cual a cual fue)
  */

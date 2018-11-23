@@ -23,6 +23,9 @@ void dictionary_putMAESTRO(t_dictionary* dictionary, char* key, void* value, voi
 void list_copy(t_list* src, t_list* dest)
 {
 
+	//Limpio la lista de destino, asi me aseguro de sobreescribirla; ignoro lo que habia antes
+	list_clean(dest);
+
 	int listSize = list_size(src);
 	int pos;
 
@@ -53,6 +56,9 @@ void queue_to_list(t_queue* src, t_list* dest)
 
 void list_to_queue(t_list* src, t_queue* dest)
 {
+
+	//Vacio la cola de destino, para sobreescribirla por completo (no tomo en cuenta lo que tenia)
+	queue_clean(dest);
 
 	int listSize = list_size(src);
 	int pos;
