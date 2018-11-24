@@ -111,7 +111,8 @@ void ResourceDestroyer(void* r)
 
 	ResourceStatus* rscInfo = (ResourceStatus*) r;
 	queue_clean_and_destroy_elements(rscInfo->waiters, WaiterDestroyer);
-	free(rscInfo);
+	//Recordar: el free principal es sobre el parametro; el casteado se liberara al retornar de esta funcion
+	free(r);
 
 }
 

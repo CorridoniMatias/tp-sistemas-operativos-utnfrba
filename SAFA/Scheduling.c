@@ -46,7 +46,7 @@ void CreateDummy()
 
 }
 
-void InitGlobalVariables()
+void InitSchedulingGlobalVariables()
 {
 
 	nextID = 1;										//Arrancan en 1, la 0 es reservada para el Dummy
@@ -196,6 +196,8 @@ void AddToReady(DTB* myDTB)
 	else if((strcmp(currentAlgorithm, "PROPIO")) == 0)
 	{
 		list_add(READYqueue_Own, myDTB);
+		//Ni bien agrego un DTB nuevo, ordeno la lista asi se "inserta ordenado"
+		list_sort(READYqueue_Own, DescendantPriority);
 	}
 	pthread_mutex_unlock(&mutexAlgorithm);
 	pthread_mutex_unlock(&mutexREADY);
@@ -558,6 +560,9 @@ void PlanificadorCortoPlazo()
 
 		}
 
+		//Aplico retardo de planificacion; divido por mil, ya que son milisegundos
+		sleep((settings->retardo) / 1000);
+
 	}
 
 }
@@ -585,35 +590,37 @@ void MoveQueues(int changeCode)
 	{
 
 		case ALGORITHM_CHANGE_RR_TO_VRR :
-			list_clean(READYqueue_VRR);				//Todo: Testear si hace falta destruir los elementos
 			queue_to_list(READYqueue_RR, READYqueue_VRR);
+			queue_clean(READYqueue_RR);
 			break;
 
 		case ALGORITHM_CHANGE_RR_TO_OWN :
-			list_clean(READYqueue_Own);
 			queue_to_list(READYqueue_RR, READYqueue_Own);
 			list_sort(READYqueue_Own, DescendantPriority);
+			queue_clean(READYqueue_RR);
 			break;
 
 		case ALGORITHM_CHANGE_VRR_TO_RR :
-			queue_clean(READYqueue_RR);
 			list_to_queue(READYqueue_VRR, READYqueue_RR);
+			list_clean(READYqueue_VRR);
 			break;
 
 		case ALGORITHM_CHANGE_VRR_TO_OWN :
-			list_clean(READYqueue_Own);
 			list_copy(READYqueue_VRR, READYqueue_Own);
 			list_sort(READYqueue_Own, DescendantPriority);
+			list_clean(READYqueue_VRR);
 			break;
 
+		//NOTA: Al pasar de IOBF a otro algoritmo, el orden de la cola es el que adquirieron por las prioridades
+		//Sin embargo, al agregar DTBs a dicha cola, no se insertara y se ordenara, sino que ira al final
 		case ALGORITHM_CHANGE_OWN_TO_RR :
-			queue_clean(READYqueue_RR);
 			list_to_queue(READYqueue_Own, READYqueue_RR);
+			list_clean(READYqueue_Own);
 			break;
 
 		case ALGORITHM_CHANGE_OWN_TO_VRR :
-			list_clean(READYqueue_VRR);
 			list_copy(READYqueue_Own, READYqueue_VRR);
+			list_clean(READYqueue_VRR);
 			break;
 
 	}
@@ -864,8 +871,8 @@ void BlockableInfoDestroyer(void* BI)
 
 	BlockableInfo* castBI = (BlockableInfo*) BI;
 	dictionary_destroy_and_destroy_elements(castBI->openedFilesUpdate, LogicalAddressDestroyer);
-	free(castBI);
-	free(castBI);
+	//Al igual que en DTBDestroyer, el free principal lo hago sobre el parametro
+	free(BI);
 
 }
 
@@ -874,7 +881,7 @@ void UnlockableInfoDestroyer(void* UI)
 
 	UnlockableInfo* castUI = (UnlockableInfo*) UI;
 	dictionary_destroy_and_destroy_elements(castUI->openedFilesUpdate, LogicalAddressDestroyer);
-	free(castUI);
+	//Al igual que en DTBDestroyer, el free principal lo hago sobre el parametro
 	free(UI);
 
 }
@@ -891,8 +898,8 @@ void DTBDestroyer(void* aDTB)
 
 	DTB* castDTB = (DTB*) aDTB;
 	free(castDTB->pathEscriptorio);
-	dictionary_destroy_and_destroy_elements(castDTB->openedFiles, LogicalAddressDestroyer);
-	free(castDTB);
+	//El free del DTB lo hago sobre el parametro, no el casteado, asi me libera la memoria ocupada por ese
+	//Al salir de la funcion, el casteado (necesario para liberar el path) liberara la memoria suya solo, ya que es local
 	free(aDTB);
 
 }
@@ -912,7 +919,7 @@ void DeleteQueuesAndLists()
 
 }
 
-void DeleteGlobalVariables()
+void DeleteSchedulingGlobalVariables()
 {
 
 	free(justDummied->script);

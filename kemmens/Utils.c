@@ -20,37 +20,35 @@ void dictionary_putMAESTRO(t_dictionary* dictionary, char* key, void* value, voi
 	dictionary_put(dictionary, key, value);
 }
 
+void list_copy(t_list* src, t_list* dest)
+{
+
+	//Limpio la lista de destino, asi me aseguro de sobreescribirla; ignoro lo que habia antes
+	list_clean(dest);
+
+	int listSize = list_size(src);
+	int pos;
+
+	for (pos = 0; pos < listSize; pos++)
+	{
+		list_add(dest, list_get(src, pos));
+	}
+
+	return;
+
+}
+
 void queue_to_list(t_queue* src, t_list* dest)
 {
 
-	int queueSize = queue_size(src);
-	void* buffer;
-	int bufferSize;
-	void** auxiliarQueue = malloc(1);
-	int totalSize = 0;
-	int counter = 0;
+	//Aprovecho que la cola tiene, internamente, una lista de elementos, y la duplico: obtengo una lista auxiliar
+	t_list* aux = list_duplicate(src->elements);
 
-	//Voy sacando de la cola, pero guardo en una estructura auxiliar (los voy a volver a poner)
-	while(counter < queueSize)
-	{
-		buffer = queue_pop(src);
-		bufferSize = sizeof(buffer);
-		totalSize += bufferSize;
-		//Importante reallocar la estructura auxiliar y tambien mallocear cada uno de sus elementos
-		auxiliarQueue = realloc(auxiliarQueue, totalSize);
-		auxiliarQueue[counter] = malloc(totalSize);
-		memcpy(auxiliarQueue[counter++], buffer, bufferSize);
-	}
+	//Copio los elementos de esa lista auxiliar (la lista interna de la cola) a la lista destino de la funcion
+	list_copy(aux, dest);
 
-	//Voy agregando cada elemento que lei tanto a la lista a retornar como a la cola pasada por parametro (para restaurarla)
-	for(counter = 0; counter < queueSize; counter++)
-	{
-		list_add(dest, auxiliarQueue[counter]);
-		queue_push(src, auxiliarQueue[counter]);
-	}
-
-	//Solo hago free de la cola auxiliar; no de sus campos (si no, libero porciones de memoria de elementos de la cola restaurada)
-	free(auxiliarQueue);
+	//Destruyo la lista auxiliar; no sus elementos, ya que haria un doble free al final, y perderia sus referencias
+	list_destroy(aux);
 
 	return;
 
@@ -59,27 +57,15 @@ void queue_to_list(t_queue* src, t_list* dest)
 void list_to_queue(t_list* src, t_queue* dest)
 {
 
+	//Vacio la cola de destino, para sobreescribirla por completo (no tomo en cuenta lo que tenia)
+	queue_clean(dest);
+
 	int listSize = list_size(src);
 	int pos;
 
 	for (pos = 0; pos < listSize; pos++)
 	{
 		queue_push(dest, list_get(src, pos));
-	}
-
-	return;
-
-}
-
-void list_copy(t_list* src, t_list* dest)
-{
-
-	int listSize = list_size(src);
-	int pos;
-
-	for (pos = 0; pos < listSize; pos++)
-	{
-		list_add(dest, list_get(src, pos));
 	}
 
 	return;

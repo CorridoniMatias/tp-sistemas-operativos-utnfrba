@@ -1,15 +1,22 @@
 #ifndef HEADERFILES_SCHEDULING_H_
 #define HEADERFILES_SCHEDULING_H_
 
+///-------------INCLUSION DE BIBLIOTECAS-------------///
+
+//------BIBLIOTECAS EXTERNAS------//
 #include "commons/collections/queue.h"
 #include "commons/collections/dictionary.h"
-#include "kemmens/Serialization.h"
-#include "kemmens/Utils.h"
 #include <pthread.h>
 #include <semaphore.h>
 #include <unistd.h>
-#include "../headerFiles/bibliotecaSAFA.h"
+
+//------BIBLIOTECAS INTERNAS------//
+#include "kemmens/Serialization.h"
+#include "kemmens/Utils.h"
+
+//------BIBLIOTECAS PROPIAS------//
 #include "../headerFiles/CPUsManager.h"
+#include "../headerFiles/Settings.h"
 
 ///-------------ESTRUCTURAS DEFINIDAS-------------///
 
@@ -142,63 +149,72 @@ struct AlgorithmStatus_s
 #define ALGORITHM_CHANGE_OWN_TO_RR		45
 #define ALGORITHM_CHANGE_OWN_TO_VRR		46
 
-
 ///-------------VARIABLES GLOBALES-------------///
 
-//Semaforos a emplear; no deberian ser globales al programa main?
+//--VARIABLES EXTERNAS--//
+Configuracion* settings;						//Estructura con la configuracion, externa desde Settings.h
+
+//--SEMAFOROS A EMPLEAR--//
 pthread_mutex_t mutexPLPtask;
 pthread_mutex_t mutexPCPtask;
-pthread_mutex_t mutexAlgorithm;					//Esta seguro lo es, es para que no jodan la variable del algoritmo
-pthread_mutex_t mutexREADY;						//Garantiza mutua exclusion sobre las colas READY (la actual)
-//Estos no seria externos para el main tambien?
-sem_t workPLP;									//Semaforo binario, para indicar que es hora de que el PLP trabaje
-sem_t assignmentPending;						//Semaforo binario, para indicar que hay se debe avisar lo de toBeAssigned
+pthread_mutex_t mutexAlgorithm;					//Para que no jodan al querer ver cual es el algoritmo actual
+pthread_mutex_t mutexREADY;						//Garantiza mutua exclusion sobre las colas READY (la actual);
+												//extern en ConsoleHandler.h, ya que este lo usara al hacer metricas/status
 
-//Tareas a realizar de los planificadores, son externas en main para que se puedan modificar desde cualquier modulo
+sem_t assignmentPending;						//Semaforo binario, para indicar que hay se debe avisar lo de toBeAssigned;
+												//extern en Communication.h, ya que le hara un wait
+
+sem_t workPLP;									//Semaforo binario, para indicar que es hora de que el PLP trabaje;
+												//no es extern ya que lo modifico con una funcion de aca (SetPLPTask)
+
+//--TAREAS A REALIZAR POR LOS PLANIFICADORES--//
 int PLPtask;
 int PCPtask;
 
+//--VARIABLES EMPLEADAS POR PROCESOS PROPIOS DEL MODULO--//
 uint32_t nextID;								//ID a asignarle al proximo DTB que se cree
 int inMemoryAmount;								//Cantidad de procesos actualmente en memoria; para el grado de multiprogr.
-
 char* currentAlgorithm;							//Variable global con el nombre del actual algoritmo del PCP; ojo con inotify
 int algorithmChange;							//Codigo del cambio de algoritmo sufrido; constantes definidas arriba
 
-//Estas colas no necesitan mutexes, las usa cada planificador de a uno??
+
+//--VARIABLES DE ESTRUCTURAS DE PROCESOS PROPIOS--//
+DTB* dummyDTB;									//DTB que se usara como Dummy
+extern CreatableGDT* justDummied;				//Estructura con el path del script, la direccion logica y el id del DTB
+												//cuya carga Dummy acaba de terminar (segun informo el DAM); ext para Comm.h
+
+extern AssignmentInfo* toBeAssigned;			//Estructura con el mensaje a enviar y el CPU elegido en un ciclo de PCP;
+												//extern para Communication.h, desde ahi la uso y la modifico
+
+//--COLAS DE PLANIFICACION GLOBALES--//
 t_queue* NEWqueue;								//Cola NEW, gestionada por PLP con FIFO; es lista para ser modificable
 t_list* EXECqueue;								//"Cola" EXEC, en realidad es una lista (mas manejable), gestionada por PCP
 t_list* BLOCKEDqueue;							//"Cola" BLOCKED, en realidad es una lista (mas manejable), gest. por PCP
 t_list* EXITqueue;								//"Cola EXIT, en realidad es una lista (mas manejable)
 
+//--COLAS DE PLANIFICACION DE PROCESOS LISTOS--//
 //Colas de READY, estas si irian con mutex ya que son usadas por ambos planificadores a la vez; una para cada algoritmo
 t_queue* READYqueue_RR;
 t_list* READYqueue_VRR;							//Lista para buscar por remanente de quantum y simular doble cola
 t_list* READYqueue_Own;							//Lista para poder ordenar por prioridad IO
 
-DTB* dummyDTB;									//DTB que se usara como Dummy
 
-extern Configuracion* settings;					//Estructura con la configuracion, externa desde bibliotecaSAFA.h
-
-//Todas son externas en main y los que las usen
-
-CreatableGDT* justDummied;						//Estructura con el path del script, la direccion logica y el id del DTB
-												//cuya carga Dummy acaba de terminar (segun informo el DAM)
-
-AssignmentInfo* toBeAssigned;					//Estructura con el mensaje a enviar y el CPU elegido en un ciclo de PCP
-
-t_queue* scriptsQueue;							//Cola de char*s con los scripts que van quedando para ejecutar
+//--COLAS DE TAREAS A REALIZAR--//
+t_queue* scriptsQueue;							//Cola de char*s con los scripts que van quedando para ejecutar; ext en CH.h
 
 t_queue* toBeUnlocked;							//Cola de UnlockableInfo*s con los IDs de los DTBs que deben ser
 												//pasados a READY cuando el PCP tenga posibilidad de hacerlo
-												//Tocada por mensajes del CPU, del DAM y del ResourceManager
+												//Tocada por mensajes del CPU, del DAM y del ResourceManager;
+												//extern en ResourceManager.h y Communication.h
 
 t_queue* toBeBlocked;							//Cola de BlockableInfo*s con los IDs de los DTBs que deben ser pasados a
 												//BLOCKED porque volvieron de IO o se bloquearon con un wait recurso
-												//Tocada solo por mensajes del CPU (de desalojo)
+												//Tocada solo por mensajes del CPU (de desalojo); ext. en Communication.h
 
 t_queue* toBeEnded;								//Cola de int*s con los IDs de los DTBs que deben ser pasados a
 												//EXIT por haber terminado su archivo o haberse producido un error
-												//Tocada solo por mensajes del CPU (error o fin de script)
+												//Tocada solo por mensajes del CPU (error o fin de script);
+												//extern en Communication.h (mensajes de CPU o DAM) y CH.h (comando finalizar
 
 ///-------------FUNCIONES DEFINIDAS------------///
 
@@ -220,7 +236,7 @@ void CreateDummy();
 /*
  * 	ACCION: Setea y mallocea las variables globales, y crea las colas, listas y semaforos
  */
-void InitGlobalVariables();
+void InitSchedulingGlobalVariables();
 
 /*
  * 	ACCION: Setea la tarea a realizar por el PLP, garantizando mutua exclusion, y le avisa al mismo que ha de trabajar
@@ -300,7 +316,6 @@ bool IsDummy(DTB* myDTB);
  */
 DTB* GetNextReadyDTB();
 
-
 /*
  * 	ACCION: Funcion para el hilo del PLP, con todas sus posibles acciones a llevar a cabo
  * 	PARAMETROS:
@@ -338,7 +353,7 @@ bool NoReadyDTBs(char* algorithm);
 
 /*
  * 	ACCION: Acomodar las colas (copiar y mover DTBs entre ellas) de READY previo a un ciclo del PCP,
- * 			por si hubiera habido un cambio de algoritmo mediante factores externos
+ * 			por si hubiera habido un cambio de algoritmo mediante factores externos; deja vacia la cola antigua
  * 	PARAMETROS:
  * 		changeCode: Codigo del tipo de cambio de algoritmo (de cual a cual fue)
  */
@@ -447,6 +462,6 @@ void DeleteQueuesAndLists();
 /*
  * 	ACCION: Eliminar toda variable global, semaforo, cola y lista empleada en el modulo
  */
-void DeleteGlobalVariables();
+void DeleteSchedulingGlobalVariables();
 
 #endif /* HEADERFILES_SCHEDULING_H_ */

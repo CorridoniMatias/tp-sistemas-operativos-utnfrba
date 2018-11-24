@@ -1,24 +1,22 @@
+///-------------INCLUSION DE BIBLIOTECAS-------------///
+
+//------BIBLIOTECAS EXTERNAS------//
+
+//------BIBLIOTECAS INTERNAS------//
 #include "kemmens/megekemmen.h"
 #include "kemmens/logger.h"
 #include "kemmens/ThreadPool.h"
 #include "kemmens/CommandInterpreter.h"
 #include "kemmens/SocketServer.h"
 
-#include "headerFiles/bibliotecaSAFA.h"
+//------BIBLIOTECAS PROPIAS------//
 #include "headerFiles/ConsoleHandler.h"
-#include "headerFiles/CPUsManager.h"
-#include "headerFiles/Scheduling.h"
+#include "headerFiles/ResourceManager.h"
+#include "headerFiles/Communication.h"
 
 bool corrupt = true;
 int elDiego = -1;
-
-//Variables externas, declaradas primero en Scheduling.h
-extern int PLPtask;
-extern int PCPtask;
-extern sem_t workPLP;
-extern sem_t assignmentPending;
-extern CreatableGDT* justDummied;
-extern AssignmentInfo* toBeAssigned;
+ThreadPool* threadPool;
 
 void *CommandIAm (int argC, char** args, char* callingLine, void* extraData)
 {
@@ -114,6 +112,19 @@ void StartServer()
 	SocketServer_ListenForConnection(actions);
 	DestroyCPUsHolder();
 	Logger_Log(LOG_INFO, "Server Shutdown.");
+
+}
+
+void freeGlobalVariables()
+{
+
+	free(settings->algoritmo);
+	free(settings);
+	ThreadPool_FreeGracefully(threadPool);
+	DestroyCPUsHolder();
+	DeleteResources();
+	DeleteSchedulingGlobalVariables();
+
 }
 
 int main(int argc, char **argv)
@@ -122,7 +133,7 @@ int main(int argc, char **argv)
 	Logger_Log(LOG_INFO, "Proceso SAFA iniciado...");
 	configurar();
 	StartServer();
-	ThreadPool_FreeGracefully(threadPool);
+	freeGlobalVariables();
 	exit_gracefully(0);
 }
 

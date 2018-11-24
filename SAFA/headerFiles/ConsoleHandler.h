@@ -1,19 +1,28 @@
 #ifndef HEADERFILES_CONSOLEHANDLER_H_
 #define HEADERFILES_CONSOLEHANDLER_H_
 
+///-------------INCLUSION DE BIBLIOTECAS-------------///
+
+//------BIBLIOTECAS EXTERNAS------//
+
+//------BIBLIOTECAS INTERNAS------//
 #include "kemmens/CommandInterpreter.h"
 #include "kemmens/ThreadPool.h"
 #include "kemmens/SocketServer.h"
 
+//------BIBLIOTECAS PROPIAS------//
 #include "../headerFiles/Scheduling.h"
-#include "../headerFiles/SharedResources.h"
+
+///-------------VARIABLES GLOBALES-------------///
+
+ThreadPool* threadPool;
 
 //Variables externas, declaradas primero en Scheduling.h
-extern int PLPtask;
-extern int PCPtask;
-extern sem_t workPLP;
-extern CreatableGDT* justDummied;
-extern t_queue* scriptsQueue;
+extern pthread_mutex_t mutexREADY;
+extern t_queue* scriptsQueue;					//Cola de scripts a asociar a un DTB, por comando ejecutar
+extern t_queue* toBeEnded;						//Cola de DTBs a abortar, por comando finalizar
+
+///-------------FUNCIONES DEFINIDAS------------///
 
 void CommandEjecutar (int argC, char** args, char* callingLine, void* extraData);
 
