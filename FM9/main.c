@@ -1,6 +1,4 @@
 #include <unistd.h>
-#include "headers/CPUsManager.h"
-#include "headers/ConsoleHandler.h"
 #include "headers/FM9_Server.h"
 #include "headers/FM9lib.h"
 #include "headers/Storage.h"
@@ -16,10 +14,10 @@ int main(int argc, char **argv) {
 	configurar();
 	createStorage();
 
-	testAsignar();
+	testDump();
 
-//	StartServer();
-//	ThreadPool_FreeGracefully(threadPool);
+	StartServer();
+	ThreadPool_FreeGracefully(threadPool);
 	freeStorage();
 	free(settings);
 	exit_gracefully(0);

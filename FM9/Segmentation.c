@@ -70,10 +70,7 @@ int writeData_SEG(void* data, int size, int dtbID) {
 	int segmentNumber = getNewSegmentNumber(segments);
 	//IMPLEMENTAR ALGUNA LOGICA PARA PONER NUMERO DE SEGMENTO QUE NO SE REPITA
 	char* segmentKey = string_itoa(segmentNumber);
-	if (dictionary_has_key(segments->segments, segmentKey)) {
-		free(dictionary_get(segments->segments, segmentKey));
-	}
-	dictionary_put(segments->segments, segmentKey, newSegment);
+	dictionary_putMAESTRO(segments->segments,segmentKey, newSegment, free);
 	free(segmentKey);
 	segments->nextSegmentNumber++;
 
@@ -135,7 +132,7 @@ int getNewSegmentNumber(t_segments* segments) {
 
 int dumpSegmentation(int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
-	if (dictionary_has_key(segmentsPerDTBTable, dtbKey))
+	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey))
 		return -1;
 
 	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
@@ -175,7 +172,7 @@ int closeSegmentation(int dtbID, int virtualAddress) {
 }
 
 void addFreeSegment(t_segment* segment) {
-	list_add(freeSegments);
+	list_add(freeSegments, freeSegments);
 	sortFreeSegments();
 	freeSegmentCompaction();
 }
@@ -194,8 +191,8 @@ void freeSegmentCompaction() {
 	t_segment* secondSegment;
 	int index = 0;
 	while (index < list_size(freeSegments)) {
-		firstSegment = list_get(index);
-		secondSegment = list_get(index + 1);
+		firstSegment = list_get(freeSegments, index);
+		secondSegment = list_get(freeSegments, index + 1);
 		if (firstSegment->base + firstSegment->limit == secondSegment->base) {
 			firstSegment->limit += secondSegment->limit;
 			list_remove_and_destroy_element(freeSegments, index + 1, free);

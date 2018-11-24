@@ -4,12 +4,7 @@
 #include <stdio.h>
 #include "kemmens/logger.h"
 #include "FM9lib.h"
-
-
-//FM9 General Errors:
-
-#define INVALID_LINE_NUMBER	-1
-#define INSUFFICIENT_SPACE	-2
+#include "FM9Errors.h"
 
 int tamanioLinea;
 int cantLineas;

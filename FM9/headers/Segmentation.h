@@ -6,6 +6,7 @@
 #include <commons/collections/dictionary.h>
 #include <stdbool.h>
 #include <math.h>
+#include "kemmens/Utils.h"
 
 //La base y limit es el número de linea
 typedef struct{
@@ -62,5 +63,18 @@ int getSegmentFromAddress(int virtualAddress);
 int getOffsetFromAddress(int virtualAddress);
 
 int getNewSegmentNumber();
+
+int dumpSegmentation(int dtbID);
+
+int closeSegmentation(int dtbID, int virtualAddress);
+
+void addFreeSegment(t_segment* segment);
+
+void sortFreeSegments();
+
+void freeSegmentCompaction();
+
+int sizeOfSegment(int dtbID, int virtualAddress);
+
 
 #endif /* #define SEGMENTATION_H_ */

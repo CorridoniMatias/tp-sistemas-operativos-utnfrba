@@ -3,8 +3,6 @@
 
 
 #include <unistd.h>
-#include "CPUsManager.h"
-#include "ConsoleHandler.h"
 #include "FM9_Server.h"
 #include "FM9lib.h"
 #include "Storage.h"
@@ -17,5 +15,6 @@
 void testSEG();
 void testPAG();
 void testAsignar();
+void testDump();
 
 #endif /* TEST_H_INCLUDED */

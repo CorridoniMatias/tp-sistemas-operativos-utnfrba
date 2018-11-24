@@ -4,16 +4,9 @@
 #include <stdio.h>
 #include <commons/collections/list.h>
 #include "kemmens/logger.h"
-
 #include "FM9lib.h"
 #include "Storage.h"
-
-//FM9 General Errors:
-
-#define NO_FRAMES_AVAILABLE	-1
-#define INVALID_FRAME_NUMBER -2
-#define INSUFFICIENT_FRAMES_AVAILABLE -3
-
+#include "FM9Errors.h"
 int tamanioFrame;
 int cantLineasPorFrame;
 int cantFrames;

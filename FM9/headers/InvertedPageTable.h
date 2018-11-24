@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <commons/collections/dictionary.h>
 #include "Paging.h"
+#include "FM9Errors.h"
 
-#define INSUFFICIENT_SPACE -1
 
 typedef struct {
 	int dtbId;

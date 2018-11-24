@@ -4,8 +4,6 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../CPUsManager.c \
-../ConsoleHandler.c \
 ../FM9Interface.c \
 ../FM9_Server.c \
 ../FM9lib.c \
@@ -17,8 +15,6 @@ C_SRCS += \
 ../main.c 
 
 OBJS += \
-./CPUsManager.o \
-./ConsoleHandler.o \
 ./FM9Interface.o \
 ./FM9_Server.o \
 ./FM9lib.o \
@@ -30,8 +26,6 @@ OBJS += \
 ./main.o 
 
 C_DEPS += \
-./CPUsManager.d \
-./ConsoleHandler.d \
 ./FM9Interface.d \
 ./FM9_Server.d \
 ./FM9lib.d \

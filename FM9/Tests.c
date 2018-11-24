@@ -79,3 +79,17 @@ void testAsignar()
 	free(buffer);
 	freeSegmentationStructures();
 }
+
+void testDump(){
+	createSegmentationStructures();
+
+	char * d = "01\n";
+	char * d1 = "ABCD";
+	char * d2 = "HOLA";
+	char * d3= "DATOS#";
+
+	Logger_Log(LOG_DEBUG, "FM9 -> Escritura en  %d", writeData_SEG(d, 3, 1));
+	Logger_Log(LOG_DEBUG, "FM9 -> Escritura en  %d", writeData_SEG(d1, 4, 1));
+	Logger_Log(LOG_DEBUG, "FM9 -> Escritura en  %d", writeData_SEG(d2, 4, 1));
+	Logger_Log(LOG_DEBUG, "FM9 -> Escritura en  %d", writeData_SEG(d3, 5, 1));
+}
