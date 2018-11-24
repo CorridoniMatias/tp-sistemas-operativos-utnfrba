@@ -54,5 +54,9 @@
 
 //PROTOCOLO FM9 (4)
 #define MESSAGETYPE_FM9_GETLINE 40 //Pedir una linea de un archivo
+#define MESSAGETYPE_FM9_ASIGN 41 //Asignar una linea de un archivo
+#define MESSAGETYPE_FM9_CLOSE 42 //Cerrar un un archivo
+#define MESSAGETYPE_FM9_OPEN 43 //Cargar un archivo a memoria desde el MDJ, se recibe desde el DAM
+#define MESSAGETYPE_FM9_FLUSH 44 //Flushear un archivo de memoria al MDJ, se envia al DAM
 
 #endif /* KEMMENS_SOCKETMESSAGETYPES_H_ */

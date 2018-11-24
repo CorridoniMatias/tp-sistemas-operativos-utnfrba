@@ -52,6 +52,6 @@ void FM9_Dump(int argC, char** args, char* callingLine, void* extraData) {
 	}
 }
 
-//int FM9_Flush(int dtbID, int virtualAddress) {
-//
-//}
+void FM9_Flush(int dtbID, int virtualAddress) {
+
+}
