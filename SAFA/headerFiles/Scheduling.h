@@ -160,6 +160,8 @@ pthread_mutex_t mutexPCPtask;
 pthread_mutex_t mutexAlgorithm;					//Para que no jodan al querer ver cual es el algoritmo actual
 pthread_mutex_t mutexREADY;						//Garantiza mutua exclusion sobre las colas READY (la actual);
 												//extern en ConsoleHandler.h, ya que este lo usara al hacer metricas/status
+pthread_mutex_t mutexScriptsQueue;				//Mutua exclusion sobre la cola de scripts; usado tanto en este mismo
+												//modulo como en ConsoleHandler.h, al hacer el comando "ejecutar"
 
 sem_t assignmentPending;						//Semaforo binario, para indicar que hay se debe avisar lo de toBeAssigned;
 												//extern en Communication.h, ya que le hara un wait

@@ -26,6 +26,7 @@ void InitSemaphores()
 	pthread_mutex_init(&mutexPCPtask, NULL);
 	pthread_mutex_init(&mutexAlgorithm, NULL);
 	pthread_mutex_init(&mutexREADY, NULL);
+	pthread_mutex_init(&mutexScriptsQueue, NULL);
 	sem_init(&workPLP, 0, 0);
 	sem_init(&assignmentPending, 0, 0);
 
@@ -253,6 +254,31 @@ DTB* GetNextReadyDTB()
 
 ////////////////////////////////////////////////////////////
 
+void ShowDTBInfo_Shallow(void* aDTB)
+{
+
+	DTB* realDTB = (DTB*) aDTB;
+	printf("--------------\n");
+	printf(" -ID: %d\n", realDTB->id);
+	printf(" -Path: %s\n", realDTB->pathEscriptorio);
+
+}
+
+void ShowDTBInfo_Deep(void* aDTB)
+{
+
+	DTB* realDTB = (DTB*) aDTB;
+	printf("-ID: %d\n", realDTB->id);
+	printf("-Path: %s\n", realDTB->pathEscriptorio);
+	printf("-Direccion logica script: %d\n", realDTB->pathLogicalAddress);
+	printf("-Program Counter: %d\n", realDTB->programCounter);
+	printf("-Flag de inicializacion: %d\n", realDTB->initialized);
+	//printf("-Estado (cola): %s", realDTB->status);
+
+}
+
+////////////////////////////////////////////////////////////
+
 void PlanificadorLargoPlazo(void* gradoMultiprogramacion)
 {
 	int multiprogrammingDegree = *((int*) gradoMultiprogramacion);
@@ -294,6 +320,8 @@ void PlanificadorLargoPlazo(void* gradoMultiprogramacion)
 
 		else if(PLPtask == PLP_TASK_CREATE_DTB)
 		{
+			//Para que no se recorra la cola mientras se estan agregando scripts a ejecutar (por las dudas)
+			pthread_mutex_lock(&mutexScriptsQueue);
 			//Hasta vaciar la cola de scripts, los voy sacando y guardando en DTBs que agrego a NEW
 			while(!queue_is_empty(scriptsQueue))
 			{
@@ -303,6 +331,7 @@ void PlanificadorLargoPlazo(void* gradoMultiprogramacion)
 				newDTB = CreateDTB(newPath);
 			    AddToNew(newDTB);
 			}
+			pthread_mutex_unlock(&mutexScriptsQueue);
 
 			//Vuelvo a poner la tarea del PLP en Planificacion Normal (1)
 			SetPLPTask(PLP_TASK_NORMAL_SCHEDULE);
@@ -847,6 +876,7 @@ void DeleteSemaphores()
 	pthread_mutex_destroy(&mutexPCPtask);
 	pthread_mutex_destroy(&mutexAlgorithm);
 	pthread_mutex_destroy(&mutexREADY);
+	pthread_mutex_destroy(&mutexScriptsQueue);
 	sem_destroy(&workPLP);
 	sem_destroy(&assignmentPending);
 

@@ -18,24 +18,33 @@ bool corrupt = true;
 int elDiego = -1;
 ThreadPool* threadPool;
 
+/*
+ * 	Comando del CommandInterpreter, ante un mensaje "iam" (handshake con un componente)
+ */
 void *CommandIAm (int argC, char** args, char* callingLine, void* extraData)
 {
+
 	if(argC == 1)
 	{
 		if(string_equals_ignore_case(args[1], "dam"))
 		{
-			elDiego = *(int*)extraData;
-		} else if(string_equals_ignore_case(args[1], "cpu"))
+			//Seteo el socket del DAM en esa variable
+			elDiego = *((int*)extraData);
+		}
+		else if(string_equals_ignore_case(args[1], "cpu"))
 		{
 			AddCPU((int*)extraData);
 		}
 
 		if(CPUsCount() > 0 && elDiego != -1)
+		{
 			corrupt = false;
+		}
 	}
 
 	CommandInterpreter_FreeArguments(args);
 	return 0;
+
 }
 
 void* postDo(char* cmd, char* sep, void* args, bool fired)
@@ -86,14 +95,17 @@ void ClientError(int socketID, int errorCode)
 	printf("Cliente %d se reporto con error %s!\n", socketID, strerror(errorCode));
 }
 
-
+/*
+ * 	ACCION: Levanta el servidor (al SAFA se le conectan el DAM y los CPU, y mantiene sus ambos planificadores internamente
+ * 			Registro los comandos del CommandInterpreter, y agrego los listeners al server
+ * 			Lo pongo a escuchar conexiones entrantes y, como ultima linea, manejo el cierre del server al terminar
+ */
 void StartServer()
 {
-	CommandInterpreter_Init();
-	InitCPUsHolder();
-	threadPool = ThreadPool_CreatePool(10, false);
 
+	//Registro de comandos funcionales y de comunicacion
 	CommandInterpreter_RegisterCommand("iam", (void*)CommandIAm);
+	//Registro de comandos de consola del SAFA
 	CommandInterpreter_RegisterCommand("ejecutar", (void*)CommandEjecutar);
 	CommandInterpreter_RegisterCommand("status", (void*)CommandStatus);
 	CommandInterpreter_RegisterCommand("finalizar", (void*)CommandFinalizar);
@@ -110,11 +122,35 @@ void StartServer()
 	actions.OnReceiveError = (void*)ClientError;
 
 	SocketServer_ListenForConnection(actions);
-	DestroyCPUsHolder();
+
 	Logger_Log(LOG_INFO, "Server Shutdown.");
 
 }
 
+/*
+ * 	ACCION: Inicializa las variables globales y los elementos globales de los modulos
+ */
+void initialize()
+{
+
+	//Creo el logger y logeo dicho evento; voy a logear aca para ir debugeando
+	Logger_CreateLog("./SAFA.log", "SAFA", true);
+	Logger_Log(LOG_INFO, "Proceso SAFA iniciado...");
+	//Armo la estructura de configuracion en base al archivo
+	configurar();
+	//Creo el ThreadPool, la lista de CPUs, las variables de Scheduling, la tabla de recursos y el CommandInterpreter
+	threadPool = ThreadPool_CreatePool(10, false);
+	InitCPUsHolder();
+	InitSchedulingGlobalVariables();
+	CommandInterpreter_Init();
+	CreateResourcesTable();
+	Logger_Log(LOG_INFO, "Variables globales inicializadas; listo para levantar el server!");
+
+}
+
+/*
+ * 	ACCION: Liberar todas las variables globales inicializadas por el initialize
+ */
 void freeGlobalVariables()
 {
 
@@ -124,16 +160,17 @@ void freeGlobalVariables()
 	DestroyCPUsHolder();
 	DeleteResources();
 	DeleteSchedulingGlobalVariables();
+	Logger_Log(LOG_INFO, "Liberada la memoria ocupada por variables globales");
 
 }
 
 int main(int argc, char **argv)
 {
-	Logger_CreateLog("./SAFA.log", "SAFA", true);
-	Logger_Log(LOG_INFO, "Proceso SAFA iniciado...");
-	configurar();
+
+	initialize();
 	StartServer();
 	freeGlobalVariables();
 	exit_gracefully(0);
+
 }
 

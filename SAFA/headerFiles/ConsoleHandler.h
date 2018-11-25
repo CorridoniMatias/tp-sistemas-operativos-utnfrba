@@ -24,6 +24,17 @@ extern t_queue* toBeEnded;						//Cola de DTBs a abortar, por comando finalizar
 
 ///-------------FUNCIONES DEFINIDAS------------///
 
+/*
+ * 	ACCION: Mostrar, para cada cola, la cantidad de procesos en ellas, mas el ID y el script asociado a cada uno
+ * 	PARAMETROS:
+ * 		PCPalgorithm: Algoritmo actualmente utilizado por el PCP, para saber que cola de READY mirar
+ */
+void ShowQueuesInformation(char* PCPalgorithm);
+
+/*
+ * 	ACCION: Interpretar que hacer cuando a traves de la consola llega un "ejecutar"
+ * 			Seria agregar un script a ejecutar, el mismo es el segundo elemento de args; avisarle al PLP
+ */
 void CommandEjecutar (int argC, char** args, char* callingLine, void* extraData);
 
 void CommandStatus (int argC, char** args, char* callingLine, void* extraData);
