@@ -19,6 +19,7 @@ ThreadPool* threadPool;
 
 //Variables externas, declaradas primero en Scheduling.h
 extern pthread_mutex_t mutexREADY;
+extern pthread_mutex_t mutexToBeEnded;
 extern t_queue* scriptsQueue;					//Cola de scripts a asociar a un DTB, por comando ejecutar
 extern t_queue* toBeEnded;						//Cola de DTBs a abortar, por comando finalizar
 
@@ -37,14 +38,30 @@ void ShowQueuesInformation(char* PCPalgorithm);
  */
 void CommandEjecutar (int argC, char** args, char* callingLine, void* extraData);
 
+/*
+ * 	ACCION: Interpretar que hacer cuando a traves de la consola llega un "status"
+ * 			Seria mostrar info de las colas y algo de informacion de los DTBs de cada una (Shallow)
+ * 			o bien mostrar informacion detallada de un DTB en particular, pasado por parametro (Deep)
+ */
 void CommandStatus (int argC, char** args, char* callingLine, void* extraData);
 
+/*
+ * 	ACCION: Interpretar que hacer cuando a traves de la consola llega un "finalizar"
+ * 			Seria terminar la ejecucion de un DTB; lo que hago es encolar el ID del DTB
+ * 			en la cola de DTBs a finalizar (mover a EXIT), tarea del PCP
+ */
 void CommandFinalizar (int argC, char** args, char* callingLine, void* extraData);
 
+/*
+ * 	ACCION: Interpretar que hacer cuando a traves de la consola llega un "metricas"
+ * 			Seria fijarse en si hay un parametro o ninguno, y ahi detallar las metricas necesarias
+ */
 void CommandMetricas (int argC, char** args, char* callingLine, void* extraData);
 
+/*
+ * 	ACCION: Interpretar que hacer cuando a traves de la consola llega un "quit"
+ * 			Seria cerrar el servidor, lo cual hace que se salga de la funcion StartServer
+ */
 void CommandQuit (int argC, char** args, char* callingLine, void* extraData);
-
-void ProcessLineInput(char* line);
 
 #endif /* HEADERFILES_CONSOLEHANDLER_H_ */

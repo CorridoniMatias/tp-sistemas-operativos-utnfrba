@@ -162,6 +162,9 @@ pthread_mutex_t mutexREADY;						//Garantiza mutua exclusion sobre las colas REA
 												//extern en ConsoleHandler.h, ya que este lo usara al hacer metricas/status
 pthread_mutex_t mutexScriptsQueue;				//Mutua exclusion sobre la cola de scripts; usado tanto en este mismo
 												//modulo como en ConsoleHandler.h, al hacer el comando "ejecutar"
+pthread_mutex_t mutexToBeBlocked;				//Usado en Communication.h (extern)
+pthread_mutex_t mutexToBeUnlocked;				//Usado en Communication.h y ResourceManager.h (extern)
+pthread_mutex_t mutexToBeEnded;					//Usado en Communication.h y ConsoleHandler.h (extern)
 
 sem_t assignmentPending;						//Semaforo binario, para indicar que hay se debe avisar lo de toBeAssigned;
 												//extern en Communication.h, ya que le hara un wait
@@ -215,8 +218,9 @@ t_queue* toBeBlocked;							//Cola de BlockableInfo*s con los IDs de los DTBs qu
 
 t_queue* toBeEnded;								//Cola de int*s con los IDs de los DTBs que deben ser pasados a
 												//EXIT por haber terminado su archivo o haberse producido un error
-												//Tocada solo por mensajes del CPU (error o fin de script);
-												//extern en Communication.h (mensajes de CPU o DAM) y CH.h (comando finalizar
+												//Tocada solo por mensajes del CPU (error o fin de script), del
+												//DAM (errores) y de la consola (comando finalizar);
+												//extern en Communication.h (mensajes de CPU o DAM) y CH.h (comando finalizar)
 
 ///-------------FUNCIONES DEFINIDAS------------///
 
@@ -253,16 +257,6 @@ void SetPLPTask(int taskCode);
  * 		taskCode: Codigo de la tarea a realizar; ver mas arriba
  */
 void SetPCPTask(int taskCode);
-
-/*
- * 	ACCION: Muestra las opciones de la consola del S-AFA
- */
-int ShowOptions();
-
-/*
- * 	Este deberia suplantarse por el OnConsoleInput del CommandInterpreter
- */
-void GestorDeProgramas();
 
 /*
  * 	ACCION: Crea un DTB nuevo con un cierto script asociado, sin estado y solo pre-malloceado
@@ -312,6 +306,35 @@ void AddToExit(DTB* myDTB);
  * 		myDTB: DTB elemento de la lista, pasado automaticamente por parametro al aplicarle una funcion de orden superior
  */
 bool IsDummy(DTB* myDTB);
+
+/*
+ * 	ACCION: Closure para mostrar solo id y script asociado de un DTB; aplicar ante el comando status de consola
+ * 	PARAMETROS:
+ * 		aDTB: DTB, elemento de alguna cola de planificacion (parametro automatico)
+ */
+void ShowDTBInfo_Shallow(void* aDTB);
+
+/*
+ * 	ACCION: Closure para mostrar ruta y direccion logica de cada archivo abierto (diccionario) de un DTB
+ * 	PARAMETROS:
+ * 		path: Ruta del archivo, key del diccionario, parametro automatico
+ * 		address: Direccion logica, value del diccionario, parametro automatico
+ */
+void ShowPathAndAddress(char* path, void* address);
+
+/*
+ * 	ACCION: Retornar el puntero al DTB que se desea; util para el comando status de la consola
+ * 	PARAMETROS:
+ * 		desiredID: ID del DTB cuya informacion se quiere saber
+ * 		algorithm: Algoritmo actual de planificacion del PCP, para saber en cual cola de READY buscar
+ */
+DTB* GetDTBbyID(uint32_t desiredID, char* algorithm);
+
+/*	ACCION: Mostrar toda la informacion (campo por campo) de un DTB; ante un status con parametro
+ * 	PARAMETROS:
+ * 		target: DTB (es un puntero posta) que coincide con el del parametro del comando; obtenido por busqueda
+ */
+void ShowDTBInfo_Deep(DTB* target);
 
 /*
  * 	ACCION: Obtener un puntero al proximo DTB a ejecutar, el primero de la cola READY

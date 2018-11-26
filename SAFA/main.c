@@ -95,6 +95,29 @@ void ClientError(int socketID, int errorCode)
 	printf("Cliente %d se reporto con error %s!\n", socketID, strerror(errorCode));
 }
 
+void OnPostInterpreter(char* cmd, char* sep, void* args, bool actionFired)
+{
+	free(cmd);
+}
+
+void ProcessLineInput(char* line)
+{
+	ThreadableDoStructure* st = CommandInterpreter_MallocThreadableStructure();
+
+	st->commandline = line;
+	st->data = NULL;
+	st->separator = " ";
+	st->postDo = (void*)OnPostInterpreter;
+
+	ThreadPoolRunnable* run = ThreadPool_CreateRunnable();
+
+	run->data = (void*)st;
+	run->runnable = (void*)CommandInterpreter_DoThreaded;
+	run->free_data = (void*)CommandInterpreter_FreeThreadableDoStructure;
+
+	ThreadPool_AddJob(threadPool, run);
+}
+
 /*
  * 	ACCION: Levanta el servidor (al SAFA se le conectan el DAM y los CPU, y mantiene sus ambos planificadores internamente
  * 			Registro los comandos del CommandInterpreter, y agrego los listeners al server

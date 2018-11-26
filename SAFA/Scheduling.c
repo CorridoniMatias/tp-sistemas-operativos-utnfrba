@@ -27,6 +27,9 @@ void InitSemaphores()
 	pthread_mutex_init(&mutexAlgorithm, NULL);
 	pthread_mutex_init(&mutexREADY, NULL);
 	pthread_mutex_init(&mutexScriptsQueue, NULL);
+	pthread_mutex_init(&mutexToBeBlocked, NULL);
+	pthread_mutex_init(&mutexToBeUnlocked, NULL);
+	pthread_mutex_init(&mutexToBeEnded, NULL);
 	sem_init(&workPLP, 0, 0);
 	sem_init(&assignmentPending, 0, 0);
 
@@ -226,6 +229,8 @@ void AddToExit(DTB* myDTB)
 
 	myDTB->status = DTB_STATUS_EXIT;
 	list_add(EXITqueue, myDTB);
+	//No me olvido de disminuir la cantidad de procesos en memoria del sistema
+	inMemoryAmount--;
 
 }
 
@@ -264,16 +269,109 @@ void ShowDTBInfo_Shallow(void* aDTB)
 
 }
 
-void ShowDTBInfo_Deep(void* aDTB)
+void ShowPathAndAddress(char* path, void* address)
 {
 
-	DTB* realDTB = (DTB*) aDTB;
-	printf("-ID: %d\n", realDTB->id);
-	printf("-Path: %s\n", realDTB->pathEscriptorio);
-	printf("-Direccion logica script: %d\n", realDTB->pathLogicalAddress);
-	printf("-Program Counter: %d\n", realDTB->programCounter);
-	printf("-Flag de inicializacion: %d\n", realDTB->initialized);
-	//printf("-Estado (cola): %s", realDTB->status);
+	printf("------\n");
+	printf(" -Path: %s\n", path);
+	printf(" -Direccion logica: %d\n", *((uint32_t*)address));
+
+}
+
+DTB* GetDTBbyID(uint32_t desiredID, char* algorithm)
+{
+
+	//Closure interna, devuelve si un DTB es el ingresado como parametro o no; para buscar
+	bool IsDesiredDTB(void* aDtb)
+	{
+		DTB* castDTB = (DTB*) aDtb;
+		if(castDTB->id == desiredID)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	//Busco en cada cola de planificacion; si no lo encuentro en una, voy a la siguiente
+	DTB* wanted = list_find(NEWqueue->elements, IsDesiredDTB);
+
+	if(!wanted)
+	{
+		if((strcmp(algorithm, "RR")))
+		{
+			wanted = list_find(READYqueue_RR->elements, IsDesiredDTB);
+		}
+		else if((strcmp(algorithm, "VRR")))
+		{
+			wanted = list_find(READYqueue_VRR, IsDesiredDTB);
+		}
+		else if((strcmp(algorithm, "PROPIO")))
+		{
+			wanted = list_find(READYqueue_Own, IsDesiredDTB);
+		}
+	}
+
+	if(!wanted)
+	{
+		wanted = list_find(EXECqueue, IsDesiredDTB);
+	}
+
+	if(!wanted)
+	{
+		wanted = list_find(BLOCKEDqueue, IsDesiredDTB);
+	}
+
+	if(!wanted)
+	{
+		wanted = list_find(EXITqueue, IsDesiredDTB);
+	}
+
+	//NOTA: Si no se encontro al DTB en ninguna cola, queda en NULL!
+	return wanted;
+
+}
+
+void ShowDTBInfo_Deep(DTB* target)
+{
+
+	printf("--ID: %d\n", target->id);
+	printf("--Path del script asociado: %s\n", target->pathEscriptorio);
+	printf("--Direccion logica del script asociado: %d\n", target->pathLogicalAddress);
+	printf("--Program Counter: %d\n", target->programCounter);
+	printf("--Flag de inicializacion: %d\n", target->initialized);
+	printf("--Estado (cola):");
+
+	switch(target->status)
+	{
+		case DTB_STATUS_NEW :
+			printf("NEW\n");
+			break;
+
+		case DTB_STATUS_READY :
+			printf("READY\n");
+			break;
+
+		case DTB_STATUS_EXEC :
+			printf("EXEC\n");
+			break;
+
+		case DTB_STATUS_BLOCKED :
+			printf("BLOCKED\n");
+			break;
+
+		case DTB_STATUS_EXIT :
+			printf("EXIT\n");
+			break;
+	}
+
+	printf("--Quantum restante de ultima ejecucion: %d\n", target->quantumRemainder);
+	printf("--Archivos abiertos--\n");
+	printf(" -TOTAL: %d\n", target->openedFilesAmount);
+	dictionary_iterator(target->openedFiles, ShowPathAndAddress);
+	printf("--Cantidad de operaciones IO realizadas: %d\n", target->ioOperations);
 
 }
 
@@ -468,6 +566,7 @@ void PlanificadorCortoPlazo()
 			//Cuando el CPU me aviso que lo desaloje, deberia haberlo liberado con FreeCPU desde otro modulo
 			//Puntero a uint32_t, de ahi voy leyendo el ID del proximo DTB a bloquear (segun la cola)
 			BlockableInfo* nextToBlock = (BlockableInfo*) malloc(sizeof(BlockableInfo));
+			pthread_mutex_lock(&mutexToBeBlocked);
 			while(!queue_is_empty(toBeBlocked))
 			{
 				nextToBlock = (BlockableInfo*) queue_pop(toBeBlocked);
@@ -495,6 +594,7 @@ void PlanificadorCortoPlazo()
 				UpdateOpenedFiles(target, nextToBlock->openedFilesUpdate);
 				AddToBlocked(target);
 			}
+			pthread_mutex_unlock(&mutexToBeBlocked);
 
 			//No me olvido de este free! Ni de avisar al planificador que, tras bloquear todos, vuelva a planificar
 			free(nextToBlock);
@@ -508,6 +608,7 @@ void PlanificadorCortoPlazo()
 
 			//Puntero al proximo DTB a desbloquear, segun vaya sacando de la cola
 			UnlockableInfo* nextToUnlock = (UnlockableInfo*) malloc(sizeof(UnlockableInfo));
+			pthread_mutex_lock(&mutexToBeUnlocked);
 			while(!queue_is_empty(toBeUnlocked))
 			{
 
@@ -540,6 +641,7 @@ void PlanificadorCortoPlazo()
 				AddToReady(target);
 
 			}
+			pthread_mutex_unlock(&mutexToBeUnlocked);
 
 			//No me olvido de este free! Ni de avisar al planificador que, tras desbloquear todos, vuelva a planificar
 			free(nextToUnlock);
@@ -552,6 +654,7 @@ void PlanificadorCortoPlazo()
 
 			//Puntero a un uint32_t, que va a guardar el ID de cada DTB a abortar/finalizar de la cola
 			uint32_t* nextToEnd = (uint32_t*) malloc(sizeof(uint32_t));
+			pthread_mutex_lock(&mutexToBeEnded);
 			while(!queue_is_empty(toBeEnded))
 			{
 
@@ -571,17 +674,29 @@ void PlanificadorCortoPlazo()
 					}
 				}
 
-				//Busco el DTB en EXEC (por si me aviso CPU) que tiene dicho ID; si no esta ahi, lo busco en BLOCKED (aviso DAM)
-				DTB* target = list_remove_by_condition(EXECqueue, IsDTBToBeEnded);
+				//Busco el DTB en BLOCKED (aviso DAM,o finalizar), en READY (comando finalizar) y en EXEC (aviso CPU)
+				DTB* target = list_remove_by_condition(BLOCKEDqueue, IsDTBToBeEnded);
 				if(!target)
 				{
-					target = list_remove_by_condition(BLOCKEDqueue, IsDTBToBeEnded);
+					pthread_mutex_lock(&mutexREADY);
+					if((strcmp(schedulingRules.name, "RR")) == 0)
+						target = list_remove_by_condition(READYqueue_RR->elements, IsDTBToBeEnded);
+					if((strcmp(schedulingRules.name, "VRR")) == 0)
+						target = list_remove_by_condition(READYqueue_VRR, IsDTBToBeEnded);
+					if((strcmp(schedulingRules.name, "PROPIO")) == 0)
+						target = list_remove_by_condition(READYqueue_Own, IsDTBToBeEnded);
+					pthread_mutex_unlock(&mutexREADY);
+				}
+				if(!target)
+				{
+					target = list_remove_by_condition(EXECqueue, IsDTBToBeEnded);
 				}
 
 				//Lo muevo a la "cola" de EXIT, actualizando su estado
 				AddToExit(target);
 
 			}
+			pthread_mutex_unlock(&mutexToBeEnded);
 
 			//Libero este puntero, y ademas le aviso al PCP que siga planificando normal
 			free(nextToEnd);
@@ -877,6 +992,9 @@ void DeleteSemaphores()
 	pthread_mutex_destroy(&mutexAlgorithm);
 	pthread_mutex_destroy(&mutexREADY);
 	pthread_mutex_destroy(&mutexScriptsQueue);
+	pthread_mutex_destroy(&mutexToBeBlocked);
+	pthread_mutex_destroy(&mutexToBeUnlocked);
+	pthread_mutex_destroy(&mutexToBeEnded);
 	sem_destroy(&workPLP);
 	sem_destroy(&assignmentPending);
 
