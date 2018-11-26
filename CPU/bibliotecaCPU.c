@@ -99,7 +99,7 @@ char* askLineToFM9(DeserializedData* dtb, int fm9){
 
 	SerializedPart* packetToFM9 = Serialization_Serialize(2, fieldForFM91, fieldForFM92);
 
-	SocketCommons_SendData(fm9,MESSAGETYPE_CPU_ASKLINE, packetToFM9->data, packetToFM9->size);
+	SocketCommons_SendData(fm9,MESSAGETYPE_FM9_GETLINE, packetToFM9->data, packetToFM9->size);
 
 	// Me quedo esperando hasta que me devuelva la linea para ejecutar
 	int messageType, err, msglength;
@@ -475,7 +475,7 @@ void* CommandClose(int argC, char** args, char* callingLine, void* extraData){
 
 				SerializedPart* packetToFM9 = Serialization_Serialize(2, fieldForFM91, fieldForFM92);
 
-				SocketCommons_SendData(((Operation*)extraData)->socketFM9,MESSAGETYPE_CPU_CLOSE, packetToFM9->data, packetToFM9->size);
+				SocketCommons_SendData(((Operation*)extraData)->socketFM9,MESSAGETYPE_FM9_CLOSE, packetToFM9->data, packetToFM9->size);
 
 				int messageType, err, msglength;
 
