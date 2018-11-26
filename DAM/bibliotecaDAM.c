@@ -207,6 +207,13 @@ void llegoUnPaquete(int socketID, int message_type, void* datos, int message_len
 		case MESSAGETYPE_DAM_SAFA_CREAR:
 			run->runnable = (void*)DAM_Crear;
 		break;
+		case MESSAGETYPE_DAM_SAFA_BORRAR:
+			run->runnable = (void*)DAM_Borrar;
+		break;
+		case MESSAGETYPE_DAM_SAFA_ABRIR:
+			run->runnable = (void*)DAM_Abrir;
+		break;
+
 
 		default:
 			free(run);
