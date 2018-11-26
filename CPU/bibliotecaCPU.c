@@ -72,14 +72,10 @@ void executeDummy(DeserializedData* dtb, int diego, int safa){
 
 	SocketCommons_SendData(diego, MESSAGETYPE_VOIDPOINTER, packetToDiego->data, packetToDiego->size);
 
-	SerializedPart fieldForSafa1 = {.size = sizeof(uint32_t), .data = id};
 
 
-	SerializedPart* packetToSafa = Serialization_Serialize(1,fieldForSafa1);
+	SocketCommons_SendData(safa,MESSAGETYPE_CPU_BLOCKDUMMY, id, sizeof(uint32_t));
 
-	SocketCommons_SendData(safa,MESSAGETYPE_CPU_BLOCKDUMMY, packetToSafa->data, packetToSafa->size);
-
-	Serialization_CleanupSerializedPacket(packetToSafa);
 	Serialization_CleanupSerializedPacket(packetToDiego);
 	Serialization_CleanupDeserializationStruct(dtb);
 	free(id);
@@ -224,11 +220,7 @@ void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 					int32_t idDtb = ((Operation*)extraData)->dtb;
 					declare_and_init(id, int32_t,idDtb);
 
-					SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
-
-
-					SerializedPart* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
-					SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA->data, packetToSAFA->size);
+					SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
 					free(id);
 					free(newLogicDir);
 					StringUtils_FreeArray(args);
@@ -243,17 +235,13 @@ void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 					int32_t idDtb = ((Operation*)extraData)->dtb;
 					declare_and_init(id, int32_t,idDtb);
 
-					SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
-
-
-					SerializedPart* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
-					SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA->data, packetToSAFA->size);
+					SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
 
 					free(id);
 					free(newLogicDir);
 					StringUtils_FreeArray(args);
 					Serialization_CleanupDeserializationStruct(data);
-					Serialization_CleanupSerializedPacket(packetToSAFA);
+
 					Serialization_CleanupSerializedPacket(packetToFM9);
 					((Operation*)extraData)->commandResult = 2;
 					return 0;
@@ -265,26 +253,18 @@ void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 			int32_t idDtb = ((Operation*)extraData)->dtb;
 			declare_and_init(id, int32_t,idDtb);
 
-			SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
 
-
-			SerializedPart* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
-			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA->data, packetToSAFA->size);
+			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT,id, sizeof(uint32_t));
 			free(id);
-			Serialization_CleanupSerializedPacket(packetToSAFA);
+
 			((Operation*)extraData)->commandResult = 2; // hacer break
 			return 0;
 
 		}
 		int32_t idDtb = ((Operation*)extraData)->dtb;
 		declare_and_init(id, int32_t,idDtb);
-		SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
+		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT,id, sizeof(uint32_t));
 
-
-		SerializedPart* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
-		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA->data, packetToSAFA->size);
-
-		Serialization_CleanupSerializedPacket(packetToSAFA);
 		StringUtils_FreeArray(args);
 		free(id);
 		((Operation*)extraData)->commandResult = 2; // hacer break
@@ -434,13 +414,9 @@ void* CommandFlush(int argC, char** args, char* callingLine, void* extraData){
 		int32_t idDtb = ((Operation*)extraData)->dtb;
 		declare_and_init(id, int32_t,idDtb);
 
-		SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
-		SerializedPart* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
-
-		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA->data, packetToSAFA->size);
+		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT,id, sizeof(uint32_t));
 
 		((Operation*)extraData)->commandResult = 2;
-		Serialization_CleanupSerializedPacket(packetToSAFA);
 	    StringUtils_FreeArray(args);
 		Logger_Log(LOG_INFO, "El archivo no se encuentra abierto");
 		return 0;
@@ -518,15 +494,11 @@ void* CommandClose(int argC, char** args, char* callingLine, void* extraData){
 						Logger_Log(LOG_INFO, "Error fallo de segmento/memoria en FM9");
 						int32_t idDtb = ((Operation*)extraData)->dtb;
 						declare_and_init(id, int32_t,idDtb);
-						SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
-
-
-						SerializedPart* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
-						SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA->data, packetToSAFA->size);
+						SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT,id, sizeof(uint32_t));
 					    StringUtils_FreeArray(args);
 						Serialization_CleanupDeserializationStruct(data);
 						Serialization_CleanupSerializedPacket(packetToFM9);
-						Serialization_CleanupSerializedPacket(packetToSAFA);
+
 						free(id);
 						return 0;
 
@@ -536,15 +508,11 @@ void* CommandClose(int argC, char** args, char* callingLine, void* extraData){
 			else {
 				int32_t idDtb = ((Operation*)extraData)->dtb;
 				declare_and_init(id, int32_t,idDtb);
-				SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
-
-
-				SerializedPart* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
-				SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA->data, packetToSAFA->size);
+				SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT,id, sizeof(uint32_t));
 				((Operation*)extraData)->commandResult = 2; // 0 SALIO to MAL
 				free(id);
 			    StringUtils_FreeArray(args);
-				Serialization_CleanupSerializedPacket(packetToSAFA);
+
 
 				return 0;
 
@@ -552,15 +520,11 @@ void* CommandClose(int argC, char** args, char* callingLine, void* extraData){
 			}
 			int32_t idDtb = ((Operation*)extraData)->dtb;
 			declare_and_init(id, int32_t,idDtb);
-			SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
-
-
-			SerializedPart* packetToSAFA = Serialization_Serialize(1, fieldForSAFA1);
-			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, packetToSAFA->data, packetToSAFA->size);
+			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT,id, sizeof(uint32_t));
 			((Operation*)extraData)->commandResult = 2; // 0 SALIO to MAL
 			free(id);
 		    StringUtils_FreeArray(args);
-			Serialization_CleanupSerializedPacket(packetToSAFA);
+
 
 			return 0;
 		}

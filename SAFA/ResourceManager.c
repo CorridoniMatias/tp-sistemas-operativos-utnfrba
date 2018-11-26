@@ -53,17 +53,14 @@ void SignalForResource(char* name)
 		*requesterID = *((uint32_t*) queue_pop(involved->waiters));
 		//Actualizo los datos del recurso en el diccionario, hago un put sobre la misma key
 		dictionary_putMAESTRO(resources, name, involved, ResourceDestroyer);
-		//Agrego el DTB a desbloquear a la cola de DTBs a mover de nuevo a READY; y le aviso al PCP
+		//Agrego el DTB a desbloquear a la cola de DTBs a mover (mutex mediante) de nuevo a READY; y le aviso al PCP
+		pthread_mutex_lock(&mutexToBeUnlocked);
 		queue_push(toBeUnlocked, requesterID);
+		pthread_mutex_unlock(&mutexToBeUnlocked);
 		SetPCPTask(PCP_TASK_UNLOCK_DTB);
-		//free(signaled)??			Tecnicamente esta referencia no la necesito mas, debo liberarla?
 	}
 
-	else
-	{
-		//free(involved)??			Tecnicamente esta referencia no la necesito mas, debo liberarla?
-	}
-
+	//NO hago free de signaled ni de involved, salieron de un get (no hay malloc)
 }
 
 bool WaitForResource(char* name, int requesterID)
