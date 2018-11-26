@@ -28,7 +28,7 @@
 #define MESSAGETYPE_DAM_SAFA_BORRAR	223 //Comando: borrar
 #define MESSAGETYPE_DAM_SAFA_FLUSH	224 //Comando: flush
 #define MESSAGETYPE_DAM_SAFA_ERR	225 //Error en la operacion con SAFA
-
+#define MESSAGETYPE_DAM_SAFA_ABRIR  226 //
 
 ///PROTOCOLO S-AFA (5XX)
 
