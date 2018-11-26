@@ -29,7 +29,7 @@ void* postDo(char* cmd, char* sep, void* args, bool fired) {
 	return 0;
 }
 
-void onPacketArrived(int socketID, int message_type, void* data) {
+void onPacketArrived(int socketID, int message_type, void* data, int message_length) {
 
 	ThreadPoolRunnable* run = ThreadPool_CreateRunnable();
 
@@ -38,18 +38,19 @@ void onPacketArrived(int socketID, int message_type, void* data) {
 
 	arriveData->calling_SocketID = socketID;
 	arriveData->receivedData = data;
+	arriveData->receivedDataLength = message_length;
 
 	run->data = (void*) arriveData;
 
 	switch (message_type)
 	{
-		case MESSAGETYPE_CPU_ASKLINE:
+		case MESSAGETYPE_FM9_GETLINE:
 			run->runnable = FM9_AskForLine;
 			break;
-		case MESSAGETYPE_CPU_ASIGNAR:
+		case MESSAGETYPE_FM9_ASIGN:
 			run->runnable = FM9_AsignLine;
 			break;
-		case MESSAGETYPE_CPU_CLOSE:
+		case MESSAGETYPE_FM9_CLOSE:
 			run->runnable = FM9_Close;
 			break;
 		case MESSAGETYPE_FM9_OPEN:

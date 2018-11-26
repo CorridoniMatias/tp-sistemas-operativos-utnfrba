@@ -5,7 +5,6 @@
  */
 
 //Message Types
-
 #define MESSAGETYPE_STRING 1	//Strings puras
 #define MESSAGETYPE_INT	2		//INTS de longitud variable
 #define MESSAGETYPE_VOIDPOINTER	3   //void*, pára los packets
@@ -29,7 +28,6 @@
 #define MESSAGETYPE_DAM_SAFA_FLUSH	224 //Comando: flush
 #define MESSAGETYPE_DAM_SAFA_ERR	225 //Error en la operacion con SAFA
 
-
 ///PROTOCOLO S-AFA (5XX)
 
 //MENSAJES PARA EL CPU
@@ -37,9 +35,7 @@
 #define MESSAGETYPE_SAFA_CPU_WAITRESPONSE 522	//Respuesta a una operacion Wait hecha por un CPU; 1:aceptada, 0:denegada
 
 //PROTOCOLO CPU
-#define MESSAGETYPE_CPU_ASKLINE 310
-#define MESSAGETYPE_CPU_ASIGNAR 311
-#define MESSAGETYPE_CPU_CLOSE 312
+
 #define MESSAGETYPE_CPU_EOFORABORT 320
 #define MESSAGETYPE_CPU_BLOCKDUMMY 321
 #define MESSAGETYPE_CPU_BLOCKDTB 322
@@ -50,9 +46,9 @@
 #define MESSAGETYPE_CPU_FLUSH 331
 #define MESSAGETYPE_CPU_BORRAR 332
 #define MESSAGETYPE_CPU_CREAR 333
+#define MESSAGETYPE_CPU_RECEIVELINE 334
 
-
-//PROTOCOLO FM9 (4)
+//PROTOCOLO FM9 (4X)
 #define MESSAGETYPE_FM9_GETLINE 40 //Pedir una linea de un archivo
 #define MESSAGETYPE_FM9_ASIGN 41 //Asignar una linea de un archivo
 #define MESSAGETYPE_FM9_CLOSE 42 //Cerrar un un archivo

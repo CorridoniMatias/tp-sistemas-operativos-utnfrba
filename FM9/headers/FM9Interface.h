@@ -1,6 +1,11 @@
 #ifndef FM9_INTERFACE_H_
 #define  FM9_INTERFACE_H_
 
+#include <stdbool.h>
+#include "kemmens/SocketCommons.h"
+#include "kemmens/SocketServer.h"
+#include "kemmens/Serialization.h"
+#include "kemmens/Utils.h"
 #include "Storage.h"
 #include "Segmentation.h"
 #include "InvertedPageTable.h"
