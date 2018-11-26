@@ -53,6 +53,8 @@ struct DTB_s
  * 	CAMPOS:
  * 		id: ID del DTB que quiero mover a READY
  * 		newProgramCounter: Valor actualizado del program counter del DTB en su script
+ * 		singleOFaddition: Booleano para saber si solo se añadio un archivo abierto (operacion Abrir exitosa,
+ * 						  informada por el DAM) o si se deben pisar los archivos abiertos (desalojo de CPU)
  * 		openedFilesUpdate: Diccionario con los archivos a (posiblemente) actualizar en la tabla de archivos abiertos
  * 						   Puede informar tanto nuevos archivos abiertos como cerrados; CPU pasa todos, DAM nuevo abierto
  */
@@ -60,6 +62,7 @@ struct UnlockableInfo_s
 {
 	uint32_t id;
 	uint32_t newProgramCounter;
+	bool singleOFaddition;
 	t_dictionary* openedFilesUpdate;
 } typedef UnlockableInfo;
 
@@ -69,6 +72,7 @@ struct UnlockableInfo_s
  * 		id: ID del DTB que quiero mover a BLOCKED
  * 		newProgramCounter: Valor actualizado del program counter del DTB en su script
  *		quantumRemainder: Unidades de quantum que sobraron de la ejecucion del DTB
+ *		dummyComeback: Flag para saber si es una vuelta del Dummy a BLOCKED y no hace falta actualizar su diccionario
  *		openedFilesUpdate: Diccionario con los archivos a (posiblemente) actualizar en la tabla de abiertos,
  *						   por si se hubiera hecho una operacion close o un cambio de DL
  */
@@ -77,6 +81,7 @@ struct BlockableInfo_s
 	uint32_t id;
 	uint32_t newProgramCounter;
 	uint32_t quantumRemainder;
+	bool dummyComeback;
 	t_dictionary* openedFilesUpdate;
 } typedef BlockableInfo;
 
@@ -131,7 +136,7 @@ struct AlgorithmStatus_s
 #define PCP_TASK_BLOCK_DTB 		 24				//Desalojar la CPU correspondiente y pasar su DTB de EXEC a BLOCK
 #define PCP_TASK_UNLOCK_DTB 	 25				//Pasar DTB bloqueado a READY (cuando DAM aviso que termino I/O
 												//o una operacion de signal libero un recurso que esperaba)
-#define PCP_TASK_END_DTB 26						//Ṕasar DTB a la cola de EXIT (si debio abortarse o termino)
+#define PCP_TASK_END_DTB 		26				//Pasar DTB a la cola de EXIT (si debio abortarse o termino)
 
 //Estados de los DTB (del diagrama de 5 estados)
 #define DTB_STATUS_NEW 			31
@@ -389,8 +394,9 @@ void MoveQueues(int changeCode);
  * 	PARAMETROS:
  * 		toBeUpdated: DTB cuyo diccionario quiero actualizar
  * 		currentOFs: Diccionario con los datos ya actualizados, desde donde voy a copiar
+ * 		justAddOne: Booleano para saber si es una adicion simple o una copia entera (ver si vaciar anterior o no)
  */
-void UpdateOpenedFiles(DTB* toBeUpdated, t_dictionary* currentOFs);
+void UpdateOpenedFiles(DTB* toBeUpdated, t_dictionary* currentOFs, bool justAddOne);
 
 /*
  * 	ACCION: Generar cadena del formato arch1:dl1,arch2:dl2,...,archN,dlN; en base a un diccionario

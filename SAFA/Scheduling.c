@@ -591,7 +591,10 @@ void PlanificadorCortoPlazo()
 				//Le actualizo el PC, el quantum sobrante, y los archivos abiertos (por las dudas)
 				target->programCounter = nextToBlock->newProgramCounter;
 				target->quantumRemainder = nextToBlock->quantumRemainder;
-				UpdateOpenedFiles(target, nextToBlock->openedFilesUpdate);
+				if(!nextToBlock->dummyComeback)
+				{
+					UpdateOpenedFiles(target, nextToBlock->openedFilesUpdate, false);
+				}
 				AddToBlocked(target);
 			}
 			pthread_mutex_unlock(&mutexToBeBlocked);
@@ -636,8 +639,12 @@ void PlanificadorCortoPlazo()
 				}
 
 				//Le actualizo el program counter (se debe haber movido) y los archivos abiertos, y lo paso a READY
-				target->programCounter = nextToUnlock->newProgramCounter;
-				UpdateOpenedFiles(target, nextToUnlock->openedFilesUpdate);
+				//Ojo, solo le altero el PC si el del nextToUnlock no es nulo (un Abrir exitoso lo pone en -1)
+				if(nextToUnlock->newProgramCounter != -1)
+				{
+					target->programCounter = nextToUnlock->newProgramCounter;
+				}
+				UpdateOpenedFiles(target, nextToUnlock->openedFilesUpdate, nextToUnlock->singleOFaddition);
 				AddToReady(target);
 
 			}
@@ -808,12 +815,17 @@ bool NoReadyDTBs(char* algorithm)
 
 }
 
-void UpdateOpenedFiles(DTB* toBeUpdated, t_dictionary* currentOFs)
+void UpdateOpenedFiles(DTB* toBeUpdated, t_dictionary* currentOFs, bool justAddOne)
 {
 
-	//Primero limpio el diccionario y borro todos sus elementos, tal vez cerro alguno y no quiero que quede de mas
-	dictionary_clean_and_destroy_elements(toBeUpdated->openedFiles, LogicalAddressDestroyer);
+	//SI Y SOLO SI no estoy haciendo una simple adicion de un archivo abierto (por una operacion Abrir exitosa)
+	if(!justAddOne)
+	{
+		//Limpio el diccionario y borro todos sus elementos, tal vez cerro alguno y no quiero que quede de mas
+		dictionary_clean_and_destroy_elements(toBeUpdated->openedFiles, LogicalAddressDestroyer);
+	}
 
+	//Haya vaciado el diccionario anterior o no, actualizo el diccionario, es el mismo codigo
 	//Closure anidada, para que haga el put en el diccionario del DTB pasado por parametro
 	void UpdateSingleFile(char* path, void* address)
 	{

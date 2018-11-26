@@ -7,6 +7,7 @@
 #include "kemmens/logger.h"
 #include "kemmens/ThreadPool.h"
 #include "kemmens/CommandInterpreter.h"
+#include "kemmens/SocketMessageTypes.h"
 #include "kemmens/SocketServer.h"
 
 //------BIBLIOTECAS PROPIAS------//
@@ -59,40 +60,91 @@ void* postDo(char* cmd, char* sep, void* args, bool fired)
 
 void onPacketArrived(int socketID, int message_type, void* data)
 {
-	if(message_type == MESSAGETYPE_STRING)
+
+	ThreadPoolRunnable* run = ThreadPool_CreateRunnable();
+
+	OnArrivedData* arriveData;
+	arriveData = SocketServer_CreateOnArrivedData();
+
+	arriveData->calling_SocketID = socketID;
+	arriveData->receivedData = data;
+
+	run->data = (void*)arriveData;
+
+	//OJO: al no haber un free data para arrive data (run->free_data) podrian haber memory leaks si no se ejecuta el job que se manda al pool!
+
+	switch(message_type)
 	{
-		ThreadableDoStructure* st = CommandInterpreter_MallocThreadableStructure();
+		case MESSAGETYPE_DAM_SAFA_DUMMY:
+			run->runnable = (void*)Comms_DummyFinished;
+			break;
 
-		st->commandline = (char*)data;
-		st->data = &socketID;
-		st->separator = " ";
-		st->postDo = (void*)postDo;
+		case MESSAGETYPE_DAM_SAFA_ABRIR:
+			run->runnable = (void*)Comms_AbrirFinished;
+			break;
+		case MESSAGETYPE_DAM_SAFA_CREAR:
+		case MESSAGETYPE_DAM_SAFA_BORRAR:
+		case MESSAGETYPE_DAM_SAFA_FLUSH:
+			run->runnable = (void*)Comms_CrearBorrarFlushFinished;
+			break;
 
-		ThreadPoolRunnable* run = ThreadPool_CreateRunnable();
+		case MESSAGETYPE_DAM_SAFA_ERR:
+		case MESSAGETYPE_CPU_EOFORABORT:
+			run->runnable = (void*)Comms_KillDTBRequest;
+			break;
 
-		run->data = (void*)st;
-		run->runnable = (void*)CommandInterpreter_DoThreaded;
-		//Aca si necesitamos decirle al ThreadPool que libere data (o sea el st) en caso que se liberen todos los jobs
-		run->free_data = (void*)CommandInterpreter_FreeThreadableDoStructure;
+		case MESSAGETYPE_CPU_BLOCKDUMMY:
+			run->runnable = (void*)Comms_DummyAtDAM;
+			break;
 
+		case MESSAGETYPE_CPU_BLOCKDTB:
+			//
+			break;
+
+		case MESSAGETYPE_CPU_EOQUANTUM:
+			//
+			break;
+
+		case  MESSAGETYPE_CPU_WAIT:
+			//
+			break;
+
+		case MESSAGETYPE_CPU_SIGNAL:
+			//
+			break;
+
+
+		default:
+			free(run);
+			free(arriveData);
+			free(data);
+			run = NULL;
+			break;
+	}
+
+	if(run != NULL)
+	{
 		ThreadPool_AddJob(threadPool, run);
 	}
+
 }
 
 void ClientConnected(int socket)
 {
-	printf("Cliente se conecto! %d\n", socket);
+	printf("Se conecto un cliente a traves del socket %d!\n", socket);
 }
 
 void ClientDisconnected(int socket)
 {
-	RemoveCPU(socket); //Si no esta, no se va a sacar nada.
-	printf("Cliente se fue! %d\n", socket);
+
+	RemoveCPU(socket);					//Lo saco de la lista de CPUs; si no esta, no pasa nada
+	printf("Se desconecto el cliente a traves del socket %d!\n", socket);
+
 }
 
 void ClientError(int socketID, int errorCode)
 {
-	printf("Cliente %d se reporto con error %s!\n", socketID, strerror(errorCode));
+	printf("Se reporto un error del cliente %d: %s!\n", socketID, strerror(errorCode));
 }
 
 void OnPostInterpreter(char* cmd, char* sep, void* args, bool actionFired)

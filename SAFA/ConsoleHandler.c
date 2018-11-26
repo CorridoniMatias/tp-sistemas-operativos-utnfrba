@@ -142,11 +142,13 @@ void CommandFinalizar (int argC, char** args, char* callingLine, void* extraData
 	}
 
 	//Los elementos de args son cadenas, debo tomarla y convertirla a entero
-	uint32_t paramID = (uint32_t) atoi(args[1]);
-	pthread_mutex_lock(mutexToBeEnded);
+	uint32_t* paramID = (uint32_t*) malloc(sizeof(uint32_t));
+	*paramID = (uint32_t) atoi(args[1]);
+	pthread_mutex_lock(&mutexToBeEnded);
 	queue_push(toBeEnded, paramID);
-	pthread_mutex_unlock(mutexToBeEnded);
+	pthread_mutex_unlock(&mutexToBeEnded);
 
+	//No hace falta free del paramID, cuando se haga un pop o destroy de ese elemento, se hara solo
 	CommandInterpreter_FreeArguments(args);
 
 }
