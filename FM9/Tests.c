@@ -19,8 +19,7 @@ void testSEG() {
 	freeSegmentationStructures();
 }
 
-void testPAG()
-{
+void testPAG() {
 	createPagingStructures();
 	createIPTStructures();
 
@@ -61,8 +60,7 @@ void testPAG()
 	freeIPTStructures();
 }
 
-void testAsignar()
-{
+void testAsignar() {
 
 	createSegmentationStructures();
 
@@ -73,20 +71,21 @@ void testAsignar()
 	int resultado;
 	int dir;
 	dir = writeData_SEG(datos, 10, 1);
+	OnArrivedData* data= SocketServer_CreateOnArrivedData();
 
-	FM9_AsignLine(dir, 1, datos2);
+	FM9_AsignLine(data);
 	readLine(buffer, dir);
 	free(buffer);
 	freeSegmentationStructures();
 }
 
-void testDump(){
+void testDump() {
 	createSegmentationStructures();
 
 	char * d = "01\n";
 	char * d1 = "ABCD";
 	char * d2 = "HOLA";
-	char * d3= "DATOS#";
+	char * d3 = "DATOS#";
 
 	Logger_Log(LOG_DEBUG, "FM9 -> Escritura en  %d", writeData_SEG(d, 3, 1));
 	Logger_Log(LOG_DEBUG, "FM9 -> Escritura en  %d", writeData_SEG(d1, 4, 1));

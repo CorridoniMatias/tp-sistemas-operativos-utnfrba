@@ -95,21 +95,21 @@ int readDataSegmentation(void* target, int virtualAddress, int dtbID) {
 }
 
 int segmentationAddressTranslation(int virtualAddress, int dtbID) {
-	char * key = string_itoa(dtbID);
-	if (!dictionary_has_key(segmentsPerDTBTable, key))
-		return -1;
-	t_segments* segments = dictionary_get(segmentsPerDTBTable, key);
-	free(key);
+	char * dtbKey = string_itoa(dtbID);
+	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey))
+		return ITS_A_TRAP;
+	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
+	free(dtbKey);
 	int segmentNumber = getSegmentFromAddress(virtualAddress);
 	char* segmentKey = string_itoa(segmentNumber);
 	if (!dictionary_has_key(segments->segments, segmentKey)) {
 		free(segmentKey);
-		return -1;
+		return ITS_A_TRAP;
 	}
 	t_segment* segment = dictionary_get(segments->segments, segmentKey);
 	free(segmentKey);
-	if (getOffsetFromAddress(virtualAddress) > segment->limit)
-		return -1;
+	if (getOffsetFromAddress(virtualAddress) >= segment->limit)
+		return ITS_A_TRAP;
 
 	Logger_Log(LOG_INFO, "FM9 -> Dirección lógica = %d.", virtualAddress);
 	int numLinea = segment->base + getOffsetFromAddress(virtualAddress);

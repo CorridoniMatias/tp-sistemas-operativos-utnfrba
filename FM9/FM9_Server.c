@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 #include "headers/FM9_Server.h"
 
 void OnPostInterpreter(char* cmd, char* sep, void* args, bool actionFired) {
@@ -108,4 +106,3 @@ void StartServer() {
 
 	Logger_Log(LOG_INFO, "Server Shutdown.");
 }
->>>>>>> e999036f6ab31cbf1759d9ac3bbe6bd7f13320ca

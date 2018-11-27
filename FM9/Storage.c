@@ -1,10 +1,6 @@
 #include "headers/Storage.h"
 
-bool verifyLineNumber(int numLinea){
-	if (numLinea >= cantLineas)
-		return false;
-	return true;
-}
+
 
 void createStorage() {
 
@@ -50,9 +46,7 @@ int writeLine(void* data, int numLinea) {
 
 int readLine(void* target, int numLinea) {
 
-	if(!verifyLineNumber(numLinea)){
-		return INVALID_LINE_NUMBER;
-	}
+	verifyLineNumber(numLinea)
 
 	Logger_Log(LOG_DEBUG, "Contenido de Storage = %s -- En linea = %d.", storage[numLinea], numLinea);
 

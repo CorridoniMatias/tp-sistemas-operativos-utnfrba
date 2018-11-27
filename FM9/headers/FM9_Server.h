@@ -17,7 +17,7 @@ void ProcessLineInput(char* line);
 
 void* postDo(char* cmd, char* sep, void* args, bool fired);
 
-void onPacketArrived(int socketID, int message_type, void* data);
+void onPacketArrived(int socketID, int message_type, void* data, int message_length);
 
 void ClientConnected(int socket);
 

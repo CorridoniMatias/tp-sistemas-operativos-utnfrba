@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 #ifndef FM9_INTERFACE_H_
 #define  FM9_INTERFACE_H_
 
@@ -13,18 +11,18 @@
 #include "InvertedPageTable.h"
 #include "FM9lib.h"
 
-int FM9_AsignLine(int virtualAddress, int dtbID, void* data);
+void FM9_AsignLine(void* data);
 
-int FM9_AskForLine(int virtualAddress, int dtbID, void* buffer);
+void FM9_AskForLine(void* data);
 
-int FM9_Open(int dtbID, void* data, int size);
+void FM9_Open(void* data);
 
-int FM9_Close(int dtbID, int virtualAddress);
+void FM9_Close(void* data);
 
-void FM9_Dump(int argC, char** args, char* callingLine, void* extraData);
+void FM9_Dump(void* data);
 
-int FM9_Flush(int dtbID, int virtualAddress);
+void FM9_Flush(void* data);
 
 int sizeOfLine(char* line);
 #endif /* FM9_INTERFACE_H_ */
->>>>>>> e999036f6ab31cbf1759d9ac3bbe6bd7f13320ca
+

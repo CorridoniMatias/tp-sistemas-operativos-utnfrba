@@ -9,5 +9,6 @@
 #define NO_FRAMES_AVAILABLE	-3
 #define INSUFFICIENT_FRAMES_AVAILABLE -4
 #define INVALID_FRAME_NUMBER -5
+#define ITS_A_TRAP -6
 
 #endif /* FM9_ERRORS_H_ */
