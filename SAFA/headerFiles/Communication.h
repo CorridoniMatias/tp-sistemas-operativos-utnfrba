@@ -68,8 +68,17 @@ void Comms_CPU_DummyAtDAM(void* arriveData);
  * 			requiere hacer una operacion de entrada/salida, con lo cual ahora es responsabilidad del DAM (el cual
  * 			avisara cuando la misma termine) y debe desalojarse el CPU. Caso contrario, puede que haya habido
  * 			un error en una operacion de wait (mediada directamente entre CPU y SAFA) y este deba ser
- * 			tambien desalojado; ambos casos llevan el DTB a BLOCKED. Solo se requiere el ID del DTB
+ * 			tambien desalojado; ambos casos llevan el DTB a BLOCKED. El formato de la cadena es
+ * 			IdDTB|ProgramCounter|Quantum|CantArchivosAbiertos|Archivos
  */
-void Comss_CPU_DTBAtDAM(void* arriveData);
+void Comms_CPU_DTBAtDAM(void* arriveData);
+
+/*
+ * 	ACCION: Funcion para meter en el threadPool, maneja un aviso del CPU de que el DTB que estaba ejecutando
+ * 			consumio todo su quantum sin haber sido bloqueado (por operaciones de I/O), con lo cual debe desalojarse
+ * 			al CPU y pasar el DTB de EXEC a READY de nuevo. La cadena es IdDTB|ProgramCounter|CantArchivosAbiertos|Archivos
+ */
+void Comms_CPU_OutOfQuantum(void* arriveData);
+
 
 #endif /* HEADERFILES_COMMUNICATION_H_ */

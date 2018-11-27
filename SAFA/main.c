@@ -104,7 +104,7 @@ void onPacketArrived(int socketID, int message_type, void* data)
 			break;
 
 		case MESSAGETYPE_CPU_EOQUANTUM:
-			//
+			run->runnable = (void*)Comms_CPU_OutOfQuantum;
 			break;
 
 		case  MESSAGETYPE_CPU_WAIT:
