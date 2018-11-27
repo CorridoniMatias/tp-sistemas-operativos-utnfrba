@@ -138,36 +138,98 @@ void Comms_DummyAtDAM(void* arriveData)
 
 }
 
+t_dictionary* BuildDictionary(void* flattened, int amount)
+{
+
+	t_dictionary* dict = dictionary_create();
+	int i = 1;
+	int offset = 0;
+	int* logicalAddress;
+	while(i <= amount)
+	{
+		char* path;
+		//OJO: NO VA EL FREE DE ESTE PUNTERO ACA, SINO PIERDO LA REFERENCIA DEL ULTIMO PUT
+		//EL FREE SE HACE SOLO CUANDO DESTRUYA EL DICCIONARIO Y SUS ELEMENTOS
+		logicalAddress = malloc(sizeof(int));
+		path = strtok((char*)(flattened + offset), ":");
+		//No le sumo uno por los :, strlen me devuelve el largo + 1 por el \0 al final
+		offset += (strlen(path) + 1);
+		memcpy(logicalAddress, flattened + offset, sizeof(int));
+		offset += (sizeof(int) + 1);
+		dictionary_put(dict, path, logicalAddress);
+		i++;
+	}
+
+	return dict;
+
+}
 
 void Comms_CPU_DTBAtDAM(void* arriveData)
 {
 
 	OnArrivedData* data = (OnArrivedData*)arriveData;
-	//Ahora necesito tanto el ID (que es el del DTB a mover a BLOCKED) y el ID de la CPU a desalojar
+	//Uso un DeserializedData, el CPU me mando mucha informacion
 	int cpuSocket = data->calling_SocketID;
 	DeserializedData* params = Serialization_Deserialize(data->receivedData);
 
-	//TODO: Terminar esta parte
+	//Creo un BlockableInfo con la info del DTB a mover a BLOCKED
+	//El formato de la cadena es IdDTB|ProgramCounter|Quantum|CantArchivosAbiertos|Archivos
+	BlockableInfo* nextToBlock = (BlockableInfo*) malloc(sizeof(BlockableInfo));
+	nextToBlock->id = *((uint32_t*)(params->parts[0]));
+	nextToBlock->newProgramCounter = *((uint32_t*)(params->parts[1]));
+	nextToBlock->quantumRemainder = *((uint32_t*)(params->parts[2]));
+	nextToBlock->dummyComeback = false;
+	uint32_t ofa = *((uint32_t*)(params->parts[3]));
+	nextToBlock->openedFilesUpdate = BuildDictionary(params->parts[4], ofa);
+
+	//Libero la CPU que me aviso y la pongo como desocupada
+	FreeCPU(cpuSocket);
+
+	//Meto ese struct a la cola de DTBs a desbloquear, cuidando la mutua exclusion; cambio la tarea de PCP
+	pthread_mutex_lock(&mutexToBeBlocked);
+	queue_push(toBeBlocked, nextToBlock);
+	pthread_mutex_unlock(&mutexToBeBlocked);
+	SetPCPTask(PCP_TASK_BLOCK_DTB);
+
+	//Libero la memoria del DeserializedData entero, ya use lo que tenia y les hice copias fieles
+	//No hay problema con params->parts[4], ya que lo fui recorriendo para armar el diccionario
+	Serialization_CleanupDeserializationStruct(params);
+	free(data->receivedData);
+	free(arriveData);
+
+}
+
+void Comms_CPU_OutOfQuantum(void* arriveData)
+{
+
+	OnArrivedData* data = (OnArrivedData*)arriveData;
+	//Uso un DeserializedData, el CPU me mando mucha informacion
+	int cpuSocket = data->calling_SocketID;
+	DeserializedData* params = Serialization_Deserialize(data->receivedData);
 
 	//Creo un BlockableInfo con la info del DTB a mover a BLOCKED
-	BlockableInfo* nextToBlock = (BlockableInfo*) malloc(sizeof(BlockableInfo));
-	nextToBlock->id = *dtbID;
-	nextToBlock->newProgramCounter = -1;
-	nextToBlock->quantumRemainder = -1;
-	nextToBlock->dummyComeback = true;
-	nextToBlock->openedFilesUpdate = dictionary_create();
+	//El formato de la cadena es IdDTB|ProgramCounter|CantArchivosAbiertos|Archivos
+	UnlockableInfo* nextToUnlock = (UnlockableInfo*) malloc(sizeof(UnlockableInfo));
+	nextToUnlock->id = *((uint32_t*)(params->parts[0]));
+	nextToUnlock->newProgramCounter = *((uint32_t*)(params->parts[1]));
+	//El flag va en false, quiero que pise cualquier diccionario que haya con estos datos
+	nextToUnlock->singleOFaddition = false;
+	uint32_t ofa = *((uint32_t*)(params->parts[2]));
+	nextToUnlock->openedFilesUpdate = BuildDictionary(params->parts[3], ofa);
 
-		//Libero la CPU y la pongo como desocupada
-		FreeCPU(cpuSocket);
+	//Libero la CPU que me aviso y la pongo como desocupada
+	FreeCPU(cpuSocket);
 
-		//Meto ese struct a la cola de DTBs a desbloquear, cuidando la mutua exclusion; cambio la tarea de PCP
-		pthread_mutex_lock(&mutexToBeBlocked);
-		queue_push(toBeUnlocked, nextToBlock);
-		pthread_mutex_unlock(&mutexToBeBlocked);
-		SetPCPTask(PCP_TASK_UNLOCK_DTB);
+	//Meto ese struct a la cola de DTBs a desbloquear, cuidando la mutua exclusion; cambio la tarea de PCP
+	pthread_mutex_lock(&mutexToBeUnlocked);
+	queue_push(toBeUnlocked, nextToUnlock);
+	pthread_mutex_unlock(&mutexToBeUnlocked);
+	SetPCPTask(PCP_TASK_UNLOCK_DTB);
 
-		//No hago free de dtbID, sino borraria el valor de lo que tiene el nextToUnlock que acabo de guardar
-		free(data->receivedData);
-		free(arriveData);
+	//Libero la memoria del DeserializedData entero, ya use lo que tenia y les hice copias fieles
+	//No hay problema con params->parts[4], ya que lo fui recorriendo para armar el diccionario
+	Serialization_CleanupDeserializationStruct(params);
+	free(data->receivedData);
+	free(arriveData);
 
 }

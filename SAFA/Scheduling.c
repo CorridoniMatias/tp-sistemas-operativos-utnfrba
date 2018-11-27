@@ -633,7 +633,13 @@ void PlanificadorCortoPlazo()
 
 				//Busco el DTB en EXEC (por si es fin de quantum) que tiene dicho ID; si no esta ahi, lo busco en BLOCKED
 				DTB* target = list_remove_by_condition(EXECqueue, IsDTBToBeUnlocked);
-				if(!target)
+				if(target)
+				{
+					//Si y solo si lo encontre en EXEC, le pongo el sobrante en 0 (porque se termino su quantum
+					//sin que se lo haya movido a BLOCKED, es la unica chance de registrarlo)
+					target->quantumRemainder = 0;
+				}
+				else
 				{
 					target = list_remove_by_condition(BLOCKEDqueue, IsDTBToBeUnlocked);
 				}
