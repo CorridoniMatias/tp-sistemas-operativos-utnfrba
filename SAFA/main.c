@@ -4,7 +4,6 @@
 
 //------BIBLIOTECAS INTERNAS------//
 #include "kemmens/megekemmen.h"
-#include "kemmens/logger.h"
 #include "kemmens/ThreadPool.h"
 #include "kemmens/CommandInterpreter.h"
 #include "kemmens/SocketMessageTypes.h"
@@ -93,9 +92,9 @@ void onPacketArrived(int socketID, int message_type, void* data)
 			run->runnable = (void*)Comms_KillDTBRequest;
 			break;
 
-		case MESSAGETYPE_CPU_BLOCKDUMMY:
+		/*case MESSAGETYPE_CPU_BLOCKDUMMY:
 			run->runnable = (void*)Comms_DummyAtDAM;
-			break;
+			break;*/
 
 		case MESSAGETYPE_CPU_BLOCKDTB:
 			//
@@ -212,13 +211,27 @@ void initialize()
 	Logger_CreateLog("./SAFA.log", "SAFA", true);
 	Logger_Log(LOG_INFO, "Proceso SAFA iniciado...");
 	//Armo la estructura de configuracion en base al archivo
-	configurar();
+	Configurar();
 	//Creo el ThreadPool, la lista de CPUs, las variables de Scheduling, la tabla de recursos y el CommandInterpreter
-	threadPool = ThreadPool_CreatePool(10, false);
+	threadPool = ThreadPool_CreatePool(15, false);
+	Logger_Log(LOG_INFO, "Creado ThreadPool para 10 threads");
 	InitCPUsHolder();
+	Logger_Log(LOG_INFO, "Inicializado deposito de CPUs");
 	InitSchedulingGlobalVariables();
+	Logger_Log(LOG_INFO, "Inicializados los planificadores");
 	CommandInterpreter_Init();
+	Logger_Log(LOG_INFO, "Inicializado interprete de comandos");
 	CreateResourcesTable();
+	Logger_Log(LOG_INFO, "Creada tabla de recursos");
+
+	//Agrego al ThreadPool la tarea de monitorear el archivo de configuracion; tiene un read, debe ir en hilo aparte
+	ThreadPoolRunnable* watcherJob = ThreadPool_CreateRunnable();
+	watcherJob->data = NULL;
+	watcherJob->free_data = NULL;
+	watcherJob->runnable = (void*)MonitorConfigFile;
+	ThreadPool_AddJob(threadPool, watcherJob);
+	Logger_Log(LOG_INFO, "Ya se esta monitoreando el archivo de configuracion");
+
 	Logger_Log(LOG_INFO, "Variables globales inicializadas; listo para levantar el server!");
 
 }

@@ -5,7 +5,6 @@
  */
 
 //Message Types
-
 #define MESSAGETYPE_STRING 1	//Strings puras
 #define MESSAGETYPE_INT	2		//INTS de longitud variable
 #define MESSAGETYPE_VOIDPOINTER	3   //void*, pára los packets
@@ -49,9 +48,9 @@
 #define MESSAGETYPE_CPU_FLUSH 331
 #define MESSAGETYPE_CPU_BORRAR 332
 #define MESSAGETYPE_CPU_CREAR 333
+#define MESSAGETYPE_CPU_RECEIVELINE 334
 
-
-//PROTOCOLO FM9 (4)
+//PROTOCOLO FM9 (4X)
 #define MESSAGETYPE_FM9_GETLINE 40 //Pedir una linea de un archivo
 #define MESSAGETYPE_FM9_ASIGN 41 //Asignar una linea de un archivo
 #define MESSAGETYPE_FM9_CLOSE 42 //Cerrar un un archivo
