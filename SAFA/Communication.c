@@ -1,6 +1,6 @@
 #include "headerFiles/Communication.h"
 
-void Comms_DummyFinished(void* arriveData)
+void Comms_DAM_DummyFinished(void* arriveData)
 {
 
 	//Obtengo los datos del parametro (automatico, del runnable) y los deserializo
@@ -24,7 +24,7 @@ void Comms_DummyFinished(void* arriveData)
 
 }
 
-void Comms_AbrirFinished(void* arriveData)
+void Comms_DAM_AbrirFinished(void* arriveData)
 {
 
 	OnArrivedData* data = (OnArrivedData*)arriveData;
@@ -53,7 +53,7 @@ void Comms_AbrirFinished(void* arriveData)
 
 }
 
-void Comms_CrearBorrarFlushFinished(void* arriveData)
+void Comms_DAM_CrearBorrarFlushFinished(void* arriveData)
 {
 
 	OnArrivedData* data = (OnArrivedData*)arriveData;
@@ -79,7 +79,7 @@ void Comms_CrearBorrarFlushFinished(void* arriveData)
 
 }
 
-void Comms_KillDTBRequest(void* arriveData)
+void Comms_DAM_IOError(void* arriveData)
 {
 
 	OnArrivedData* data = (OnArrivedData*)arriveData;
@@ -97,7 +97,7 @@ void Comms_KillDTBRequest(void* arriveData)
 
 }
 
-void Comms_DummyAtDAM(void* arriveData)
+void Comms_CPU_CPUErrorOrEOF(void* arriveData)
 {
 
 	OnArrivedData* data = (OnArrivedData*)arriveData;
@@ -105,8 +105,51 @@ void Comms_DummyAtDAM(void* arriveData)
 	int cpuSocket = data->calling_SocketID;
 	uint32_t* dtbID = (uint32_t*)(data->receivedData);
 
-	//Idem al CrearBorrarFlush, es crear UnlockableInfo con solamente un ID (que lo tenia el Dummy, asi lo desocupo)
-	//La diferencia es que aca hay otros parametros para poner con baura; es vuelta de dummy, flag va true
+	//Libero la CPU y la pongo como desocupada
+	FreeCPU(cpuSocket);
+
+	//Agrego ese ID a la cola de DTBs a terminar, ya que bien no puedo leer mas o hubo un error con el FM9
+	pthread_mutex_lock(&mutexToBeEnded);
+	queue_push(toBeEnded, dtbID);
+	pthread_mutex_unlock(&mutexToBeEnded);
+	SetPCPTask(PCP_TASK_END_DTB);
+
+	//No hago free de dtbID, sino borraria el valor de lo que tiene el nextToUnlock que acabo de guardar
+	free(data->receivedData);
+	free(arriveData);
+
+}
+
+void Comms_DummyAtDAM(void* arriveData)
+{
+
+	OnArrivedData* data = (OnArrivedData*)arriveData;
+	//Necesito solo el ID del CPU a desalojar; el DTB ya se que es el Dummy
+	int cpuSocket = data->calling_SocketID;
+
+	//Libero la CPU y la pongo como desocupada
+	FreeCPU(cpuSocket);
+
+	//Le aviso al PCP que debe liberar el Dummy (ponerlo de nuevo en BLOCKED para poder ser usado)
+	SetPCPTask(PCP_TASK_FREE_DUMMY);
+
+	free(data->receivedData);
+	free(arriveData);
+
+}
+
+
+void Comms_CPU_DTBAtDAM(void* arriveData)
+{
+
+	OnArrivedData* data = (OnArrivedData*)arriveData;
+	//Ahora necesito tanto el ID (que es el del DTB a mover a BLOCKED) y el ID de la CPU a desalojar
+	int cpuSocket = data->calling_SocketID;
+	DeserializedData* params = Serialization_Deserialize(data->receivedData);
+
+	//TODO: Terminar esta parte
+
+	//Creo un BlockableInfo con la info del DTB a mover a BLOCKED
 	BlockableInfo* nextToBlock = (BlockableInfo*) malloc(sizeof(BlockableInfo));
 	nextToBlock->id = *dtbID;
 	nextToBlock->newProgramCounter = -1;
@@ -114,17 +157,17 @@ void Comms_DummyAtDAM(void* arriveData)
 	nextToBlock->dummyComeback = true;
 	nextToBlock->openedFilesUpdate = dictionary_create();
 
-	//Libero la CPU y la pongo como desocupada
-	FreeCPU(cpuSocket);
+		//Libero la CPU y la pongo como desocupada
+		FreeCPU(cpuSocket);
 
-	//Meto ese struct a la cola de DTBs a desbloquear, cuidando la mutua exclusion; cambio la tarea de PCP
-	pthread_mutex_lock(&mutexToBeBlocked);
-	queue_push(toBeUnlocked, nextToBlock);
-	pthread_mutex_unlock(&mutexToBeBlocked);
-	SetPCPTask(PCP_TASK_UNLOCK_DTB);
+		//Meto ese struct a la cola de DTBs a desbloquear, cuidando la mutua exclusion; cambio la tarea de PCP
+		pthread_mutex_lock(&mutexToBeBlocked);
+		queue_push(toBeUnlocked, nextToBlock);
+		pthread_mutex_unlock(&mutexToBeBlocked);
+		SetPCPTask(PCP_TASK_UNLOCK_DTB);
 
-	//No hago free de dtbID, sino borraria el valor de lo que tiene el nextToUnlock que acabo de guardar
-	free(data->receivedData);
-	free(arriveData);
+		//No hago free de dtbID, sino borraria el valor de lo que tiene el nextToUnlock que acabo de guardar
+		free(data->receivedData);
+		free(arriveData);
 
 }

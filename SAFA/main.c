@@ -75,29 +75,32 @@ void onPacketArrived(int socketID, int message_type, void* data)
 	switch(message_type)
 	{
 		case MESSAGETYPE_DAM_SAFA_DUMMY:
-			run->runnable = (void*)Comms_DummyFinished;
+			run->runnable = (void*)Comms_DAM_DummyFinished;
 			break;
 
 		case MESSAGETYPE_DAM_SAFA_ABRIR:
-			run->runnable = (void*)Comms_AbrirFinished;
+			run->runnable = (void*)Comms_DAM_AbrirFinished;
 			break;
 		case MESSAGETYPE_DAM_SAFA_CREAR:
 		case MESSAGETYPE_DAM_SAFA_BORRAR:
 		case MESSAGETYPE_DAM_SAFA_FLUSH:
-			run->runnable = (void*)Comms_CrearBorrarFlushFinished;
+			run->runnable = (void*)Comms_DAM_CrearBorrarFlushFinished;
 			break;
 
 		case MESSAGETYPE_DAM_SAFA_ERR:
-		case MESSAGETYPE_CPU_EOFORABORT:
-			run->runnable = (void*)Comms_KillDTBRequest;
+			run->runnable = (void*)Comms_DAM_IOError;
 			break;
 
-		/*case MESSAGETYPE_CPU_BLOCKDUMMY:
-			run->runnable = (void*)Comms_DummyAtDAM;
-			break;*/
+		case MESSAGETYPE_CPU_EOFORABORT:
+			run->runnable = (void*)Comms_CPU_ErrorOrEOF;
+			break;
+
+		case MESSAGETYPE_CPU_BLOCKDUMMY:
+			run->runnable = (void*)Comms_CPU_DummyAtDAM;
+			break;
 
 		case MESSAGETYPE_CPU_BLOCKDTB:
-			//
+			run->runnable = (void*)Comms_CPU_DTBAtDAM;
 			break;
 
 		case MESSAGETYPE_CPU_EOQUANTUM:
@@ -213,8 +216,6 @@ void initialize()
 	//Armo la estructura de configuracion en base al archivo
 	Configurar();
 	//Creo el ThreadPool, la lista de CPUs, las variables de Scheduling, la tabla de recursos y el CommandInterpreter
-	threadPool = ThreadPool_CreatePool(15, false);
-	Logger_Log(LOG_INFO, "Creado ThreadPool para 10 threads");
 	InitCPUsHolder();
 	Logger_Log(LOG_INFO, "Inicializado deposito de CPUs");
 	InitSchedulingGlobalVariables();
@@ -223,6 +224,8 @@ void initialize()
 	Logger_Log(LOG_INFO, "Inicializado interprete de comandos");
 	CreateResourcesTable();
 	Logger_Log(LOG_INFO, "Creada tabla de recursos");
+	threadPool = ThreadPool_CreatePool(15, false);
+	Logger_Log(LOG_INFO, "Creado ThreadPool para 10 threads");
 
 	//Agrego al ThreadPool la tarea de monitorear el archivo de configuracion; tiene un read, debe ir en hilo aparte
 	ThreadPoolRunnable* watcherJob = ThreadPool_CreateRunnable();

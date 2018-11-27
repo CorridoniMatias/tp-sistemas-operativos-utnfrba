@@ -28,7 +28,7 @@ void Configurar()
 	Logger_Log(LOG_INFO, "Configuracion leida de SAFA.config");
 
 	archivoConfigDestruir(archivoConfig);
-	free(algoritmo);
+	//No hace falta hacer un free de algoritmo, el archivoConfigDestruir ya se ocupa
 
 }
 
@@ -47,14 +47,13 @@ void UpdateSettings()
 	t_config* archivoConfig = archivoConfigCrear(RUTA_CONFIG, campos);
 
 	char* algoritmo = archivoConfigSacarStringDe(archivoConfig, "ALGORITMO");
-	settings->algoritmo = malloc(strlen(algoritmo) + 1);
+	settings->algoritmo = realloc(settings->algoritmo, strlen(algoritmo) + 1);
 	strcpy(settings->algoritmo, algoritmo);
 	settings->quantum = archivoConfigSacarIntDe(archivoConfig, "QUANTUM");
 	settings->multiprogramacion = archivoConfigSacarIntDe(archivoConfig, "MULTIPROGRAMACION");
 	settings->retardo = archivoConfigSacarIntDe(archivoConfig, "RETARDO_PLANIF");
 
 	archivoConfigDestruir(archivoConfig);
-	free(algoritmo);
 
 }
 
