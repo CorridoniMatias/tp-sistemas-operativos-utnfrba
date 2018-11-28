@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 #include "bibliotecaCPU.h"
 
 void configurar()
@@ -179,79 +177,85 @@ void* CommandConcentrar(int argC, char** args, char* callingLine, void* extraDat
 
 void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 	if(argC == 3){
-		if(openFileVerificator(((Operation*)extraData)->dictionary,args[0])){
+		if (openFileVerificator(((Operation*) extraData)->dictionary, args[0])) {
 
-			int32_t idDtb = ((Operation*)extraData)->dtb;
-			declare_and_init(id, int32_t,idDtb);
-			uint32_t logicDirToWrite = *((uint32_t*)dictionary_get(((Operation*)extraData)->dictionary,args[0]));
+			int32_t idDtb = ((Operation*) extraData)->dtb;
+			declare_and_init(id, int32_t, idDtb);
+			uint32_t logicDirToWrite = *((uint32_t*) dictionary_get(((Operation*) extraData)->dictionary, args[0]));
 			uint32_t lineToWrite = atoi(args[1]);
 			char* dataToWrite = args[2];
-			logicDirToWrite = ((Operation*)extraData)->programCounter + lineToWrite - 1;
-			declare_and_init(newLogicDir, int32_t,logicDirToWrite);
+			logicDirToWrite = ((Operation*) extraData)->programCounter + lineToWrite - 1;
+			declare_and_init(newLogicDir, int32_t, logicDirToWrite);
 
-			SerializedPart fieldForFM91 = {.size = sizeof(int32_t), .data =id};
-			SerializedPart fieldForFM92 = {.size = sizeof(uint32_t), .data =newLogicDir};
-			SerializedPart fieldForFM93 = {.size = strlen(dataToWrite)+1, .data = dataToWrite};
-
+			SerializedPart fieldForFM91 = { .size = sizeof(int32_t), .data = id };
+			SerializedPart fieldForFM92 = { .size = sizeof(uint32_t), .data = newLogicDir };
+			SerializedPart fieldForFM93 = { .size = strlen(dataToWrite) + 1, .data = dataToWrite };
 
 			SerializedPart* packetToFM9 = Serialization_Serialize(3, fieldForFM91, fieldForFM92, fieldForFM93);
 
-
-			SocketCommons_SendData(((Operation*)extraData)->socketFM9,MESSAGETYPE_CPU_ASIGNAR, packetToFM9->data,  packetToFM9->size);
+			SocketCommons_SendData(((Operation*) extraData)->socketFM9, MESSAGETYPE_CPU_ASIGNAR, packetToFM9->data, packetToFM9->size);
 
 			int messageType, err, msglength;
+//
+//			void* msgFromFM9 = SocketCommons_ReceiveData(((Operation*)extraData)->socketFM9,&messageType,&msglength,&err);
+//			DeserializedData* data = Serialization_Deserialize(msgFromFM9);
 
-			void* msgFromFM9 = SocketCommons_ReceiveData(((Operation*)extraData)->socketFM9,&messageType,&msglength,&err);
-
-			DeserializedData* data = Serialization_Deserialize(msgFromFM9);
-			if(*(int*)data->parts[0] == 1){
-				free(dataToWrite);
-				free(id);
-				free(newLogicDir);
-				((Operation*)extraData)->commandResult = 0;
-				StringUtils_FreeArray(args);
-				Serialization_CleanupSerializedPacket(packetToFM9);
-				Serialization_CleanupDeserializationStruct(data);
-				return 0;  // 0 SALIO to BIEN
-			}
-			else {
-				Logger_Log(LOG_INFO, "El archivo no se encuentra abierto");
-				if(*(int*)data->parts[0] == 2){
+			int responseFromFM9 = *((int*) SocketCommons_ReceiveData(((Operation*) extraData)->socketFM9, &messageType, &msglength, &err));
+//			if(*(int*)data->parts[0] == 1){
+			switch (responseFromFM9) {
+				case 1:
+					free(dataToWrite);
+					free(id);
+					free(newLogicDir);
+					((Operation*) extraData)->commandResult = 0;
+					StringUtils_FreeArray(args);
+					Serialization_CleanupSerializedPacket(packetToFM9);
+	//				Serialization_CleanupDeserializationStruct(data);
+					return 0;  // 0 SALIO to BIEN
+	//			}
+	//			else {
+	//				if(*(int*)data->parts[0] == 2){
+				case 2:
 					free(dataToWrite);
 					Logger_Log(LOG_INFO, "Error fallo de segmento/memoria en FM9");
-					int32_t idDtb = ((Operation*)extraData)->dtb;
-					declare_and_init(id, int32_t,idDtb);
+					int32_t idDtb = ((Operation*) extraData)->dtb;
+					declare_and_init(id, int32_t, idDtb)
+					;
 
-					SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
+					SocketCommons_SendData(((Operation*) extraData)->socketSAFA,
+							MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
 					free(id);
 					free(newLogicDir);
 					StringUtils_FreeArray(args);
-					Serialization_CleanupDeserializationStruct(data);
+	//					Serialization_CleanupDeserializationStruct(data);
 					Serialization_CleanupSerializedPacket(packetToFM9);
-					((Operation*)extraData)->commandResult = 2;
+					((Operation*) extraData)->commandResult = 2;
 					return 0;
-				}
-				else {
+	//				}
+	//				else {
+				case 3:
 					free(dataToWrite);
 					Logger_Log(LOG_INFO, "Espacio insuficiente en FM9");
-					int32_t idDtb = ((Operation*)extraData)->dtb;
-					declare_and_init(id, int32_t,idDtb);
+					int32_t idDtb = ((Operation*) extraData)->dtb;
+					declare_and_init(id, int32_t, idDtb)
+					;
 
-					SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
+					SocketCommons_SendData(((Operation*) extraData)->socketSAFA,
+							MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
 
 					free(id);
 					free(newLogicDir);
 					StringUtils_FreeArray(args);
-					Serialization_CleanupDeserializationStruct(data);
-
+	//					Serialization_CleanupDeserializationStruct(data);
 					Serialization_CleanupSerializedPacket(packetToFM9);
-					((Operation*)extraData)->commandResult = 2;
+					((Operation*) extraData)->commandResult = 2;
 					return 0;
-				}
 			}
+
 
 	}
 		else {
+			Logger_Log(LOG_INFO, "El archivo no se encuentra abierto");
 			int32_t idDtb = ((Operation*)extraData)->dtb;
 			declare_and_init(id, int32_t,idDtb);
 
@@ -464,72 +468,71 @@ return 0;
 }
 
 void* CommandClose(int argC, char** args, char* callingLine, void* extraData){
-	if(argC == 1){
-			if(openFileVerificator(((Operation*)extraData)->dictionary,args[0])){
-				int32_t idDtb = ((Operation*)extraData)->dtb;
-				declare_and_init(id, int32_t,idDtb);
-				uint32_t logicDirToClose = *((uint32_t*)dictionary_get(((Operation*)extraData)->dictionary,args[0]));
-				declare_and_init(newLogicDirToClose, uint32_t,logicDirToClose);
+	if (argC == 1) {
+		if (openFileVerificator(((Operation*) extraData)->dictionary, args[0])) {
+			int32_t idDtb = ((Operation*) extraData)->dtb;
+			declare_and_init(id, int32_t, idDtb);
+			uint32_t logicDirToClose = *((uint32_t*) dictionary_get(((Operation*) extraData)->dictionary, args[0]));
+			declare_and_init(newLogicDirToClose, uint32_t, logicDirToClose);
 
-				SerializedPart fieldForFM91 = {.size = sizeof(int32_t), .data =id};
-				SerializedPart fieldForFM92 = {.size = sizeof(uint32_t), .data =newLogicDirToClose};
+			SerializedPart fieldForFM91 ={ .size = sizeof(int32_t), .data = id };
+			SerializedPart fieldForFM92 = { .size = sizeof(uint32_t), .data = newLogicDirToClose };
 
+			SerializedPart* packetToFM9 = Serialization_Serialize(2, fieldForFM91, fieldForFM92);
 
-				SerializedPart* packetToFM9 = Serialization_Serialize(2, fieldForFM91, fieldForFM92);
+			SocketCommons_SendData(((Operation*) extraData)->socketFM9, MESSAGETYPE_FM9_CLOSE, packetToFM9->data, packetToFM9->size);
 
-				SocketCommons_SendData(((Operation*)extraData)->socketFM9,MESSAGETYPE_FM9_CLOSE, packetToFM9->data, packetToFM9->size);
-
-				int messageType, err, msglength;
-
-				void* msgFromFM9 = SocketCommons_ReceiveData(((Operation*)extraData)->socketFM9,&messageType,&msglength,&err);
-
-				DeserializedData* data = Serialization_Deserialize(msgFromFM9);
-				if(*(int*)data->parts[0] == 1){
-				    StringUtils_FreeArray(args);
-					Serialization_CleanupDeserializationStruct(data);
+			int messageType, err, msglength;
+//				void* msgFromFM9 = SocketCommons_ReceiveData(((Operation*)extraData)->socketFM9,&messageType,&msglength,&err);
+//				DeserializedData* data = Serialization_Deserialize(msgFromFM9);
+			int responseFromFM9 = *((int*) SocketCommons_ReceiveData(((Operation*) extraData)->socketFM9, &messageType, &msglength, &err));
+//				if(*(int*)data->parts[0] == 1){
+			switch (responseFromFM9) {
+				case 1:
+					StringUtils_FreeArray(args);
+	//				Serialization_CleanupDeserializationStruct(data);
 					Serialization_CleanupSerializedPacket(packetToFM9);
 					free(id);
-					((Operation*)extraData)->commandResult = 2; //SE DESALOJA SIEMPRE QUE HAYA CLOSE
+					((Operation*) extraData)->commandResult = 2; //SE DESALOJA SIEMPRE QUE HAYA CLOSE
 					return 0;
-				}
-				else {
-						Logger_Log(LOG_INFO, "Error fallo de segmento/memoria en FM9");
-						int32_t idDtb = ((Operation*)extraData)->dtb;
-						declare_and_init(id, int32_t,idDtb);
-						SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT,id, sizeof(uint32_t));
-					    StringUtils_FreeArray(args);
-						Serialization_CleanupDeserializationStruct(data);
-						Serialization_CleanupSerializedPacket(packetToFM9);
 
-						free(id);
-						return 0;
+	//				else {
+				case 2:
+					Logger_Log(LOG_INFO, "Error fallo de segmento/memoria en FM9");
+					int32_t idDtb = ((Operation*) extraData)->dtb;
+					declare_and_init(id, int32_t, idDtb)
 
-				}
+					SocketCommons_SendData(((Operation*) extraData)->socketSAFA,
+					MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
+					StringUtils_FreeArray(args);
+	//				Serialization_CleanupDeserializationStruct(data);
+					Serialization_CleanupSerializedPacket(packetToFM9);
 
-		}
-			else {
-				int32_t idDtb = ((Operation*)extraData)->dtb;
-				declare_and_init(id, int32_t,idDtb);
-				SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT,id, sizeof(uint32_t));
-				((Operation*)extraData)->commandResult = 2; // 0 SALIO to MAL
-				free(id);
-			    StringUtils_FreeArray(args);
-
-
-				return 0;
-
-
+					free(id);
+					return 0;
 			}
-			int32_t idDtb = ((Operation*)extraData)->dtb;
-			declare_and_init(id, int32_t,idDtb);
-			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT,id, sizeof(uint32_t));
-			((Operation*)extraData)->commandResult = 2; // 0 SALIO to MAL
-			free(id);
-		    StringUtils_FreeArray(args);
 
+		} else {
+			int32_t idDtb = ((Operation*) extraData)->dtb;
+			declare_and_init(id, int32_t, idDtb)
+			SocketCommons_SendData(((Operation*) extraData)->socketSAFA, MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
+			((Operation*) extraData)->commandResult = 2; // 0 SALIO to MAL
+			free(id);
+			StringUtils_FreeArray(args);
 
 			return 0;
+
 		}
+		int32_t idDtb = ((Operation*) extraData)->dtb;
+		declare_and_init(id, int32_t, idDtb);
+		SocketCommons_SendData(((Operation*) extraData)->socketSAFA,
+				MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
+		((Operation*) extraData)->commandResult = 2; // 0 SALIO to MAL
+		free(id);
+		StringUtils_FreeArray(args);
+
+		return 0;
+	}
 
 	return 0;
 }
@@ -678,6 +681,3 @@ void* FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 	return result;											//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
 
 }
-
-
->>>>>>> e999036f6ab31cbf1759d9ac3bbe6bd7f13320ca

@@ -136,12 +136,28 @@ void FM9_Close(void* data) {
 }
 
 void FM9_Open(void* data) {
-
+	OnArrivedData* arriveData = data;
+	DeserializedData* actualData = Serialization_Deserialize(arriveData->receivedData);
+	uint32_t* status = malloc(sizeof(uint32_t));
+	if (actualData->count == 3) {
+		int dtbID = *((int *) actualData->parts[0]);
+		int virtualAddress = *((int *) actualData->parts[1]);
+		int result = memoryFunctions->closeFile(dtbID, virtualAddress);
+		if (result == -1)
+			*status = 2;
+		else
+			*status = 1;
+	} else
+		*status = 400;
+	SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT,
+			status, sizeof(uint32_t));
 //int dtbID, void* data, int size) {
 //return memoryFunctions->writeData(data, size, dtbID);
 }
 
 void FM9_Flush(void* data) {
+
+
 //int dtbID, int virtualAddress) {
 
 }
