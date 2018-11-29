@@ -266,23 +266,33 @@ void DAM_Abrir(void* arriveData)
 			{
 				//establecemos conexion con el FM9
 				int socketFM9 = SocketClient_ConnectToServerIP(settings->ipFM9, settings->puertoFM9);
-				int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
+				int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoFM9);
+
 				int file_size;
 				void* file_content = DAM_ReadFile(filePath, socketMDJ, &file_size);
 				close(socketMDJ);
 
 				uint32_t logicAddr = DAM_SendToFM9(socketFM9, file_content, file_size, idDTB);
 
-				//mandar a safa id, path, direccion logica
+				SerializedPart p_iddtb = {.size = sizeof(uint32_t), .data = data->parts[0]};
+				SerializedPart p_filepath = {.size = strlen(filePath)+1, .data = data->parts[1]};
+				declare_and_init(p_logic, uint32_t, logicAddr);
+				SerializedPart p_direccion = {.size = sizeof(uint32_t), .data = p_logic};
 
+				SerializedPart* part = Serialization_Serialize(3, p_iddtb, p_filepath, p_direccion);
+
+				SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ABRIR, part->data, part->size);
+
+				Serialization_CleanupSerializedPacket(part);
+				free(p_logic);
 				close(socketFM9);
+				close(socketSAFA);
 				break;
 			}
 		}
 	}
 
 	free(response);
-	free(data);
 	Serialization_CleanupDeserializationStruct(data);
 	free(arriveData);
 }
