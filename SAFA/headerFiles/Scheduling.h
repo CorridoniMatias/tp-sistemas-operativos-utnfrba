@@ -6,7 +6,6 @@
 //------BIBLIOTECAS EXTERNAS------//
 #include "commons/collections/queue.h"
 #include "commons/collections/dictionary.h"
-#include <pthread.h>
 #include <semaphore.h>
 #include <unistd.h>
 
@@ -120,6 +119,9 @@ struct AlgorithmStatus_s
 {
 	char name[8];
 	int changeType;
+	uint32_t quantum;
+	int delay;
+
 } typedef AlgorithmStatus;
 
 ///-------------CONSTANTES DEFINIDAS-------------///
@@ -145,24 +147,16 @@ struct AlgorithmStatus_s
 #define DTB_STATUS_BLOCKED 		34
 #define DTB_STATUS_EXIT 		35
 
-//Tipos de cambio de algoritmo del PCP, a ver en la ejecucion del mismo
-#define ALGORITHM_CHANGE_UNALTERED		40
-#define ALGORITHM_CHANGE_RR_TO_VRR 		41
-#define ALGORITHM_CHANGE_RR_TO_OWN		42
-#define ALGORITHM_CHANGE_VRR_TO_RR		43
-#define ALGORITHM_CHANGE_VRR_TO_OWN		44
-#define ALGORITHM_CHANGE_OWN_TO_RR		45
-#define ALGORITHM_CHANGE_OWN_TO_VRR		46
-
 ///-------------VARIABLES GLOBALES-------------///
 
 //--VARIABLES EXTERNAS--//
 Configuracion* settings;						//Estructura con la configuracion, externa desde Settings.h
+extern pthread_mutex_t mutexSettings;			//Para garantizar acceso unico a la configuracion; propio de Settings.h
+extern int algorithmChange;						//Valor que registra de que a que algoritmo se paso, por si debo mover colas
 
 //--SEMAFOROS A EMPLEAR--//
 pthread_mutex_t mutexPLPtask;
 pthread_mutex_t mutexPCPtask;
-pthread_mutex_t mutexAlgorithm;					//Para que no jodan al querer ver cual es el algoritmo actual
 pthread_mutex_t mutexREADY;						//Garantiza mutua exclusion sobre las colas READY (la actual);
 												//extern en ConsoleHandler.h, ya que este lo usara al hacer metricas/status
 pthread_mutex_t mutexScriptsQueue;				//Mutua exclusion sobre la cola de scripts; usado tanto en este mismo
@@ -184,7 +178,6 @@ int PCPtask;
 //--VARIABLES EMPLEADAS POR PROCESOS PROPIOS DEL MODULO--//
 uint32_t nextID;								//ID a asignarle al proximo DTB que se cree
 int inMemoryAmount;								//Cantidad de procesos actualmente en memoria; para el grado de multiprogr.
-char* currentAlgorithm;							//Variable global con el nombre del actual algoritmo del PCP; ojo con inotify
 int algorithmChange;							//Codigo del cambio de algoritmo sufrido; constantes definidas arriba
 
 
@@ -348,10 +341,8 @@ DTB* GetNextReadyDTB();
 
 /*
  * 	ACCION: Funcion para el hilo del PLP, con todas sus posibles acciones a llevar a cabo
- * 	PARAMETROS:
- * 		gradoMultiprogramacion: Grado de multiprogramacion del sistema al ejecutar el PLP, determinara el pase de procesos
  */
-void PlanificadorLargoPlazo(void* gradoMultiprogramacion);
+void PlanificadorLargoPlazo();
 /*
  * 	ACCION: Cargar los datos del DTB elegido para inicializar en la estructura del Dummy; NO LO MUEVE A READY
  * 	PARAMETROS:

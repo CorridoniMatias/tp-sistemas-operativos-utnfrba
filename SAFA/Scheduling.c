@@ -24,7 +24,6 @@ void InitSemaphores()
 
 	pthread_mutex_init(&mutexPLPtask, NULL);
 	pthread_mutex_init(&mutexPCPtask, NULL);
-	pthread_mutex_init(&mutexAlgorithm, NULL);
 	pthread_mutex_init(&mutexREADY, NULL);
 	pthread_mutex_init(&mutexScriptsQueue, NULL);
 	pthread_mutex_init(&mutexToBeBlocked, NULL);
@@ -66,9 +65,6 @@ void InitSchedulingGlobalVariables()
 	toBeAssigned->message = malloc(1);
 
 	CreateDummy();									//Malloceo y creo el DummyDTB
-
-	currentAlgorithm = malloc(1);					//Para poder reallocar despues, paragua
-	algorithmChange = ALGORITHM_CHANGE_UNALTERED;	//Arranca en nada, cuando el inotify la cambie debe ser true
 
 	return;
 
@@ -187,7 +183,6 @@ void AddToReady(DTB* myDTB)
 	myDTB->status = DTB_STATUS_READY;
 	//Uso mutexes para no concurrir a la cola READY ni hacer esto durante un cambio de algoritmo
 	pthread_mutex_lock(&mutexREADY);
-	pthread_mutex_lock(&mutexAlgorithm);
 	//Me fijo el algoritmo actual y asi se a cual de todas las colas agregarlo; ante un cambio, deberia moverse solo
 	if((strcmp(currentAlgorithm, "RR")) == 0)
 	{
@@ -377,9 +372,12 @@ void ShowDTBInfo_Deep(DTB* target)
 
 ////////////////////////////////////////////////////////////
 
-void PlanificadorLargoPlazo(void* gradoMultiprogramacion)
+void PlanificadorLargoPlazo()
 {
-	int multiprogrammingDegree = *((int*) gradoMultiprogramacion);
+
+	pthread_mutex_lock(&mutexSettings);
+	int multiprogrammingDegree = settings->multiprogramacion;
+	pthread_mutex_unlock(&mutexSettings);
 
 	while(1)
 	{
@@ -479,15 +477,19 @@ void PlanificadorCortoPlazo()
 	while(1)
 	{
 
-		pthread_mutex_lock(&mutexAlgorithm);
-		//Copio la info necesaria para planificar y mover colas; si hubo cambio, actualizo para la proxima iteracion
-		strcpy(schedulingRules.name, currentAlgorithm);
+		//Excluyentemente, guardo la informacion de la configuracion para planificar; al principio de cada ciclo
+		pthread_mutex_lock(&mutexSettings);
+		strcpy(schedulingRules.name, settings->algoritmo);
+		//Copio el cambio de algoritmo que hubo; si hubo uno, luego de copiar dejo la variable global en UNALTERED,
+		//de manera que en la proxima iteracion ya sepa que no hubo cambio (a menos que inotify lo registre)
 		schedulingRules.changeType = algorithmChange;
-		if(algorithmChange)
+		schedulingRules.delay = settings->retardo;
+		schedulingRules.quantum = settings->quantum;
+		if(schedulingRules.changeType != ALGORITHM_CHANGE_UNALTERED)
 		{
 			algorithmChange = ALGORITHM_CHANGE_UNALTERED;
 		}
-		pthread_mutex_unlock(&mutexAlgorithm);
+		pthread_mutex_unlock(&mutexSettings);
 
 		//Si hubo un cambio de algoritmo, hago la mudanza de colas segun el tipo del mismo; excluyo las colas READY
 		if(schedulingRules.changeType != ALGORITHM_CHANGE_UNALTERED)
@@ -515,6 +517,7 @@ void PlanificadorCortoPlazo()
 
 			//Elegir el DTB adecuado, y obtener el mensaje a enviarle al CPU; ponerlo en EXEC; mutexear las colas READY
 			pthread_mutex_lock(&mutexREADY);
+			pthread_mutex_lock(&mutexSettings);
 			if((strcmp(schedulingRules.name, "RR")) == 0)
 			{
 				messageToSend = ScheduleRR(settings->quantum);
@@ -527,6 +530,7 @@ void PlanificadorCortoPlazo()
 			{
 				messageToSend = ScheduleIOBF(settings->quantum);
 			}
+			pthread_mutex_unlock(&mutexSettings);
 			pthread_mutex_unlock(&mutexREADY);
 
 			//No hare un free del SP* messageToSend de cada llamado a esta funcion (si no, joderia al campo del struct)
@@ -1007,7 +1011,6 @@ void DeleteSemaphores()
 
 	pthread_mutex_destroy(&mutexPLPtask);
 	pthread_mutex_destroy(&mutexPCPtask);
-	pthread_mutex_destroy(&mutexAlgorithm);
 	pthread_mutex_destroy(&mutexREADY);
 	pthread_mutex_destroy(&mutexScriptsQueue);
 	pthread_mutex_destroy(&mutexToBeBlocked);
@@ -1091,8 +1094,6 @@ void DeleteSchedulingGlobalVariables()
 	free(justDummied->script);
 	free(justDummied);
 	//El free del Dummy no se hace aca, sino al hacer el delete de Colas y Listas (estara en alguna)
-
-	free(currentAlgorithm);
 
 	//Libero la memoria de la estructura para guardar asignaciones pendientes y su mensaje
 	Serialization_CleanupSerializedPacket(toBeAssigned->message);

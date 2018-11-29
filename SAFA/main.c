@@ -81,6 +81,7 @@ void onPacketArrived(int socketID, int message_type, void* data)
 		case MESSAGETYPE_DAM_SAFA_ABRIR:
 			run->runnable = (void*)Comms_DAM_AbrirFinished;
 			break;
+
 		case MESSAGETYPE_DAM_SAFA_CREAR:
 		case MESSAGETYPE_DAM_SAFA_BORRAR:
 		case MESSAGETYPE_DAM_SAFA_FLUSH:
@@ -245,12 +246,11 @@ void initialize()
 void freeGlobalVariables()
 {
 
-	free(settings->algoritmo);
-	free(settings);
 	ThreadPool_FreeGracefully(threadPool);
 	DestroyCPUsHolder();
 	DeleteResources();
 	DeleteSchedulingGlobalVariables();
+	DeleteSettingsVariables();
 	Logger_Log(LOG_INFO, "Liberada la memoria ocupada por variables globales");
 
 }
