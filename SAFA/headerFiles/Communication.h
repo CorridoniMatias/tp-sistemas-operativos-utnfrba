@@ -9,7 +9,7 @@
 #include "kemmens/SocketServer.h"
 
 //------BIBLIOTECAS PROPIAS------//
-#include "../headerFiles/Scheduling.h"
+#include "../headerFiles/ResourceManager.h"
 
 ///-------------VARIABLES GLOBALES-------------///
 
@@ -79,6 +79,18 @@ void Comms_CPU_DTBAtDAM(void* arriveData);
  * 			al CPU y pasar el DTB de EXEC a READY de nuevo. La cadena es IdDTB|ProgramCounter|CantArchivosAbiertos|Archivos
  */
 void Comms_CPU_OutOfQuantum(void* arriveData);
+
+/*
+ * 	ACCION: Funcion para meter en el threadPool, maneja un aviso del CPU de que quiere hacer un wait sobre
+ * 			un recurso del sistema, a lo cual debo responderle como salio la peticion. La cadena es IdDTB|NombreRecurso
+ */
+void Comms_CPU_WaitResource(void* arriveData);
+
+/*
+ * 	ACCION: Funcion para meter en el threadPool, maneja un aviso del CPU de que quiere hacer un signal sobre
+ * 			un recurso del sistema, lo cual no requiere respuesta. La cadena es IdDTB|NombreRecurso
+ */
+void Comms_CPU_SignalResource(void* arriveData);
 
 
 #endif /* HEADERFILES_COMMUNICATION_H_ */

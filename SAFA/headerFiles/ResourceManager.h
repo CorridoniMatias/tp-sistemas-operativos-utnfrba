@@ -10,7 +10,7 @@
  * 	Estructura que sirve como value en la tabla/diccionario de recursos; el nombre del mismo es la key de la tabla
  * 	CAMPOS:
  * 		availables: Cantidad de instancias disponibles del recurso; cuando se crea, vale 1
- * 		waiters: Cola de enteros que representan a los IDs de los DTBs bloqueados a la espera de que alguna
+ * 		waiters: Cola de uint32_ts que representan a los IDs de los DTBs bloqueados a la espera de que alguna
  * 				 instancia se libere. Es importante mantener el orden para ir desbloqueando de a 1
  */
 struct ResourceStatus_s

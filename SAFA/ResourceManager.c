@@ -63,7 +63,7 @@ void SignalForResource(char* name)
 	//NO hago free de signaled ni de involved, salieron de un get (no hay malloc)
 }
 
-bool WaitForResource(char* name, int requesterID)
+bool WaitForResource(char* name, uint32_t requesterID)
 {
 
 	//Si el recurso no existe, lo creo y le pongo una instancia (la cual luego asignare)
@@ -79,7 +79,7 @@ bool WaitForResource(char* name, int requesterID)
 	//Si la cantidad disponible quedo negativa, es porque no habia instancias libres; lo agrego a la cola de bloqueados
 	if(waited->availables < 0)
 	{
-		int* newWaiter = (int*) malloc(sizeof(int));
+		uint32_t* newWaiter = (uint32_t*) malloc(sizeof(uint32_t));
 		*newWaiter = requesterID;
 		queue_push(waited->waiters, newWaiter);
 		//Actualizo mis registros de los recursos
@@ -90,7 +90,7 @@ bool WaitForResource(char* name, int requesterID)
 	//Si no es asi, puedo asignarlo sin problemas!
 	else
 	{
-		//Respuesta positiva
+		//Respuesta negativa
 		return false;
 	}
 

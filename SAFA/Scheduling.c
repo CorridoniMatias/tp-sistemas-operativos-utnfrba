@@ -177,13 +177,13 @@ void AddToNew(DTB* myDTB)
 
 }
 
-void AddToReady(DTB* myDTB)
+void AddToReady(DTB* myDTB, char* currentAlgorithm)
 {
 
 	myDTB->status = DTB_STATUS_READY;
 	//Uso mutexes para no concurrir a la cola READY ni hacer esto durante un cambio de algoritmo
 	pthread_mutex_lock(&mutexREADY);
-	//Me fijo el algoritmo actual y asi se a cual de todas las colas agregarlo; ante un cambio, deberia moverse solo
+	//Me fijo el algoritmo actual (parametro) y asi se a cual de todas las colas agregarlo
 	if((strcmp(currentAlgorithm, "RR")) == 0)
 	{
 		queue_push(READYqueue_RR, myDTB);
@@ -198,7 +198,6 @@ void AddToReady(DTB* myDTB)
 		//Ni bien agrego un DTB nuevo, ordeno la lista asi se "inserta ordenado"
 		list_sort(READYqueue_Own, DescendantPriority);
 	}
-	pthread_mutex_unlock(&mutexAlgorithm);
 	pthread_mutex_unlock(&mutexREADY);
 
 }
@@ -375,14 +374,15 @@ void ShowDTBInfo_Deep(DTB* target)
 void PlanificadorLargoPlazo()
 {
 
-	pthread_mutex_lock(&mutexSettings);
-	int multiprogrammingDegree = settings->multiprogramacion;
-	pthread_mutex_unlock(&mutexSettings);
-
 	while(1)
 	{
 
 		sem_wait(&workPLP);
+
+		//Me agarro el grado de multiprogramacion, antes que alguien lo cambie
+		pthread_mutex_lock(&mutexSettings);
+		int multiprogrammingDegree = settings->multiprogramacion;
+		pthread_mutex_unlock(&mutexSettings);
 
 		if(PLPtask == PLP_TASK_NORMAL_SCHEDULE)
 		{
@@ -442,7 +442,10 @@ void PlanificadorLargoPlazo()
 			//Bajo el contador en uno, el CreateDTB lo aumento por defecto
 			nextID--;
 
-			AddToReady(toBeInitialized);
+			//Mutexeo las settings para tomar el algoritmo en ese momento y aislarme de un cambio en simultaneo
+			pthread_mutex_lock(&mutexSettings);
+			AddToReady(toBeInitialized, settings->algoritmo);
+			pthread_mutex_unlock(&mutexSettings);
 			//Vuelvo a poner la tarea del PLP en Planificacion Normal (1)
 			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 			SetPLPTask(PLP_TASK_NORMAL_SCHEDULE);
@@ -485,18 +488,17 @@ void PlanificadorCortoPlazo()
 		schedulingRules.changeType = algorithmChange;
 		schedulingRules.delay = settings->retardo;
 		schedulingRules.quantum = settings->quantum;
-		if(schedulingRules.changeType != ALGORITHM_CHANGE_UNALTERED)
-		{
-			algorithmChange = ALGORITHM_CHANGE_UNALTERED;
-		}
 		pthread_mutex_unlock(&mutexSettings);
 
 		//Si hubo un cambio de algoritmo, hago la mudanza de colas segun el tipo del mismo; excluyo las colas READY
+		//Luego de la mudanza, dejo en UNALTERED de manera que en la proxima iteracion
+		//ya sepa que no hubo cambio (a menos que inotify lo registre)
 		if(schedulingRules.changeType != ALGORITHM_CHANGE_UNALTERED)
 		{
 			pthread_mutex_lock(&mutexREADY);
 			MoveQueues(schedulingRules.changeType);
 			pthread_mutex_unlock(&mutexREADY);
+			algorithmChange = ALGORITHM_CHANGE_UNALTERED;
 		}
 
 		if(PCPtask == PCP_TASK_NORMAL_SCHEDULE)
@@ -517,20 +519,18 @@ void PlanificadorCortoPlazo()
 
 			//Elegir el DTB adecuado, y obtener el mensaje a enviarle al CPU; ponerlo en EXEC; mutexear las colas READY
 			pthread_mutex_lock(&mutexREADY);
-			pthread_mutex_lock(&mutexSettings);
 			if((strcmp(schedulingRules.name, "RR")) == 0)
 			{
-				messageToSend = ScheduleRR(settings->quantum);
+				messageToSend = ScheduleRR(schedulingRules.quantum);
 			}
 			else if((strcmp(schedulingRules.name, "VRR")) == 0)
 			{
-				messageToSend = ScheduleVRR(settings->quantum);
+				messageToSend = ScheduleVRR(schedulingRules.quantum);
 			}
 			else if((strcmp(schedulingRules.name, "PROPIO")) == 0)
 			{
-				messageToSend = ScheduleIOBF(settings->quantum);
+				messageToSend = ScheduleIOBF(schedulingRules.quantum);
 			}
-			pthread_mutex_unlock(&mutexSettings);
 			pthread_mutex_unlock(&mutexREADY);
 
 			//No hare un free del SP* messageToSend de cada llamado a esta funcion (si no, joderia al campo del struct)
@@ -546,7 +546,7 @@ void PlanificadorCortoPlazo()
 		else if(PCPtask == PCP_TASK_LOAD_DUMMY)
 		{
 			dummyDTB->status = DTB_STATUS_READY;
-			AddToReady(dummyDTB);
+			AddToReady(dummyDTB, schedulingRules.name);
 			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 		}
 
@@ -655,7 +655,7 @@ void PlanificadorCortoPlazo()
 					target->programCounter = nextToUnlock->newProgramCounter;
 				}
 				UpdateOpenedFiles(target, nextToUnlock->openedFilesUpdate, nextToUnlock->singleOFaddition);
-				AddToReady(target);
+				AddToReady(target, schedulingRules.name);
 
 			}
 			pthread_mutex_unlock(&mutexToBeUnlocked);

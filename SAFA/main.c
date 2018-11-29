@@ -56,7 +56,10 @@ void* postDo(char* cmd, char* sep, void* args, bool fired)
 	return 0;
 }
 
-
+/*
+ * 	ACCION: Maneja la recepcion de mensajes que llegan a traves de un socket, ya sean del DAM o del CPU
+ * 			Cada mensaje recibido tiene una funcion asociada a ejecutar, detalladas en Communication.c
+ */
 void onPacketArrived(int socketID, int message_type, void* data)
 {
 
@@ -109,11 +112,11 @@ void onPacketArrived(int socketID, int message_type, void* data)
 			break;
 
 		case  MESSAGETYPE_CPU_WAIT:
-			//
+			run->runnable = (void*)Comms_CPU_WaitResource;
 			break;
 
 		case MESSAGETYPE_CPU_SIGNAL:
-			//
+			run->runnable = (void*)Comms_CPU_SignalResource;
 			break;
 
 

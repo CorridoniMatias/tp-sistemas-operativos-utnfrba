@@ -233,3 +233,55 @@ void Comms_CPU_OutOfQuantum(void* arriveData)
 	free(arriveData);
 
 }
+
+void Comms_CPU_WaitResource(void* arriveData)
+{
+
+	OnArrivedData* data = (OnArrivedData*)arriveData;
+	//Uso un DeserializedData, el CPU me mando mucha informacion
+	int cpuSocket = data->calling_SocketID;
+	DeserializedData* params = Serialization_Deserialize(data->receivedData);
+
+	//Me fijo si el DTB solicitante puede tomar ese recurso o no, y veo que le contesto
+	bool success = WaitForResource((char*)(params->parts[1]), *((uint32_t*)(params->parts[0])));
+	uint32_t* result = (uint32_t*) malloc(sizeof(uint32_t));
+
+	//Le voy a mandar un 1 si puede tomar el recurso, o un 0 si no y debe bloquearse,
+	//lo cual lo va a llevar a mandarme otro mensaje con DTB_BLOCK
+	if(success)
+	{
+		*result = 1;
+	}
+	else
+	{
+		*result = 0;
+	}
+
+	//Le respondo al CPU que me hablo, mandandole el resultado de la operacion
+	SocketCommons_SendData(cpuSocket, MESSAGETYPE_SAFA_CPU_WAITRESPONSE, result, sizeof(uint32_t));
+
+	//No libero todo el DeserializedData, necesito conservar el nombre del recurso por el Dictionary
+	multiFree(3, params->parts[0], params->parts, params);
+	//TODO: free(result) haria falta??
+	free(data->receivedData);
+	free(arriveData);
+
+}
+
+void Comms_CPU_SignalResource(void* arriveData)
+{
+
+	OnArrivedData* data = (OnArrivedData*)arriveData;
+	DeserializedData* params = Serialization_Deserialize(data->receivedData);
+
+	//Solo necesito el nombre del recurso; el ResourceManager prueba hacer el signal
+	//No hace falta responderle nada al CPU, el seguira con su ejecucion
+	SignalForResource((char*)(params->parts[1]));
+
+	//No libero el DeserializedData entero, necesito conservar el nombre del recurso por el Dictionary
+	multiFree(3, params->parts[0], params->parts, params);
+	free(data->receivedData);
+	free(arriveData);
+
+
+}
