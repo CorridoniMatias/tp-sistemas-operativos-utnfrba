@@ -4,6 +4,7 @@
 ///-------------INCLUSION DE BIBLIOTECAS-------------///
 
 //------BIBLIOTECAS EXTERNAS------//
+#include <pthread.h>
 #include "unistd.h"
 #include "sys/inotify.h"
 
@@ -50,10 +51,25 @@ struct Configuracion_s
 #define EVENT_SIZE 			( sizeof (struct inotify_event) )
 #define BUFFER_SIZE			( MAX_CHANGES_ALLOWED * ( EVENT_SIZE + FILE_LENGTH ))
 
+//Tipos de cambio de algoritmo del PCP, a ver en la ejecucion del mismo
+#define ALGORITHM_CHANGE_UNALTERED		40
+#define ALGORITHM_CHANGE_RR_TO_VRR 		41
+#define ALGORITHM_CHANGE_RR_TO_OWN		42
+#define ALGORITHM_CHANGE_VRR_TO_RR		43
+#define ALGORITHM_CHANGE_VRR_TO_OWN		44
+#define ALGORITHM_CHANGE_OWN_TO_RR		45
+#define ALGORITHM_CHANGE_OWN_TO_VRR		46
+
 
 ///-------------VARIABLES GLOBALES-------------///
 
-/*extern*/ Configuracion* settings;						//Almacena los datos de configuracion
+extern Configuracion* settings;							//Almacena los datos de configuracion
+
+pthread_mutex_t mutexSettings;							//Mutex para excluir el acceso a los parametros de configuracion;
+														//es por si se los consulta mientras se los esta modificando
+														//extern en Scheduling.h
+
+int algorithmChange;									//Codigo de cambio de algoritmos; extern en Scheduling.h
 
 
 ///-------------FUNCIONES DEFINIDAS------------///
@@ -75,5 +91,10 @@ void UpdateSettings();
  * 			Esta funcion debe ser ejecutada en un hilo aparte, posee el read que es bloqueante
  */
 void MonitorConfigFile();
+
+/*
+ * 	ACCION: Liberar la memoria de la estructura de configuracion, sus campos, y el mutex de acceso a la misma
+ */
+void DeleteSettingsVariables();
 
 #endif /* SETTINGS_H_ */

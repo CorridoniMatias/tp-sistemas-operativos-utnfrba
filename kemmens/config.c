@@ -66,8 +66,21 @@ void archivoConfigSetearCampo(t_config* archivoConfig, char* campo, char* valor)
 
 bool archivoConfigInvalido(t_config* archivoConfig, char** campos) {
 
-	return (archivoConfigInexistente(archivoConfig)
-			|| archivoConfigIncompleto(archivoConfig, campos));
+	if(archivoConfigInexistente(archivoConfig))
+	{
+		printf("Ruta invalida\n");
+		return true;
+	}
+	else if(archivoConfigIncompleto(archivoConfig, campos))
+	{
+		printf("Faltan campos\n");
+		return true;
+	}
+
+	return false;
+
+	/*return (archivoConfigInexistente(archivoConfig)
+			|| archivoConfigIncompleto(archivoConfig, campos));*/
 }
 
 bool archivoConfigInexistente(t_config* archivoConfig) {

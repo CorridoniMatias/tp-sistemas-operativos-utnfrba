@@ -8,6 +8,7 @@
 #include "kemmens/SocketClient.h"
 #include "kemmens/Serialization.h"
 #include "kemmens/SocketMessageTypes.h"
+#include "kemmens/Utils.h"
 
 void DAM_Abrir(void* arriveData);
 

@@ -1,5 +1,5 @@
 #include "headers/DAMInterface.h"
-#include "kemmens/Utils.h"
+
 
 void* DAM_ReadFile(char* filePath, int socketMDJ, int* received_content_length)
 {
@@ -157,6 +157,79 @@ void DAM_Crear(void* arriveData)
 	free(arriveData);
 }
 
+uint32_t DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
+{
+	int offset = 0;
+	int sizeToSend = 0;
+	int msg_type, length, status;
+	int error = 0;
+
+	while(1)
+	{
+		if(len <= 0)
+			break;
+
+		if(len < settings->transferSize)
+			sizeToSend = len;
+		else
+			sizeToSend = settings->transferSize;
+
+		len -= sizeToSend;
+
+		declare_and_init(piddtb, uint32_t, iddtb);
+		SerializedPart p_iddtb = {.size = sizeof(uint32_t), .data = piddtb};
+
+		declare_and_init(psize, uint32_t, sizeToSend);
+		SerializedPart p_size = {.size = sizeof(uint32_t), .data = psize};
+
+		void* buffer = malloc(sizeToSend);
+		memcpy(buffer, ((void*)(content + offset)), sizeToSend);
+
+		SerializedPart p_buffer = {.size = sizeToSend, .data = buffer};
+
+		SerializedPart* serializedContent = Serialization_Serialize(3, p_iddtb, p_size, p_buffer);
+
+		SocketCommons_SendData(socketFM9, MESSAGETYPE_MDJ_PUTDATA, serializedContent->data, serializedContent->size);
+
+		Serialization_CleanupSerializedPacket(serializedContent);
+		free(piddtb);
+		free(psize);
+		free(buffer);
+		offset += sizeToSend;
+
+		void* data = SocketCommons_ReceiveData(socketFM9, &msg_type, &length, &status);
+
+		if(msg_type == MESSAGETYPE_INT)
+		{
+			switch(*((uint32_t*)data))
+			{
+				case 1: //parte recibida OK
+				break;
+				case 2: //espacio insuficiente
+					error = 1;
+				break;
+				case 400: //bad request
+				break;
+			}
+		}
+		free(data);
+		if(error == 1)
+			break;
+	}
+
+	if(error == 0) //recibimos la direccion de donde esta el archivo
+	{
+		void* data = SocketCommons_ReceiveData(socketFM9, &msg_type, &length, &status);
+
+		if(msg_type == MESSAGETYPE_ADDRESS)
+		{
+			uint32_t tmp = *((uint32_t*)data);
+			free(data);
+			return tmp;
+		}
+	}
+}
+
 void DAM_Abrir(void* arriveData)
 {
 	DeserializedData* data = Serialization_Deserialize(arriveData);
@@ -195,33 +268,35 @@ void DAM_Abrir(void* arriveData)
 			{
 				//establecemos conexion con el FM9
 				int socketFM9 = SocketClient_ConnectToServerIP(settings->ipFM9, settings->puertoFM9);
-				int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
+				int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoFM9);
+
 				int file_size;
 				//Recibimos Archivo desde MDJ
 				void* file_content = DAM_ReadFile(filePath, socketMDJ, &file_size);
-
-				//Enviamos el archivo a FM9
-				declare_and_init(newIdtb, uint32_t, idDTB);
-				declare_and_init(newFile_size, uint32_t, file_size);
-
-				SerializedPart p_id = {.size = sizeof(uint32_t), .data = newIdtb};
-				SerializedPart p_newlines = {.size = sizeof(uint32_t), .data = newFile_size};
-				SerializedPart p_filepath = {.size = sizeof(file_size), .data = file_content};
-				SerializedPart* packet = Serialization_Serialize(3,p_id, p_newlines, p_filepath);
-
-				SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_OPEN, packet->data, packet->size);
-
-				free(newIdtb);
-				free(newFile_size);
-				close(socketFM9);
 				close(socketMDJ);
+
+				uint32_t logicAddr = DAM_SendToFM9(socketFM9, file_content, file_size, idDTB);
+
+
+				SerializedPart p_iddtb = {.size = sizeof(uint32_t), .data = data->parts[0]};
+				SerializedPart p_filepath = {.size = strlen(filePath)+1, .data = data->parts[1]};
+				declare_and_init(p_logic, uint32_t, logicAddr);
+				SerializedPart p_direccion = {.size = sizeof(uint32_t), .data = p_logic};
+
+				SerializedPart* part = Serialization_Serialize(3, p_iddtb, p_filepath, p_direccion);
+
+				SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ABRIR, part->data, part->size);
+
+				Serialization_CleanupSerializedPacket(part);
+				free(p_logic);
+				close(socketFM9);
+				close(socketSAFA);
 				break;
 			}
 		}
 	}
 
 	free(response);
-	free(data);
 	Serialization_CleanupDeserializationStruct(data);
 	free(arriveData);
 }

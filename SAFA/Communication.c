@@ -97,7 +97,7 @@ void Comms_DAM_IOError(void* arriveData)
 
 }
 
-void Comms_CPU_CPUErrorOrEOF(void* arriveData)
+void Comms_CPU_ErrorOrEOF(void* arriveData)
 {
 
 	OnArrivedData* data = (OnArrivedData*)arriveData;
@@ -120,7 +120,7 @@ void Comms_CPU_CPUErrorOrEOF(void* arriveData)
 
 }
 
-void Comms_DummyAtDAM(void* arriveData)
+void Comms_CPU_DummyAtDAM(void* arriveData)
 {
 
 	OnArrivedData* data = (OnArrivedData*)arriveData;
@@ -152,11 +152,11 @@ t_dictionary* BuildDictionary(void* flattened, int amount)
 		//EL FREE SE HACE SOLO CUANDO DESTRUYA EL DICCIONARIO Y SUS ELEMENTOS
 		logicalAddress = malloc(sizeof(int));
 		path = strtok((char*)(flattened + offset), ":");
-		//No le sumo uno por los :, strlen me devuelve el largo + 1 por el \0 al final
+		//No le sumo uno por los :, strlen me devuelve el largo (sin el \0 al final); le sumo uno por los : separadores
 		offset += (strlen(path) + 1);
 		memcpy(logicalAddress, flattened + offset, sizeof(int));
 		offset += (sizeof(int) + 1);
-		dictionary_put(dict, path, logicalAddress);
+		dictionary_putMAESTRO(dict, path, logicalAddress, LogicalAddressDestroyer);
 		i++;
 	}
 
