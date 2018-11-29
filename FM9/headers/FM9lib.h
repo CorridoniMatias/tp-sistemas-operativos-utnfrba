@@ -31,7 +31,8 @@ typedef struct{
 	void (*createStructures)();
 	void (*freeStructures)();
 	int (*virtualAddressTranslation)(int, int);
-	int (*writeData)(void*,int,int);
+	int (*writeData)(void*, int, int);
+	int (*readData)(void*, int, int);
 	int (*closeFile)(int,int);
 	int (*dump)(int);
 	int (*size)(int,int);

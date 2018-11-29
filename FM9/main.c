@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
 	configurar();
 	createStorage();
 
-	testDump();
+	testLineLength();
 
 	StartServer();
 	ThreadPool_FreeGracefully(threadPool);

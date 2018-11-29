@@ -437,11 +437,14 @@ void* CommandFlush(int argC, char** args, char* callingLine, void* extraData){
 		declare_and_init(newQ,int32_t,quantum);
 		int32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
 		declare_and_init(newNumberOfFiles,int32_t,numberOfFiles);
+		uint32_t virtualAddress = *((int*)dictionary_get(((Operation*)extraData)->dictionary,path));
+		declare_and_init(newVirtualAddress,uint32_t,virtualAddress)
 
 		SerializedPart fieldForDAM1 = {.size = sizeof(int32_t), .data =id};
-		SerializedPart fieldForDAM2 = {.size = strlen(path)+1, .data = path};
+		SerializedPart fieldForDAM2 = {.size = sizeof(int32_t), .data =newVirtualAddress};
+		SerializedPart fieldForDAM3 = {.size = strlen(path)+1, .data = path};
 
-		SerializedPart* packetToDAM = Serialization_Serialize(2, fieldForDAM1, fieldForDAM2);
+		SerializedPart* packetToDAM = Serialization_Serialize(3, fieldForDAM1, fieldForDAM2, fieldForDAM3);
 
 		SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_FLUSH, packetToDAM->data, packetToDAM->size);
 

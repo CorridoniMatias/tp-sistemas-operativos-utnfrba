@@ -201,7 +201,7 @@ void llegoUnPaquete(int socketID, int message_type, void* datos, int message_len
 
 	switch(message_type)
 	{
-		case MESSAGETYPE_DAM_SAFA_FLUSH:
+		case MESSAGETYPE_CPU_FLUSH:
 			run->runnable = (void*)DAM_Flush;
 		break;
 		case MESSAGETYPE_DAM_SAFA_CREAR:

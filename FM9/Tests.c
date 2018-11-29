@@ -92,3 +92,22 @@ void testDump() {
 	Logger_Log(LOG_DEBUG, "FM9 -> Escritura en  %d", writeData_SEG(d2, 4, 1));
 	Logger_Log(LOG_DEBUG, "FM9 -> Escritura en  %d", writeData_SEG(d3, 5, 1));
 }
+
+void testLineLength(){
+
+	char* line = "01245\n0123456789\n";
+
+	int size = sizeOfLine(line);
+	char* firstPart = malloc(size + 1);
+	memcpy(firstPart, line, size);
+	firstPart[size] = '\0';
+	printf("primera parte %s\n",firstPart);
+	printf("tamaño primera parte %d\n",size);
+	int size1 = sizeOfLine(line+size+1);
+	char* secondPart = malloc(size1 + 1);
+	memcpy(secondPart, line+size+1, size1);
+	secondPart[size1] = '\0';
+
+	printf("segunda parte %s\n",secondPart);
+	printf("tamaño segunda parte %d\n",size1);
+}

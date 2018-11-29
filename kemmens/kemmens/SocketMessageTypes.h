@@ -8,6 +8,7 @@
 #define MESSAGETYPE_STRING 1	//Strings puras
 #define MESSAGETYPE_INT	2		//INTS de longitud variable
 #define MESSAGETYPE_VOIDPOINTER	3   //void*, pára los packets
+#define MESSAGETYPE_ADDRESS	4	//Dirección lógica de memoria
 
 //PROTOCOLO MDJ (1)
 #define MESSAGETYPE_MDJ_CHECKFILE 	10	//Comando: Validar Archivo
@@ -27,6 +28,7 @@
 #define MESSAGETYPE_DAM_SAFA_BORRAR	223 //Comando: borrar
 #define MESSAGETYPE_DAM_SAFA_FLUSH	224 //Comando: flush
 #define MESSAGETYPE_DAM_SAFA_ERR	225 //Error en la operacion con SAFA
+
 
 ///PROTOCOLO S-AFA (5XX)
 

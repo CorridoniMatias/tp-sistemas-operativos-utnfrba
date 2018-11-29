@@ -87,11 +87,35 @@ int writeData_SEG(void* data, int size, int dtbID) {
 	return virtualAddress;
 }
 
-int readDataSegmentation(void* target, int virtualAddress, int dtbID) {
-	int lineNumber = segmentationAddressTranslation(virtualAddress, dtbID);
-	if (lineNumber == -1)
-		return -1;
-	return readLine(target, lineNumber);
+int readDataSegmentation(void* target, int logicalAddress, int dtbID) {
+	int baseLine = segmentationAddressTranslation(logicalAddress, dtbID);
+	if (baseLine == ITS_A_TRAP)
+		return ITS_A_TRAP;
+	char * dtbKey = string_itoa(dtbID);
+	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey))
+		return ITS_A_TRAP;
+	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
+	free(dtbKey);
+	int segmentNumber = getSegmentFromAddress(logicalAddress);
+	char* segmentKey = string_itoa(segmentNumber);
+	if (!dictionary_has_key(segments->segments, segmentKey)) {
+		free(segmentKey);
+		return ITS_A_TRAP;
+	}
+	t_segment* segment = dictionary_get(segments->segments, segmentKey);
+	free(segmentKey);
+	int sizeRead=0;
+	int linesRead=0;
+	target=malloc(1);
+	while(linesRead<segment->limit)
+	{
+		realloc(target, sizeRead + tamanioLinea);
+		if (readLine(target, baseLine+linesRead) == INVALID_LINE_NUMBER)
+			break;
+		sizeRead += tamanioLinea;
+		linesRead++;
+	}
+	return sizeRead;
 }
 
 int segmentationAddressTranslation(int virtualAddress, int dtbID) {
