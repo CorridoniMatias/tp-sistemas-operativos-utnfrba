@@ -155,6 +155,79 @@ void DAM_Crear(void* arriveData)
 	free(arriveData);
 }
 
+uint32_t DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
+{
+	int offset = 0;
+	int sizeToSend = 0;
+	int msg_type, length, status;
+	int error = 0;
+
+	while(1)
+	{
+		if(len <= 0)
+			break;
+
+		if(len < settings->transferSize)
+			sizeToSend = len;
+		else
+			sizeToSend = settings->transferSize;
+
+		len -= sizeToSend;
+
+		declare_and_init(piddtb, uint32_t, iddtb);
+		SerializedPart p_iddtb = {.size = sizeof(uint32_t), .data = piddtb};
+
+		declare_and_init(psize, uint32_t, sizeToSend);
+		SerializedPart p_size = {.size = sizeof(uint32_t), .data = psize};
+
+		void* buffer = malloc(sizeToSend);
+		memcpy(buffer, ((void*)(content + offset)), sizeToSend);
+
+		SerializedPart p_buffer = {.size = sizeToSend, .data = buffer};
+
+		SerializedPart* serializedContent = Serialization_Serialize(3, p_iddtb, p_size, p_buffer);
+
+		SocketCommons_SendData(socketFM9, MESSAGETYPE_MDJ_PUTDATA, serializedContent->data, serializedContent->size);
+
+		Serialization_CleanupSerializedPacket(serializedContent);
+		free(piddtb);
+		free(psize);
+		free(buffer);
+		offset += sizeToSend;
+
+		void* data = SocketCommons_ReceiveData(socketFM9, &msg_type, &length, &status);
+
+		if(msg_type == MESSAGETYPE_INT)
+		{
+			switch(*((uint32_t*)data))
+			{
+				case 1: //parte recibida OK
+				break;
+				case 2: //espacio insuficiente
+					error = 1;
+				break;
+				case 400: //bad request
+				break;
+			}
+		}
+		free(data);
+		if(error == 1)
+			break;
+	}
+
+	if(error == 0) //recibimos la direccion de donde esta el archivo
+	{
+		void* data = SocketCommons_ReceiveData(socketFM9, &msg_type, &length, &status);
+
+		if(msg_type == MESSAGETYPE_ADDRESS)
+		{
+			uint32_t tmp = *((uint32_t*)data);
+			free(data);
+			return tmp;
+		}
+	}
+}
+
 void DAM_Abrir(void* arriveData)
 {
 	DeserializedData* data = Serialization_Deserialize(arriveData);
@@ -196,21 +269,13 @@ void DAM_Abrir(void* arriveData)
 				int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
 				int file_size;
 				void* file_content = DAM_ReadFile(filePath, socketMDJ, &file_size);
-
-				declare_and_init(newIdtb, uint32_t, idDTB);
-				declare_and_init(newFile_size, uint32_t, file_size);
-
-				SerializedPart p_id = {.size = sizeof(uint32_t), .data = newIdtb};
-				SerializedPart p_newlines = {.size = sizeof(uint32_t), .data = newFile_size};
-				SerializedPart p_filepath = {.size = sizeof(file_size), .data = file_content};
-				SerializedPart* packet = Serialization_Serialize(3,p_id, p_newlines, p_filepath);
-
-				SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_OPEN, packet->data, packet->size);
-
-				free(newIdtb);
-				free(newFile_size);
-				close(socketFM9);
 				close(socketMDJ);
+
+				uint32_t logicAddr = DAM_SendToFM9(socketFM9, file_content, file_size, idDTB);
+
+				//mandar a safa id, path, direccion logica
+
+				close(socketFM9);
 				break;
 			}
 		}
