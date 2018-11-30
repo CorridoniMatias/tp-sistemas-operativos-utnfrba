@@ -23,6 +23,8 @@ extern pthread_mutex_t mutexToBeEnded;
 extern t_queue* scriptsQueue;					//Cola de scripts a asociar a un DTB, por comando ejecutar
 extern t_queue* toBeEnded;						//Cola de DTBs a abortar, por comando finalizar
 
+extern pthread_mutex_t mutexSettings;			//Esta viene de Settings.h
+
 ///-------------FUNCIONES DEFINIDAS------------///
 
 /*

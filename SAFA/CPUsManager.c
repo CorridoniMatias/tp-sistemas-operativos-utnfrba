@@ -3,6 +3,7 @@
 void InitCPUsHolder()
 {
 	cpus = list_create();
+	pthread_mutex_init(&mutexCPUs, NULL);
 }
 
 void AddCPU(int* socketID)
@@ -11,7 +12,9 @@ void AddCPU(int* socketID)
 	CPU* newCPU = (CPU*) malloc(sizeof(CPU));		//free no hace falta aca, va con el destroyer
 	newCPU->socket = *socketID;
 	newCPU->busy = false;
+	pthread_mutex_lock(&mutexCPUs);
 	list_add(cpus, newCPU);
+	pthread_mutex_unlock(&mutexCPUs);
 
 }
 
@@ -21,6 +24,7 @@ void FreeCPU(int socketID)
 	int size = CPUsCount();
 	CPU* counter;
 	CPU* toModify;
+	pthread_mutex_lock(&mutexCPUs);
 	for(int i = 0; i < size; i++)
 	{
 		counter = list_get(cpus, i);
@@ -32,6 +36,7 @@ void FreeCPU(int socketID)
 			break;			   	  //No hace falta seguir buscando otro con ese ID, salgo del ciclo
 		}
 	}
+	pthread_mutex_unlock(&mutexCPUs);
 
 }
 
@@ -59,20 +64,6 @@ int CPUsCount()
 
 }
 
-void CPUDestroyer(void* aCPU)
-{
-
-	free(aCPU);
-
-}
-
-void DestroyCPUsHolder()
-{
-
-	list_destroy_and_destroy_elements(cpus, CPUDestroyer);
-
-}
-
 bool IsIdle(void* myCPU)
 {
 
@@ -92,7 +83,24 @@ bool ExistsIdleCPU()
 {
 
 	bool exists;
+	pthread_mutex_lock(&mutexCPUs);
 	exists = list_any_satisfy(cpus, IsIdle);
+	pthread_mutex_lock(&mutexCPUs);
 	return exists;
+
+}
+
+void CPUDestroyer(void* aCPU)
+{
+
+	free(aCPU);
+
+}
+
+void DestroyCPUsHolder()
+{
+
+	list_destroy_and_destroy_elements(cpus, CPUDestroyer);
+	pthread_mutex_destroy(&mutexCPUs);
 
 }

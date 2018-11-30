@@ -63,11 +63,12 @@ struct Configuracion_s
 
 ///-------------VARIABLES GLOBALES-------------///
 
-extern Configuracion* settings;							//Almacena los datos de configuracion
+/*extern*/ Configuracion* settings;						//Almacena los datos de configuracion
+														//No es extern porque no sera modificada en otros modulos
 
 pthread_mutex_t mutexSettings;							//Mutex para excluir el acceso a los parametros de configuracion;
 														//es por si se los consulta mientras se los esta modificando
-														//extern en Scheduling.h
+														//extern en Scheduling.h, CH.h
 
 int algorithmChange;									//Codigo de cambio de algoritmos; extern en Scheduling.h
 

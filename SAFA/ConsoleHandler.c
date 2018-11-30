@@ -90,10 +90,10 @@ void CommandStatus (int argC, char** args, char* callingLine, void* extraData)
 		return;
 	}
 
-	pthread_mutex_lock(&mutexAlgorithm);
+	pthread_mutex_lock(&mutexSettings);
 	char algorithm[8];								//Aca guardo el algoritmo actual del PCP
-	strcpy(algorithm, currentAlgorithm);
-	pthread_mutex_unlock(&mutexAlgorithm);
+	strcpy(algorithm, settings->algoritmo);
+	pthread_mutex_unlock(&mutexSettings);
 
 	//Si solo se ingreso status, debo mostrar la informacion principal de las colas
 	if(argC == 1)

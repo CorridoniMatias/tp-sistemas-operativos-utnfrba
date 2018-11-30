@@ -30,7 +30,6 @@ void InitSemaphores()
 	pthread_mutex_init(&mutexToBeUnlocked, NULL);
 	pthread_mutex_init(&mutexToBeEnded, NULL);
 	sem_init(&workPLP, 0, 0);
-	sem_init(&assignmentPending, 0, 0);
 
 }
 
@@ -60,9 +59,6 @@ void InitSchedulingGlobalVariables()
 
 	justDummied = (CreatableGDT*) malloc(sizeof(CreatableGDT));
 	justDummied->script = malloc(1);				//Medio paragua, para poder hacer reallocs
-
-	toBeAssigned = (AssignmentInfo*) malloc(sizeof(AssignmentInfo));
-	toBeAssigned->message = malloc(1);
 
 	CreateDummy();									//Malloceo y creo el DummyDTB
 
@@ -512,8 +508,9 @@ void PlanificadorCortoPlazo()
 			}
 
 			//Agarro el primer CPU libre que haya, lo saco de la lista y lo pongo aca
+			pthread_mutex_lock(&mutexCPUs);
 			CPU* chosenCPU = list_remove_by_condition(cpus, IsIdle);
-			toBeAssigned->cpuSocket = chosenCPU->socket;
+			pthread_mutex_unlock(&mutexCPUs);
 
 			SerializedPart* messageToSend;
 
@@ -533,12 +530,17 @@ void PlanificadorCortoPlazo()
 			}
 			pthread_mutex_unlock(&mutexREADY);
 
-			//No hare un free del SP* messageToSend de cada llamado a esta funcion (si no, joderia al campo del struct)
-			//global; pero si, tras cada envio de mensaje, deberia hacer el cleanup del campo del struct (el mensaje ya enviado)
-			toBeAssigned->message = messageToSend;
+			//Envio, a traves del socket del CPU elegido, el mensaje acerca del DTB y su tamanio
+			SocketCommons_SendData(chosenCPU->socket, MESSAGETYPE_SAFA_CPU_EXECUTE, messageToSend->data, messageToSend->size);
 
-			//Hago signal sobre el semaforo de asignacion pendiente de envio, para que el main sepa que se debe enviar
-			sem_post(&assignmentPending);
+			//Marco el CPU como ocupado y lo vuelvo a poner en la lista de CPUs
+			chosenCPU->busy = true;
+			pthread_mutex_lock(&mutexCPUs);
+			list_add(cpus, chosenCPU);
+			pthread_mutex_lock(&mutexCPUs);
+
+			//Libero la memoria de esto, ya lo mande asi que no pierdo nada
+			Serialization_CleanupSerializedPacket(messageToSend);
 
 		}
 
@@ -1017,7 +1019,6 @@ void DeleteSemaphores()
 	pthread_mutex_destroy(&mutexToBeUnlocked);
 	pthread_mutex_destroy(&mutexToBeEnded);
 	sem_destroy(&workPLP);
-	sem_destroy(&assignmentPending);
 
 }
 
@@ -1094,10 +1095,6 @@ void DeleteSchedulingGlobalVariables()
 	free(justDummied->script);
 	free(justDummied);
 	//El free del Dummy no se hace aca, sino al hacer el delete de Colas y Listas (estara en alguna)
-
-	//Libero la memoria de la estructura para guardar asignaciones pendientes y su mensaje
-	Serialization_CleanupSerializedPacket(toBeAssigned->message);
-	free(toBeAssigned);
 
 	DeleteSemaphores();
 	DeleteQueuesAndLists();

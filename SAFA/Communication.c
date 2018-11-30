@@ -260,9 +260,9 @@ void Comms_CPU_WaitResource(void* arriveData)
 	//Le respondo al CPU que me hablo, mandandole el resultado de la operacion
 	SocketCommons_SendData(cpuSocket, MESSAGETYPE_SAFA_CPU_WAITRESPONSE, result, sizeof(uint32_t));
 
-	//No libero todo el DeserializedData, necesito conservar el nombre del recurso por el Dictionary
+	//No libero el DeserializedData entero, necesito conservar el nombre del recurso por el Dictionary; libero el result
 	multiFree(3, params->parts[0], params->parts, params);
-	//TODO: free(result) haria falta??
+	free(result);
 	free(data->receivedData);
 	free(arriveData);
 

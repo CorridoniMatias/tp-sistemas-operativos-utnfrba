@@ -102,16 +102,6 @@ struct CreatableGDT_s
 } typedef CreatableGDT;
 
 /*
- * 	Estructura que contiene el socket de comunicacion con el CPU elegido al planificar, y el mensaje a enviarle
- * 	segun el algoritmo que se este empleando. Va a ser una variable global, externa desde aca y usada tambien en main
- */
-struct AssignmentInfo_s
-{
-	SerializedPart* message;
-	int cpuSocket;
-} typedef AssignmentInfo;
-
-/*
  * 	Estructura usada por el hilo del PCP, para poder guardar el nombre y el flag de cambio de su algoritmo
  * 	y asi poder consultarla directamente, sin necesidad de hacer una region critica enorme o varios lock-unlock
  */
@@ -165,8 +155,7 @@ pthread_mutex_t mutexToBeBlocked;				//Usado en Communication.h (extern)
 pthread_mutex_t mutexToBeUnlocked;				//Usado en Communication.h y ResourceManager.h (extern)
 pthread_mutex_t mutexToBeEnded;					//Usado en Communication.h y ConsoleHandler.h (extern)
 
-sem_t assignmentPending;						//Semaforo binario, para indicar que hay se debe avisar lo de toBeAssigned;
-												//extern en Communication.h, ya que le hara un wait
+extern pthread_mutex_t mutexCPUs;				//Proveniente de CPUsManager.h, para manejar de a uno la lista de CPUs
 
 sem_t workPLP;									//Semaforo binario, para indicar que es hora de que el PLP trabaje;
 												//no es extern ya que lo modifico con una funcion de aca (SetPLPTask)
@@ -185,9 +174,6 @@ int algorithmChange;							//Codigo del cambio de algoritmo sufrido; constantes 
 DTB* dummyDTB;									//DTB que se usara como Dummy
 extern CreatableGDT* justDummied;				//Estructura con el path del script, la direccion logica y el id del DTB
 												//cuya carga Dummy acaba de terminar (segun informo el DAM); ext para Comm.h
-
-extern AssignmentInfo* toBeAssigned;			//Estructura con el mensaje a enviar y el CPU elegido en un ciclo de PCP;
-												//extern para Communication.h, desde ahi la uso y la modifico
 
 //--COLAS DE PLANIFICACION GLOBALES--//
 t_queue* NEWqueue;								//Cola NEW, gestionada por PLP con FIFO; es lista para ser modificable
@@ -358,12 +344,12 @@ void SetDummy(uint32_t id, char* path);
  */
 void PlanificadorCortoPlazo();
 
-bool DescendantPriority(void* dtbOne, void* dtbTwo);
 /*
  * 	ACCION: Closure para poder ordenar una lista por prioridad de DTBs, de manera descendiente (algoritmo IOBF, propio)
  * 	PARAMETROS:
  * 		dtbOne, dtbTwo: DTBs a comparar por su cantidad de operaciones de E/S, son elementos de la lista
  */
+bool DescendantPriority(void* dtbOne, void* dtbTwo);
 
 /*
  * 	ACCION: Funcion para informar si no hay DTBs en READY y no tiene sentido planificar con el PCP
