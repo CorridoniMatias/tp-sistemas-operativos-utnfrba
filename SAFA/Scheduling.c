@@ -16,6 +16,7 @@ void InitQueuesAndLists()
 	toBeUnlocked = queue_create();
 	toBeBlocked = queue_create();
 	toBeEnded = queue_create();
+	beingDummied = list_create();
 
 }
 
@@ -29,6 +30,7 @@ void InitSemaphores()
 	pthread_mutex_init(&mutexToBeBlocked, NULL);
 	pthread_mutex_init(&mutexToBeUnlocked, NULL);
 	pthread_mutex_init(&mutexToBeEnded, NULL);
+	pthread_mutex_init(&mutexNEW, NULL);
 	sem_init(&workPLP, 0, 0);
 
 }
@@ -87,58 +89,6 @@ void SetPCPTask(int taskCode)
 
 ////////////////////////////////////////////////////////////
 
-int ShowOptions()
-{
-
-	int chosen;
-	do
-	{
-		printf("------Consola del Gestor de Programas G.DT!!------\n");
-		printf("Seleccione la operacion a realizar\n");
-		printf("1. Ejecutar\n");
-		printf("2. Status\n");
-		printf("3. Finalizar\n");
-		printf("4. Metricas\n");
-		scanf("%d", &chosen);
-	} while(chosen != 1);		//Por ahora, solo probamos con ejecutar
-	return chosen;
-
-}
-
-void GestorDeProgramas()
-{
-
-	int chosenOption;
-	while(1)
-	{
-
-		chosenOption = ShowOptions();
-		char* path;
-		path = malloc(100);			//Fantasma, para no tenerlo sin inicializar
-
-		if(chosenOption == 1)
-		{
-			printf("Ahora, ingrese el path del Escriptorio a ejecutar\n");
-			scanf("%s", path);
-			int pathLength = strlen(path) + 1;
-
-			//Realloco el toBeCreated, porque su char* cambio; y tambien realloco este
-			justDummied = realloc(justDummied, sizeof(int) + pathLength);
-			justDummied->script = realloc(justDummied->script, pathLength);
-			strcpy(justDummied->script, path);
-
-			//Actualizo la tarea a realizar del PLP, y activo el semaforo binario
-			SetPLPTask(PLP_TASK_CREATE_DTB);
-		}
-
-		free(path);
-
-	}
-
-}
-
-////////////////////////////////////////////////////////////
-
 DTB* CreateDTB(char* script)
 {
 
@@ -159,6 +109,8 @@ DTB* CreateDTB(char* script)
 	newDTB->quantumRemainder = -1;
 	newDTB->status = -1;										//Valor basura, todavia no esta en NEW
 	newDTB->ioOperations = 0;									//Al arrancar no tiene ninguna
+	newDTB->sentencesWhileAtNEW = 0;							//Todavia no esta en NEW ni pasaron sentencias con el ahi
+	newDTB->firstResponseTime = 0;								//Valor por defecto, para verificar si hace falta
 
 	return newDTB;
 
@@ -167,9 +119,13 @@ DTB* CreateDTB(char* script)
 void AddToNew(DTB* myDTB)
 {
 
+	//Le pongo el status en NEW y ya registro su instante de ingreso al sistema
 	myDTB->status = DTB_STATUS_NEW;
+	time(myDTB->spawnTime);
 	//Todavia no prendo el flag initialized, falta la operacion Dummy
+	pthread_mutex_lock(mutexNEW);
 	queue_push(NEWqueue, myDTB);
+	pthread_mutex_unlock(mutexNEW);
 
 }
 
@@ -286,7 +242,9 @@ DTB* GetDTBbyID(uint32_t desiredID, char* algorithm)
 	}
 
 	//Busco en cada cola de planificacion; si no lo encuentro en una, voy a la siguiente
+	pthread_mutex_lock(&mutexNEW);
 	DTB* wanted = list_find(NEWqueue->elements, IsDesiredDTB);
+	pthread_mutex_unlock(&mutexNEW);
 
 	if(!wanted)
 	{
@@ -367,6 +325,22 @@ void ShowDTBInfo_Deep(DTB* target)
 
 ////////////////////////////////////////////////////////////
 
+void SetDummy(uint32_t id, char* path)
+{
+
+	//Realloco el dummyDTB, porque su char* cambio; cargo el path del DTB a inicializar (no lo hace el PCP)
+	int pathLength = strlen(path) + 1;
+	int newSize = (sizeof(int) * 6) + pathLength;		//Medio cabeza, mejorar; 6 por los 6 enteros fijos
+	dummyDTB->id = id;
+	dummyDTB = realloc(dummyDTB, newSize);
+	dummyDTB->pathEscriptorio = realloc(dummyDTB->pathEscriptorio, pathLength);
+	strcpy(dummyDTB->pathEscriptorio, path);
+
+	//Le aviso al PCP que debe hacer la tarea de LOAD_DUMMY (pasarlo a READY, nada mas)
+	SetPCPTask(PCP_TASK_LOAD_DUMMY);
+
+}
+
 void PlanificadorLargoPlazo()
 {
 
@@ -384,9 +358,11 @@ void PlanificadorLargoPlazo()
 		{
 
 			//Si el grado de multiprogramacion no lo permite, o no hay procesos en NEW, voy a la proxima iteracion del while
+			pthread_mutex_lock(NEWqueue);
 			if(inMemoryAmount >= multiprogrammingDegree || queue_is_empty(NEWqueue))
 			{
 				sleep(3);				//Retardo ficticio, para debuggear; puede servir, para esperar
+				pthread_mutex_unlock(NEWqueue);
 				continue;
 			}
 
@@ -394,12 +370,16 @@ void PlanificadorLargoPlazo()
 			if(dummyDTB->status == DTB_STATUS_BLOCKED)
 			{
 				//Saco el primero de la cola, y seteo su informacion en el Dummy; borro su referencia?
+				pthread_mutex_lock(NEWqueue);
 				DTB* queuesFirst = queue_pop(NEWqueue);
+				pthread_mutex_unlock(NEWqueue);
 				//Aumento en uno la cantidad de procesos en memoria, asi ya le guardo un lugar
 				inMemoryAmount++;
 				//Aca seteo su info en el Dummy, y le indico al PCP que lo pase a READY
 				SetDummy(queuesFirst->id, queuesFirst->pathEscriptorio);
-				free(queuesFirst);
+				//Agrego el DTB que saque de la cola a la lista de DTBs siendo inicializados, para conservar su info
+				queuesFirst->status = DTB_STATUS_DUMMYING;
+				list_add(beingDummied, queuesFirst);
 			}
 			//Si el Dummy esta en READY o en EXEC, esta ocupado; espero un poco mas y reactivo el semaforo
 			else if(dummyDTB -> status == DTB_STATUS_READY || dummyDTB -> status == DTB_STATUS_EXEC)
@@ -431,12 +411,27 @@ void PlanificadorLargoPlazo()
 
 		else if(PLPtask == PLP_TASK_INITIALIZE_DTB)
 		{
-			//En base a lo que me mando el DAM (protocolo 220), creo el DTB con esa info
-			DTB* toBeInitialized = CreateDTB(justDummied->script);
-			toBeInitialized->id = justDummied->dtbID;
+
+			//Closure para poder encontrar el DTB con los datos y el mismo ID que el que volvio del Dummy
+			bool IsDTBBeingDummied(void* aDTB)
+			{
+				DTB* castDTB = (DTB*) aDTB;
+				if(castDTB->id == justDummied->dtbID)
+				{
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
+
+			//En base a lo que me mando el DAM (protocolo 220), busco el DTB expectante con el ID del Dummy
+			DTB* toBeInitialized = list_remove_by_condition(beingDummied, IsDTBBeingDummied);
+			//Le guardo la direccion logica que proporciono la operacion Dummy, le pongo el flag en 1 y el PC en 0
 			toBeInitialized->pathLogicalAddress = justDummied->logicalAddress;
-			//Bajo el contador en uno, el CreateDTB lo aumento por defecto
-			nextID--;
+			toBeInitialized->initialized = 1;
+			toBeInitialized->programCounter = 0;
 
 			//Mutexeo las settings para tomar el algoritmo en ese momento y aislarme de un cambio en simultaneo
 			pthread_mutex_lock(&mutexSettings);
@@ -451,23 +446,24 @@ void PlanificadorLargoPlazo()
 
 }
 
-void SetDummy(uint32_t id, char* path)
+////////////////////////////////////////////////////////////
+
+void AggregateSentencesWhileAtNEW(int amount)
 {
 
-	//Realloco el dummyDTB, porque su char* cambio; cargo el path del DTB a inicializar (no lo hace el PCP)
-	int pathLength = strlen(path) + 1;
-	int newSize = (sizeof(int) * 6) + pathLength;		//Medio cabeza, mejorar; 6 por los 6 enteros fijos
-	dummyDTB->id = id;
-	dummyDTB = realloc(dummyDTB, newSize);
-	dummyDTB->pathEscriptorio = realloc(dummyDTB->pathEscriptorio, pathLength);
-	strcpy(dummyDTB->pathEscriptorio, path);
+	//Closure interna, anidada, le suma las sentencias esperadas al DTB en base al parametro pasado
+	void UpdateSingleDTB(void* aDTB)
+	{
+		DTB* realDTB = (DTB*) aDTB;
+		realDTB->sentencesWhileAtNEW += amount;
+	}
 
-	//Le aviso al PCP que debe hacer la tarea de LOAD_DUMMY (pasarlo a READY, nada mas)
-	SetPCPTask(PCP_TASK_LOAD_DUMMY);
+	//Sin joder a nadie mas que quiera usar la cola, actualizo las sentencias leidas de todos los DTBs de NEW
+	pthread_mutex_lock(&mutexNEW);
+	list_iterate(NEWqueue->elements, UpdateSingleDTB);
+	pthread_mutex_unlock(&mutexNEW);
 
 }
-
-////////////////////////////////////////////////////////////
 
 void PlanificadorCortoPlazo()
 {
@@ -594,6 +590,12 @@ void PlanificadorCortoPlazo()
 				//Saco de EXEC el DTB que tenia la misma ID que el que acaba de salir de la cola de aBloquear
 				DTB* target = list_remove_by_condition(EXECqueue, (void*)IsDTBToBeBlocked);
 
+				//Me fijo cuantas sentencias ejecuto (sacando una diferencia con el PC anterior)
+				int sentencesRun;
+				sentencesRun = (nextToBlock->newProgramCounter) - (target->programCounter);
+				//Le agrego esa cantidad de sentencias esperadas a todos los DTBs de NEW
+				AggregateSentencesWhileAtNEW(sentencesRun);
+
 				//Le actualizo el PC, el quantum sobrante, y los archivos abiertos (por las dudas)
 				target->programCounter = nextToBlock->newProgramCounter;
 				target->quantumRemainder = nextToBlock->quantumRemainder;
@@ -650,12 +652,24 @@ void PlanificadorCortoPlazo()
 					target = list_remove_by_condition(BLOCKEDqueue, IsDTBToBeUnlocked);
 				}
 
+				//Me fijo cuantas sentencias leyo, con una diferencia de PCs
+				int sentencesRun;
+
 				//Le actualizo el program counter (se debe haber movido) y los archivos abiertos, y lo paso a READY
 				//Ojo, solo le altero el PC si el del nextToUnlock no es nulo (un Abrir exitoso lo pone en -1)
 				if(nextToUnlock->newProgramCounter != -1)
 				{
+					sentencesRun = (nextToUnlock->newProgramCounter) - (target->programCounter);
 					target->programCounter = nextToUnlock->newProgramCounter;
 				}
+				else
+				{
+					//Pero si volvia de IO y su PC era -1, es porque avanzo una sola sentencia (IOs son atomicas)
+					sentencesRun = 1;
+				}
+
+				//Agrego las sentencias esperadas de los de NEW, y tambien paso este DTB a READY, con abiertos actualizados
+				AggregateSentencesWhileAtNEW(sentencesRun);
 				UpdateOpenedFiles(target, nextToUnlock->openedFilesUpdate, nextToUnlock->singleOFaddition);
 				AddToReady(target, schedulingRules.name);
 
@@ -1008,6 +1022,183 @@ SerializedPart* ScheduleIOBF(int quantum)
 
 ////////////////////////////////////////////////////////////
 
+int Metrics_TotalRunSentencesAmount()
+{
+
+	//Va con un mutex por afuera, se asume que ya tiene acceso exclusivo a las colas
+	int totalAmount = 0;
+
+	//Closure a aplicar en todas las colas
+	void AddSentencesFromDTB(void* aDTB)
+	{
+		DTB* castDTB = (DTB*) aDTB;
+		totalAmount += castDTB->programCounter;
+	}
+
+	//Para las de READY, recorro las tres y fue; hay dos que van a estar vacias, me ahorro ifs y parametro
+	list_iterate(READYqueue_RR->elements, AddSentencesFromDTB);
+	list_iterate(READYqueue_VRR, AddSentencesFromDTB);
+	list_iterate(READYqueue_Own, AddSentencesFromDTB);
+	list_iterate(BLOCKEDqueue, AddSentencesFromDTB);
+	list_iterate(EXECqueue, AddSentencesFromDTB);
+	list_iterate(EXITqueue, AddSentencesFromDTB);
+
+	return totalAmount;
+
+}
+
+int Metrics_TotalIOSentencesAmount()
+{
+
+	//Va con un mutex por afuera, se asume que ya tiene acceso exclusivo a las colas
+	int ioAmount = 0;
+
+	//Closure a aplicar en todas las colas
+	void AddIOOpsFromDTB(void* aDTB)
+	{
+		DTB* castDTB = (DTB*) aDTB;
+		ioAmount += castDTB->ioOperations;
+	}
+
+	//Para las de READY, recorro las tres y fue; hay dos que van a estar vacias, me ahorro ifs y parametro
+	list_iterate(READYqueue_RR->elements, AddIOOpsFromDTB);
+	list_iterate(READYqueue_VRR, AddIOOpsFromDTB);
+	list_iterate(READYqueue_Own, AddIOOpsFromDTB);
+	list_iterate(BLOCKEDqueue, AddIOOpsFromDTB);
+	list_iterate(EXECqueue, AddIOOpsFromDTB);
+	list_iterate(EXITqueue, AddIOOpsFromDTB);
+
+	return ioAmount;
+
+}
+
+int Metrics_TotalDTBPopulation()
+{
+
+	//Ojo, no cuento los procesos en NEW ya que esos no tuvieron operaciones de IO ni sentencias ejecutadas
+	int quantity = 0;
+
+	//Para las de READY, recorro las tres y fue; hay dos que van a estar vacias, me ahorro ifs y parametro
+	quantity += queue_size(READYqueue_RR);
+	quantity += list_size(READYqueue_VRR);
+	quantity += list_size(READYqueue_Own);
+	quantity += list_size(BLOCKEDqueue);
+	quantity += list_size(EXECqueue);
+	quantity += list_size(EXITqueue);
+
+	return quantity;
+
+}
+
+float Metrics_AverageIOSentences()
+{
+
+	float avg;
+	//Para hallar el promedio, hago SentenciasIO/CantidadDTBs
+	avg = (float) (TotalIOSentencesAmount() / TotalDTBPopulation());
+	return avg;
+
+}
+
+float Metrics_AverageExitingSentences()
+{
+
+	float avg;
+	int totalAmount = 0;
+
+	//Closure a aplicar en la cola de EXIT, para obtener la cantidad de sentencias ejecutadas de los DTBs de alli
+	void AddSentencesFromDTB(void* aDTB)
+	{
+		DTB* castDTB = (DTB*) aDTB;
+		totalAmount += castDTB->programCounter;
+	}
+
+	list_iterate(EXITqueue, AddSentencesFromDTB);
+
+	//Divido la cantidad de sentencias recien hallada por la cantidad de DTBs en EXIT (solo evaluo esos)
+	avg = (float) (totalAmount / list_size(EXITqueue));
+	return avg;
+
+}
+
+float Metrics_IOSentencesPercentage()
+{
+
+	float percentage;
+	//Casteo a float para que tome decimales, y multiplico por 100 para que quede tipo porcentaje
+	percentage = (float) (TotalIOSentencesAmount() / TotalRunSentencesAmount());
+	percentage *= 100;
+	return percentage;
+
+}
+
+float Metrics_SumAllResponseTimes()
+{
+
+	float totalTime = 0;
+
+	//Closure para sumar el tiempo esperado (primera respuesta - spawn) de cada DTB
+	//Solo debo tener en cuenta aquellos cuyo tiempo de primera respuesta no sea 0 (hayan recibido una)
+	void SumTimeFromSingleDTB(void* aDTB)
+	{
+		DTB* castDTB = (DTB*) aDTB;
+		if(castDTB->firstResponseTime != 0)
+		{
+			totalTime += (difftime(castDTB->firstResponseTime, castDTB->spawnTime));
+		}
+	}
+
+	list_iterate(READYqueue_RR->elements, SumTimeFromSingleDTB());
+	list_iterate(READYqueue_VRR, SumTimeFromSingleDTB);
+	list_iterate(READYqueue_Own, SumTimeFromSingleDTB);
+	list_iterate(BLOCKEDqueue, SumTimeFromSingleDTB);
+	list_iterate(EXECqueue, SumTimeFromSingleDTB);
+	list_iterate(EXITqueue, SumTimeFromSingleDTB);
+
+	return totalTime;
+
+}
+
+int Metrics_ResponsedDTBPopulation()
+{
+
+	//Ojo, no cuento los procesos en NEW ya que esos no tuvieron operaciones de IO ni sentencias ejecutadas
+	int quantity = 0;
+
+	//Closure para aplicar sobre las colas; solo tengo en cuenta aquellos procesos que ya han recibido una respuesta
+	void CountResponsedDTB(void* aDTB)
+	{
+		DTB* castDTB = (DTB*) aDTB;
+		if(castDTB->firstResponseTime != 0)
+		{
+			quantity++;
+		}
+	}
+
+	//Para las de READY, recorro las tres y fue; hay dos que van a estar vacias, me ahorro ifs y parametro
+	list_iterate(READYqueue_RR->elements, CountResponsedDTB);
+	list_iterate(READYqueue_VRR, CountResponsedDTB);
+	list_iterate(READYqueue_Own, CountResponsedDTB);
+	list_iterate(BLOCKEDqueue, CountResponsedDTB);
+	list_iterate(EXECqueue, CountResponsedDTB);
+	list_iterate(EXITqueue, CountResponsedDTB);
+
+	return quantity;
+
+}
+
+float Metrics_AverageResponseTime()
+{
+
+	float avg;
+	//Para el tiempo promedio hago SumaTiemposRespuesta/CantidadDTBsRespondidos
+	avg = (float) (SumAllResponseTimes() / ResponsedDTBPopulation());
+	return avg;
+
+}
+
+////////////////////////////////////////////////////////////
+
 void DeleteSemaphores()
 {
 
@@ -1018,6 +1209,7 @@ void DeleteSemaphores()
 	pthread_mutex_destroy(&mutexToBeBlocked);
 	pthread_mutex_destroy(&mutexToBeUnlocked);
 	pthread_mutex_destroy(&mutexToBeEnded);
+	pthread_mutex_destroy(&mutexNEW);
 	sem_destroy(&workPLP);
 
 }
@@ -1086,6 +1278,7 @@ void DeleteQueuesAndLists()
 	queue_destroy_and_destroy_elements(toBeUnlocked, UnlockableInfoDestroyer);
 	queue_destroy_and_destroy_elements(toBeBlocked, BlockableInfoDestroyer);
 	queue_destroy_and_destroy_elements(toBeEnded, EndableDestroyer);
+	list_destroy_and_destroy_elements(beingDummied, DTBDestroyer);
 
 }
 

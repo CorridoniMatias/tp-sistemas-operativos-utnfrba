@@ -62,6 +62,7 @@ struct
 {
 	int calling_SocketID;
 	int receivedDataLength;
+	int message_type;
 	void* receivedData;
 } typedef OnArrivedData;
 
@@ -156,9 +157,13 @@ void SocketServer_CleanOnArrivedData(OnArrivedData* data);
  * 		Si el valor retornado es NULL, entonces puede ser que haya habido un error al recibir (ver OnReceiveError),
  * 			el cliente se desconecto (OnClientDisconnect) o que el socket que se pidio vigilar no esta en la lista de clientes.
  *
- * 		IMPORTANTE: Hacer free de la data recibida y de la estructura cuando se termina de usar!
+ * 		!! IMPORTANTE:
  *
- * 		SOLAMENTE DEBE SER LLAMARA POR UN HILO A LA VEZ!
+ * 			- Hacer free de la data recibida y de la estructura cuando se termina de usar!
+ *
+ *			- NO LLAMAR DESDE EL MISMO HILO QUE SE HIZO SocketServer_ListenForConnection!
+ *
+ * 			- SOLAMENTE DEBE SER LLAMARA POR UN HILO A LA VEZ!
  */
 OnArrivedData* SocketServer_WakeMeUpWhenDataIsAvailableOn(int socketToWatch);
 

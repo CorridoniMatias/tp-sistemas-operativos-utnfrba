@@ -143,8 +143,14 @@ void ClientConnected(int socket)
 void ClientDisconnected(int socket)
 {
 
-	RemoveCPU(socket);					//Lo saco de la lista de CPUs; si no esta, no pasa nada
+	int foundAndRemoved;
+	//Intento sacar el CPU con ese socket (si es que habia uno) y, por las dudas, lo guardo en un int
+	foundAndRemoved = RemoveCPU(socket);
 	printf("Se desconecto el cliente a traves del socket %d!\n", socket);
+	if(foundAndRemoved == 1)
+	{
+		printf("El cliente desconectado era un CPU!");
+	}
 
 }
 

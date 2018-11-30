@@ -53,11 +53,11 @@ void AddCPU(int* socketID);
 void FreeCPU(int socketID);
 
 /*
- * 	ACCION: Quita un CPU de la lista de conectados (lo da de baja del sistema)
+ * 	ACCION: Intenta quitar un CPU de la lista de conectados del sistema; si devuelve 1, es porque dio uno de baja
  * 	PARAMETROS:
  * 		socketID: FD del socket de comunicacion con el CPU, el cual lo identifica dentro de la lista
  */
-void RemoveCPU(int socketID);
+int RemoveCPU(int socketID);
 
 /*
  * 	ACCION: Retorna la cantidad de CPUs conectados al sistema en un momento
