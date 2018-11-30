@@ -41,6 +41,7 @@ void onPacketArrived(int socketID, int message_type, void* data, int message_len
 	arriveData->receivedDataLength = message_length;
 
 	run->data = (void*) arriveData;
+	run->free_data = SocketServer_CleanOnArrivedData;
 
 	switch (message_type)
 	{
@@ -67,7 +68,7 @@ void onPacketArrived(int socketID, int message_type, void* data, int message_len
 			break;
 
 	}
-	//TODO verificar que onda con el free data
+
 	if(run != NULL)
 		ThreadPool_AddJob(threadPool, run);
 }

@@ -3,10 +3,12 @@
 //Asignar: idDTB, Direccion Logica, Datos. Codigo Operacion : 41
 
 void FM9_AsignLine(void* data) {
+
 	OnArrivedData* arriveData = data;
 	DeserializedData* actualData = Serialization_Deserialize(
 			arriveData->receivedData);
 	uint32_t* status = malloc(sizeof(uint32_t));
+
 	if (actualData->count == 3) {
 		int dtbID = *((int *) actualData->parts[0]);
 		int virtualAddress = *((int *) actualData->parts[1]);
@@ -36,12 +38,18 @@ void FM9_AsignLine(void* data) {
 				}
 			}
 		}
+		free(buffer);
 
 	} else {
 		*status = 400;
 	}
-	SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT,
-			status, sizeof(uint32_t));
+	SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT, status, sizeof(uint32_t));
+
+	SocketServer_CleanOnArrivedData(arriveData);
+	Serialization_CleanupDeserializationStruct(actualData);
+	free(status);
+
+
 }
 
 //		int virtualAddress, int dtbID, void* data)
@@ -65,6 +73,7 @@ void FM9_AskForLine(void* data) {
 	bool error = false;
 	char* buffer;
 	bool freeBuffer = false;
+
 	if (actualData->count == 2) {
 		int dtbID = *((int *) actualData->parts[0]);
 		int virtualAddress = *((int *) actualData->parts[1]);
@@ -105,8 +114,12 @@ void FM9_AskForLine(void* data) {
 	}
 	SocketCommons_SendData(arriveData->calling_SocketID,
 	MESSAGETYPE_CPU_RECEIVELINE, packetToCPU->data, packetToCPU->size);
+
 	if (freeBuffer)
 		free(buffer);
+	SocketServer_CleanOnArrivedData(arriveData);
+	Serialization_CleanupDeserializationStruct(actualData);
+	free(status);
 	Serialization_CleanupSerializedPacket(packetToCPU);
 }
 

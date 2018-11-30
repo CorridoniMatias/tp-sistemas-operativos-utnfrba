@@ -377,3 +377,9 @@ OnArrivedData* SocketServer_WakeMeUpWhenDataIsAvailableOn(int socketToWatch)
 
 	return NULL;
 }
+
+
+void SocketServer_CleanOnArrivedData(OnArrivedData* data){
+	free(data->receivedData);
+	free(data);
+}

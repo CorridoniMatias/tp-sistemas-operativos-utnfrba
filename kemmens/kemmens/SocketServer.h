@@ -139,6 +139,13 @@ bool SocketServer_IsClientConnected(int socket);
 OnArrivedData* SocketServer_CreateOnArrivedData();
 
 /*
+ * 		Libera correctamente la memoria ocupada por un OnArrivedData, haciendo free del receivedData
+ * 		y del OnArrivedData.
+ */
+
+void SocketServer_CleanOnArrivedData(OnArrivedData* data);
+
+/*
  * 		!!!! Funcion a ser llamada por un thread DISTINTO al que esta corriendo el server (donde se llamo a listenForConnections) !!!!
  *
  * 		Le indica al Server que cuando haya datos disponibles en el socket 'socketToWatch' no haga el flujo normal de llamar a OnPacketReceived()
