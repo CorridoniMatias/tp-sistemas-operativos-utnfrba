@@ -293,7 +293,7 @@ void DAM_Abrir(void* arriveData)
 			}
 			case 1: //EL ARCHIVO EXISTE
 			{
-				//establecemos conexion con el FM9
+				//establecemos conexion con el FM9 y SAFA
 				int socketFM9 = SocketClient_ConnectToServerIP(settings->ipFM9, settings->puertoFM9);
 				int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoFM9);
 
