@@ -113,8 +113,9 @@ char* askLineToFM9(DeserializedData* dtb, int fm9){
 		free(newLogicDir);
 		Serialization_CleanupSerializedPacket(packetToFM9);
 		Serialization_CleanupDeserializationStruct(dtb);
+		char* line = (char*)data->parts[1];
 		Serialization_CleanupDeserializationStruct(data);
-		return (char *)data->parts[1];
+		return line;
 	}
 		free(id);
 		free(newLogicDir);
@@ -406,12 +407,6 @@ void* CommandSignal(int argC, char** args, char* callingLine, void* extraData){
 
 }
 
-/*
- *
- *
- * 					Serialization_CleanupDeserializationStruct(data);
-					Serialization_CleanupSerializedPacket(packetToSAFA);
- * */
 void* CommandFlush(int argC, char** args, char* callingLine, void* extraData){
 	if(!(openFileVerificator(((Operation*)extraData)->dictionary,args[0]))){
 
