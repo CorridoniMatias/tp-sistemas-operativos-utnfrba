@@ -204,13 +204,13 @@ void llegoUnPaquete(int socketID, int message_type, void* datos, int message_len
 		case MESSAGETYPE_CPU_FLUSH:
 			run->runnable = (void*)DAM_Flush;
 		break;
-		case MESSAGETYPE_DAM_SAFA_CREAR:
+		case MESSAGETYPE_CPU_CREAR:
 			run->runnable = (void*)DAM_Crear;
 		break;
-		case MESSAGETYPE_DAM_SAFA_BORRAR:
+		case MESSAGETYPE_CPU_BORRAR:
 			run->runnable = (void*)DAM_Borrar;
 		break;
-		case MESSAGETYPE_DAM_SAFA_ABRIR:
+		case MESSAGETYPE_CPU_ABRIR:
 			run->runnable = (void*)DAM_Abrir;
 		break;
 

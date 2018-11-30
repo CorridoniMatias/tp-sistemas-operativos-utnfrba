@@ -164,6 +164,9 @@ void ClientError(int socketID, int errorCode)
 
 void OnPostInterpreter(char* cmd, char* sep, void* args, bool actionFired)
 {
+	if(!actionFired)
+		printf("Comando desconocido.\n");
+
 	free(cmd);
 }
 
@@ -226,23 +229,12 @@ void *CommandQuit (int argC, char** args, char* callingLine, void* extraData)
 	return 0;
 }
 
-static char* GetPathFromCMD(int argC, char** args)
+void md5(void* content, unsigned char* digest)
 {
-	char* path;
-	if(argC == 0)
-	{
-		path = string_duplicate(CONTEXT_CURRENT_PATH_LINUX);
-	} else
-	{
-		path = string_duplicate(config->filesPath);
-
-		for(int i = 1; i <= argC;i++)
-		{
-			string_append(&path, args[i]);
-		}
-	}
-
-	return path;
+	MD5_CTX context;
+	MD5_Init(&context);
+	MD5_Update(&context, content, strlen(content) + 1);
+	MD5_Final(digest, &context);
 }
 
 //Comandos de consola
@@ -366,11 +358,18 @@ void *Command_md5 (int argC, char** args, char* callingLine, void* extraData)
 
 		cont[cop] = '\0';
 
-		unsigned char* digest = KemmensUtils_md5(cont);
+		unsigned char digest[MD5_DIGEST_LENGTH];
 
-		printf("md5 %s = %x\n", path, digest);
+		md5(cont, digest);
 
-		free(digest);
+		printf("md5 %s = ", path);
+
+		for(int x = 0; x < MD5_DIGEST_LENGTH; x++)
+		        printf("%02x", digest[x]);
+
+		printf("\n");
+
+		//free(digest);
 		free(cont);
 		free(path);
 	}

@@ -1,6 +1,6 @@
 #include "headers/DAMInterface.h"
 
-
+// Static functions
 void* DAM_ReadFile(char* filePath, int socketMDJ, int* received_content_length)
 {
 	int bufferSize = 0;
@@ -49,27 +49,28 @@ void* DAM_ReadFile(char* filePath, int socketMDJ, int* received_content_length)
 
 	return buffer;
 }
-void* DAM_ReadFileFromFM9(uint32_t dtbID, uint32_t logicalAddress, int socketFM9, int* received_content_length)
+
+static void* DAM_ReadFileFromFM9(uint32_t dtbID, uint32_t logicalAddress, int socketFM9, int* received_content_length)
 {
 	int bufferSize = 0;
 	void* buffer = malloc(1);
 
+	declare_and_init(id,uint32_t,dtbID)
+	SerializedPart p_id = {.size = sizeof(uint32_t), .data = id};
+	declare_and_init(address, uint32_t, logicalAddress)
+	SerializedPart p_address = {.size = sizeof(uint32_t), .data = address};
+	declare_and_init(psize, uint32_t, settings->transferSize);
+	SerializedPart p_size = {.size = sizeof(uint32_t), .data = psize};
+	SerializedPart* serializedContent = Serialization_Serialize(3, p_id, p_address,p_size);
+
+	SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_FLUSH, serializedContent->data, serializedContent->size);
+	free(id);
+	free(address);
+	free(psize);
+	Serialization_CleanupSerializedPacket(serializedContent);
+
 	while(1)
 	{
-		declare_and_init(id,uint32_t,dtbID)
-		SerializedPart p_id = {.size = sizeof(uint32_t), .data = id};
-		declare_and_init(address, uint32_t, logicalAddress)
-		SerializedPart p_address = {.size = sizeof(uint32_t), .data = address};
-		declare_and_init(psize, uint32_t, settings->transferSize);
-		SerializedPart p_size = {.size = sizeof(uint32_t), .data = psize};
-		SerializedPart* serializedContent = Serialization_Serialize(3, p_id, p_address,p_size);
-
-		SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_FLUSH, serializedContent->data, serializedContent->size);
-		free(id);
-		free(address);
-		free(psize);
-		Serialization_CleanupSerializedPacket(serializedContent);
-
 		int message_type, error_status, message_length;
 
 		void* recvData = SocketCommons_ReceiveData(socketFM9, &message_type, &message_length, &error_status);
@@ -90,6 +91,8 @@ void* DAM_ReadFileFromFM9(uint32_t dtbID, uint32_t logicalAddress, int socketFM9
 				break;
 			}
 		}
+
+		SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_FLUSH, 0, 0);
 	}
 
 	if(bufferSize == 0)
@@ -100,64 +103,8 @@ void* DAM_ReadFileFromFM9(uint32_t dtbID, uint32_t logicalAddress, int socketFM9
 	return buffer;
 }
 
-void DAM_Crear(void* arriveData)
-{
-	DeserializedData* data = Serialization_Deserialize(arriveData);
 
-	if(data->count < 2) {
-		Logger_Log(LOG_ERROR, "DAM::DAM_Crear -> Recibido menos de 2 parametros.");
-		Serialization_CleanupDeserializationStruct(data);
-		free(arriveData);
-		return;
-	}
-
-	//TODO: basicmanet estamos haciendo un middle man aca, ver de hacer una funcion para obtener el largo de un paquete serializado y forwardear el arrivedata.
-
-	char* filePath = (char*)data->parts[1];
-	uint32_t cantNewLines = *((uint32_t*)data->parts[2]);
-
-	int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
-
-	declare_and_init(newlines, uint32_t, cantNewLines);
-	SerializedPart p_newlines = {.size = sizeof(uint32_t), .data = newlines};
-	SerializedPart p_filepath = {.size = strlen(filePath)+1, .data = filePath};
-	SerializedPart* packet = Serialization_Serialize(2, p_filepath, p_newlines);
-
-	SocketCommons_SendData(socketMDJ, MESSAGETYPE_MDJ_CREATEFILE, packet->data, packet->size);
-
-	int msg_type, length, status;
-	void* response = SocketCommons_ReceiveData(socketMDJ, &msg_type, &length, &status);
-
-	if(msg_type == MESSAGETYPE_INT)
-	{
-		switch(*((uint32_t*)response))
-		{
-			case 0: //OK
-				Logger_Log(LOG_INFO, "DAM::DAM_Crear -> Se realizo correctamente la operacion.");
-			break;
-			case 1: //EXISTING_FILE
-				Logger_Log(LOG_INFO, "DAM::DAM_Crear -> el archivo ya existe");
-			break;
-			case 2: //METADATA_CREATE_ERROR
-				Logger_Log(LOG_ERROR, "DAM::DAM_Crear -> METADATA_CREATE_ERROR");
-			break;
-			case 10: //INSUFFICIENT_SPACE
-				Logger_Log(LOG_ERROR, "DAM::DAM_Crear -> INSUFFICIENT_SPACE");
-			break;
-			case 11: //METADATA_OPEN_ERROR
-				Logger_Log(LOG_ERROR, "DAM::DAM_Crear -> Error en operacion");
-			break;
-		}
-	}
-	free(response);
-	close(socketMDJ);
-	Serialization_CleanupSerializedPacket(packet);
-	Serialization_CleanupDeserializationStruct(data);
-	free(newlines);
-	free(arriveData);
-}
-
-uint32_t DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
+static int DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 {
 	int offset = 0;
 	int sizeToSend = 0;
@@ -189,7 +136,7 @@ uint32_t DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 
 		SerializedPart* serializedContent = Serialization_Serialize(3, p_iddtb, p_size, p_buffer);
 
-		SocketCommons_SendData(socketFM9, MESSAGETYPE_MDJ_PUTDATA, serializedContent->data, serializedContent->size);
+		SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_OPEN, serializedContent->data, serializedContent->size);
 
 		Serialization_CleanupSerializedPacket(serializedContent);
 		free(piddtb);
@@ -205,10 +152,8 @@ uint32_t DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 			{
 				case 1: //parte recibida OK
 				break;
-				case 2: //espacio insuficiente
-					error = 1;
-				break;
 				case 400: //bad request
+					error = 1;
 				break;
 			}
 		}
@@ -226,20 +171,102 @@ uint32_t DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 			uint32_t tmp = *((uint32_t*)data);
 			free(data);
 			return tmp;
+		} else if(msg_type == MESSAGETYPE_INT)
+		{
+			return -1;
 		}
 	}
+
+	return -1;
+}
+
+void DAM_ErrorOperacion(uint32_t idDTB)
+{
+	//le comunico del error al SAFA y le paso el id del DTB
+	int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoSAFA);
+
+	declare_and_init(pointer_iddtb, uint32_t, idDTB);
+
+	Logger_Log(LOG_DEBUG, "Enviando error de operacion al SAFA para %d", idDTB);
+	SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ERR, (void*)pointer_iddtb, sizeof(uint32_t));
+	free(pointer_iddtb);
+	close(socketSAFA);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////// FUNCIONES DE INTERFAZ //////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void DAM_Crear(void* arriveData)
+{
+	OnArrivedData* onArriveData = (OnArrivedData*) arriveData;
+
+	DeserializedData* data = Serialization_Deserialize(onArriveData->receivedData);
+
+	if(data->count < 3) {
+		Logger_Log(LOG_ERROR, "DAM::DAM_Crear -> Recibido menos de 3 parametros.");
+		Serialization_CleanupDeserializationStruct(data);
+		SocketServer_CleanOnArrivedData(onArriveData);
+		return;
+	}
+
+	uint32_t idDTB = *((uint32_t*)data->parts[0]);
+	char* filePath = (char*)data->parts[1];
+	uint32_t cantNewLines = *((uint32_t*)data->parts[2]);
+
+	int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
+
+	declare_and_init(newlines, uint32_t, cantNewLines);
+	SerializedPart p_newlines = {.size = sizeof(uint32_t), .data = newlines};
+	SerializedPart p_filepath = {.size = strlen(filePath)+1, .data = filePath};
+	SerializedPart* packet = Serialization_Serialize(2, p_filepath, p_newlines);
+
+	SocketCommons_SendData(socketMDJ, MESSAGETYPE_MDJ_CREATEFILE, packet->data, packet->size);
+	Serialization_CleanupSerializedPacket(packet);
+	int msg_type, length, status;
+	void* response = SocketCommons_ReceiveData(socketMDJ, &msg_type, &length, &status);
+
+	if(msg_type == MESSAGETYPE_INT)
+	{
+		switch(*((uint32_t*)response))
+		{
+			case 0: //OK
+				Logger_Log(LOG_INFO, "DAM::DAM_Crear -> Se realizo correctamente la operacion.");
+				//Avisamos al SAFA que el crear termino
+				int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoFM9);
+				SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_CREAR, data->parts[0], sizeof(uint32_t));
+				close(socketSAFA);
+			break;
+			case 1: //EXISTING_FILE
+			case 2: //METADATA_CREATE_ERROR
+			case 10: //INSUFFICIENT_SPACE
+			case 11: //METADATA_OPEN_ERROR
+				Logger_Log(LOG_ERROR, "DAM::DAM_Crear -> ERROR N: %d", *((uint32_t*)response));
+				DAM_ErrorOperacion(idDTB);
+			break;
+
+		}
+	}
+	free(response);
+	close(socketMDJ);
+
+	Serialization_CleanupDeserializationStruct(data);
+	free(newlines);
+	SocketServer_CleanOnArrivedData(onArriveData);
 }
 
 void DAM_Abrir(void* arriveData)
 {
-	DeserializedData* data = Serialization_Deserialize(arriveData);
+	OnArrivedData* onArriveData = (OnArrivedData*) arriveData;
+
+	DeserializedData* data = Serialization_Deserialize(onArriveData->receivedData);
 
 	//verificamos que nos esten enviando los dos campos necesarios
 	if(data->count < 2) {
 		//no tenemos los datos necesarios para seguir adelante
 		Logger_Log(LOG_ERROR, "DAM::DAM_Abrir -> Recibido menos de 2 parametros.");
 		Serialization_CleanupDeserializationStruct(data);
-		free(arriveData);
+		SocketServer_CleanOnArrivedData(onArriveData);
 		return;
 	}
 
@@ -275,20 +302,26 @@ void DAM_Abrir(void* arriveData)
 				void* file_content = DAM_ReadFile(filePath, socketMDJ, &file_size);
 				close(socketMDJ);
 
-				uint32_t logicAddr = DAM_SendToFM9(socketFM9, file_content, file_size, idDTB);
+				int logicAddr = DAM_SendToFM9(socketFM9, file_content, file_size, idDTB);
 
+				if(logicAddr >= 0)
+				{
+					SerializedPart p_filepath = {.size = strlen(filePath)+1, .data = data->parts[1]};
+					declare_and_init(p_logic, uint32_t, logicAddr);
+					SerializedPart p_direccion = {.size = sizeof(uint32_t), .data = p_logic};
+					SerializedPart p_iddtb = {.size = sizeof(uint32_t), .data = data->parts[0]};
 
-				SerializedPart p_iddtb = {.size = sizeof(uint32_t), .data = data->parts[0]};
-				SerializedPart p_filepath = {.size = strlen(filePath)+1, .data = data->parts[1]};
-				declare_and_init(p_logic, uint32_t, logicAddr);
-				SerializedPart p_direccion = {.size = sizeof(uint32_t), .data = p_logic};
+					SerializedPart* part = Serialization_Serialize(3, p_iddtb, p_filepath, p_direccion);
 
-				SerializedPart* part = Serialization_Serialize(3, p_iddtb, p_filepath, p_direccion);
+					SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ABRIR, part->data, part->size);
 
-				SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ABRIR, part->data, part->size);
+					Serialization_CleanupSerializedPacket(part);
+					free(p_logic);
+				} else
+				{
+					SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ERR, data->parts[0], sizeof(uint32_t));
+				}
 
-				Serialization_CleanupSerializedPacket(part);
-				free(p_logic);
 				close(socketFM9);
 				close(socketSAFA);
 				break;
@@ -298,14 +331,13 @@ void DAM_Abrir(void* arriveData)
 
 	free(response);
 	Serialization_CleanupDeserializationStruct(data);
-	free(arriveData);
+	SocketServer_CleanOnArrivedData(onArriveData);
 }
-
 
 void DAM_Flush(void* arriveData)
 {
 
-	OnArrivedData* data=arriveData;
+	OnArrivedData* data = arriveData;
 
 	DeserializedData* dest = Serialization_Deserialize(data->receivedData);
 
@@ -313,11 +345,11 @@ void DAM_Flush(void* arriveData)
 		//no tenemos los datos necesarios para seguir adelante
 		Logger_Log(LOG_ERROR, "DAM::DAM_Borrar -> Recibido menos de 3 parametros.");
 		Serialization_CleanupDeserializationStruct(dest);
-		free(arriveData);
+		SocketServer_CleanOnArrivedData(data);
 		return;
 	}
 
-	uint32_t dtbID = *((int*) dest->parts[0]);
+	uint32_t dtbID = *((uint32_t*) dest->parts[0]);
 	uint32_t direccionLogica = *((int*) dest->parts[1]);
 	char* filePath = (char*) dest->parts[3];
 
@@ -333,28 +365,13 @@ void DAM_Flush(void* arriveData)
 	int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
 	int socketFM9 = SocketClient_ConnectToServerIP(settings->ipFM9, settings->puertoFM9);
 
-	char* tmpData;
+	int len;
 
-	//Lo que deberiamos hacer es pedirle al FM9 informacion hasta que nos llegue vacio
-//	while(1)
-//	{
-
-		//aca habria que armar un paquete serializado para el FM9 que contenga la direccion logica que queremos y tambien nuestro transfer size
-		//le mandamos el paquete al FM9 y esperamos que nos envia los bytes solicitados
-
-		//si recibimos vacio hacer break!
-//	}
-	//EL CUARTO CAMPO INDICA CUANTO SE RECIBIO
-	char* archivo = DAM_ReadFileFromFM9(dtbID, direccionLogica,socketFM9,NULL);
-
-
+	char* archivo = DAM_ReadFileFromFM9(dtbID, direccionLogica,socketFM9, &len);
+	//Usado para test:
 	//char* archivo = "MAKE c:/1/2/3.txt\nPULL d:/9/8/.bat\nULTIMA LINEA\nMAKE c:/1/2/3.txt\nPULL d:/9/8/.bat\nULTIMA LINEA";
 
-
-	//una vez que recibimos todo por parte del FM9 se lo mandamos al mdj:
-
 	int offset = 0;
-	int len = strlen(archivo); //TODO: Verificar que tenga un \0 lo que recibimos al final sino el strlen() falla, si no tiene agregarlo
 	int sizeToSend = 0;
 	int msg_type, length, status;
 
@@ -405,13 +422,21 @@ void DAM_Flush(void* arriveData)
 			switch(*((uint32_t*)data))
 			{
 				case 0: //OPERATION_SUCCESSFUL
+				{
+					//Avisamos al SAFA que el flush termino
+					int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoFM9);
+					SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_FLUSH, dest->parts[0], sizeof(uint32_t));
+					close(socketSAFA);
 				break;
-				case 10: //INSUFFICIENT_SPACE
-				break;
-				case 11: //METADATA_OPEN_ERROR
-				break;
+				}
 				case 12: //FILE_NOT_EXISTS
+				case 11: //METADATA_OPEN_ERROR
+				case 10: //INSUFFICIENT_SPACE
+				{
+					Logger_Log(LOG_ERROR, "ERROR EN FLUSH POR PARTE DEL MDJ: %d", *((uint32_t*)data));
+					DAM_ErrorOperacion(dtbID);
 				break;
+				}
 			}
 		}
 		free(data);
@@ -420,31 +445,23 @@ void DAM_Flush(void* arriveData)
 	free(archivo);
 	close(socketFM9);
 	close(socketMDJ);
-	/*
-	Se enviará una solicitud a El Diego indicando que se requiere hacer un Flush del archivo,
-	enviando los parámetros necesarios para que pueda obtenerlo desde FM9 y guardarlo en MDJ.
-
-	Se comunicará al proceso S-AFA que el G.DT se encuentra a la espera de una respuesta por parte
-	de El Diego y S-AFA lo bloqueará.
-	*/
-
-
 
 	Serialization_CleanupDeserializationStruct(dest);
-
-	free(arriveData);
+	SocketServer_CleanOnArrivedData(data);
 }
 
 void DAM_Borrar(void* arriveData)
 {
-	DeserializedData* data = Serialization_Deserialize(arriveData);
+	OnArrivedData* onArriveData = (OnArrivedData*) arriveData;
+
+	DeserializedData* data = Serialization_Deserialize(onArriveData->receivedData);
 
 	//verificamos que nos pasen los dos campos necesarios para la operacion
 	if(data->count < 2) {
 		//no tenemos los datos necesarios para seguir adelante
 		Logger_Log(LOG_ERROR, "DAM::DAM_Borrar -> Recibido menos de 2 parametros.");
 		Serialization_CleanupDeserializationStruct(data);
-		free(arriveData);
+		SocketServer_CleanOnArrivedData(onArriveData);
 		return;
 	}
 
@@ -465,17 +482,17 @@ void DAM_Borrar(void* arriveData)
 			case 0: //OK
 			{
 				//El DAM se conecta con el SAFA para avisarle que se elimino OK el archivo
-				//No tengo que conectarme al FM9 para pedir la direccion logica
-				int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoSAFA);
-
 				Logger_Log(LOG_INFO, "DAM::DAM_Borrar -> Se elimino correctamente el archivo de path %s.", filePath);
+				//Avisamos al SAFA que el borrar termino
+				int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoFM9);
 				SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_BORRAR, (void*)data->parts[0], sizeof(uint32_t));
+				close(socketSAFA);
 			break;
 			}
 
 			case 12: //FILE_NOT_EXISTS
 			{
-				Logger_Log(LOG_ERROR, "DAM::DAM_Borrar -> El archivo solicitado con ubicacion %s no existe!\n", filePath);
+				Logger_Log(LOG_ERROR, "DAM::DAM_Borrar :: ERROR 60001 -> El archivo solicitado con ubicacion %s no existe!\n", filePath);
 				DAM_ErrorOperacion(idDTB);
 			break;
 			}
@@ -483,22 +500,11 @@ void DAM_Borrar(void* arriveData)
 	}
 	close(socketMDJ);
 	free(response);
-	free(data);
+
 	Serialization_CleanupDeserializationStruct(data);
-	free(arriveData);
+	SocketServer_CleanOnArrivedData(onArriveData);
 }
 
-void DAM_ErrorOperacion(uint32_t idDTB)
-{
-	//le comunico del error al SAFA y le paso el id del DTB
-	int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoSAFA);
 
-	declare_and_init(pointer_iddtb, uint32_t, idDTB);
-
-	printf("Enviando error de operacion al SAFA\n");
-	SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ERR, (void*)pointer_iddtb, sizeof(uint32_t));
-	free(pointer_iddtb);
-
-}
 
 
