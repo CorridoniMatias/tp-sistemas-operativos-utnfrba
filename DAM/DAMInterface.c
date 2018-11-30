@@ -54,22 +54,22 @@ void* DAM_ReadFileFromFM9(uint32_t dtbID, uint32_t logicalAddress, int socketFM9
 	int bufferSize = 0;
 	void* buffer = malloc(1);
 
+	declare_and_init(id,uint32_t,dtbID)
+	SerializedPart p_id = {.size = sizeof(uint32_t), .data = id};
+	declare_and_init(address, uint32_t, logicalAddress)
+	SerializedPart p_address = {.size = sizeof(uint32_t), .data = address};
+	declare_and_init(psize, uint32_t, settings->transferSize);
+	SerializedPart p_size = {.size = sizeof(uint32_t), .data = psize};
+	SerializedPart* serializedContent = Serialization_Serialize(3, p_id, p_address,p_size);
+
+	SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_FLUSH, serializedContent->data, serializedContent->size);
+	free(id);
+	free(address);
+	free(psize);
+	Serialization_CleanupSerializedPacket(serializedContent);
+
 	while(1)
 	{
-		declare_and_init(id,uint32_t,dtbID)
-		SerializedPart p_id = {.size = sizeof(uint32_t), .data = id};
-		declare_and_init(address, uint32_t, logicalAddress)
-		SerializedPart p_address = {.size = sizeof(uint32_t), .data = address};
-		declare_and_init(psize, uint32_t, settings->transferSize);
-		SerializedPart p_size = {.size = sizeof(uint32_t), .data = psize};
-		SerializedPart* serializedContent = Serialization_Serialize(3, p_id, p_address,p_size);
-
-		SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_FLUSH, serializedContent->data, serializedContent->size);
-		free(id);
-		free(address);
-		free(psize);
-		Serialization_CleanupSerializedPacket(serializedContent);
-
 		int message_type, error_status, message_length;
 
 		void* recvData = SocketCommons_ReceiveData(socketFM9, &message_type, &message_length, &error_status);
@@ -90,6 +90,8 @@ void* DAM_ReadFileFromFM9(uint32_t dtbID, uint32_t logicalAddress, int socketFM9
 				break;
 			}
 		}
+
+		SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_FLUSH, 0, 0);
 	}
 
 	if(bufferSize == 0)
@@ -157,7 +159,7 @@ void DAM_Crear(void* arriveData)
 	free(arriveData);
 }
 
-uint32_t DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
+int DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 {
 	int offset = 0;
 	int sizeToSend = 0;
@@ -189,7 +191,7 @@ uint32_t DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 
 		SerializedPart* serializedContent = Serialization_Serialize(3, p_iddtb, p_size, p_buffer);
 
-		SocketCommons_SendData(socketFM9, MESSAGETYPE_MDJ_PUTDATA, serializedContent->data, serializedContent->size);
+		SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_OPEN, serializedContent->data, serializedContent->size);
 
 		Serialization_CleanupSerializedPacket(serializedContent);
 		free(piddtb);
@@ -205,10 +207,8 @@ uint32_t DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 			{
 				case 1: //parte recibida OK
 				break;
-				case 2: //espacio insuficiente
-					error = 1;
-				break;
 				case 400: //bad request
+					error = 1;
 				break;
 			}
 		}
@@ -226,20 +226,27 @@ uint32_t DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 			uint32_t tmp = *((uint32_t*)data);
 			free(data);
 			return tmp;
+		} else if(msg_type == MESSAGETYPE_INT)
+		{
+			return -1;
 		}
 	}
+
+	return -1;
 }
 
 void DAM_Abrir(void* arriveData)
 {
-	DeserializedData* data = Serialization_Deserialize(arriveData);
+	OnArrivedData* onArriveData = (OnArrivedData*) arriveData;
+
+	DeserializedData* data = Serialization_Deserialize(onArriveData->receivedData);
 
 	//verificamos que nos esten enviando los dos campos necesarios
 	if(data->count < 2) {
 		//no tenemos los datos necesarios para seguir adelante
 		Logger_Log(LOG_ERROR, "DAM::DAM_Abrir -> Recibido menos de 2 parametros.");
 		Serialization_CleanupDeserializationStruct(data);
-		free(arriveData);
+		SocketServer_CleanOnArrivedData(onArriveData);
 		return;
 	}
 
@@ -275,20 +282,27 @@ void DAM_Abrir(void* arriveData)
 				void* file_content = DAM_ReadFile(filePath, socketMDJ, &file_size);
 				close(socketMDJ);
 
-				uint32_t logicAddr = DAM_SendToFM9(socketFM9, file_content, file_size, idDTB);
+				int logicAddr = DAM_SendToFM9(socketFM9, file_content, file_size, idDTB);
 
 
-				SerializedPart p_iddtb = {.size = sizeof(uint32_t), .data = data->parts[0]};
-				SerializedPart p_filepath = {.size = strlen(filePath)+1, .data = data->parts[1]};
-				declare_and_init(p_logic, uint32_t, logicAddr);
-				SerializedPart p_direccion = {.size = sizeof(uint32_t), .data = p_logic};
+				if(logicAddr >= 0)
+				{
+					SerializedPart p_filepath = {.size = strlen(filePath)+1, .data = data->parts[1]};
+					declare_and_init(p_logic, uint32_t, logicAddr);
+					SerializedPart p_direccion = {.size = sizeof(uint32_t), .data = p_logic};
+					SerializedPart p_iddtb = {.size = sizeof(uint32_t), .data = data->parts[0]};
 
-				SerializedPart* part = Serialization_Serialize(3, p_iddtb, p_filepath, p_direccion);
+					SerializedPart* part = Serialization_Serialize(3, p_iddtb, p_filepath, p_direccion);
 
-				SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ABRIR, part->data, part->size);
+					SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ABRIR, part->data, part->size);
 
-				Serialization_CleanupSerializedPacket(part);
-				free(p_logic);
+					Serialization_CleanupSerializedPacket(part);
+					free(p_logic);
+				} else
+				{
+					SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ERR, data->parts[0], sizeof(uint32_t));
+				}
+
 				close(socketFM9);
 				close(socketSAFA);
 				break;
@@ -298,7 +312,7 @@ void DAM_Abrir(void* arriveData)
 
 	free(response);
 	Serialization_CleanupDeserializationStruct(data);
-	free(arriveData);
+	SocketServer_CleanOnArrivedData(onArriveData);
 }
 
 

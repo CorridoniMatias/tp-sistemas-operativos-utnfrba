@@ -11,7 +11,7 @@
 
 #define declare_and_init(pointer_name, data_type, init_value) 								\
 		data_type* pointer_name = (data_type*)malloc(sizeof(data_type)); 					\
-		*pointer_name = init_value;															\
+		*pointer_name = init_value;
 
 
 /*
