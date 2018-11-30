@@ -37,17 +37,18 @@
 #define MESSAGETYPE_SAFA_CPU_WAITRESPONSE 522	//Respuesta a una operacion Wait hecha por un CPU; 1:aceptada, 0:denegada
 
 //PROTOCOLO CPU
-
-#define MESSAGETYPE_CPU_EOFORABORT 320
-#define MESSAGETYPE_CPU_BLOCKDUMMY 321
-#define MESSAGETYPE_CPU_BLOCKDTB 322
-#define MESSAGETYPE_CPU_EOQUANTUM 323
-#define MESSAGETYPE_CPU_WAIT 324
-#define MESSAGETYPE_CPU_SIGNAL 325
-#define MESSAGETYPE_CPU_ABRIR 330
-#define MESSAGETYPE_CPU_FLUSH 331
-#define MESSAGETYPE_CPU_BORRAR 332
-#define MESSAGETYPE_CPU_CREAR 333
+//Se utilizan con el safa
+#define MESSAGETYPE_CPU_EOFORABORT 320  //Codigo para mandar al safa cuando se quiere abortar un DTB o el mismo termina
+#define MESSAGETYPE_CPU_BLOCKDUMMY 321  //Codigo para bloquear un dummy (se le manda al safa)
+#define MESSAGETYPE_CPU_BLOCKDTB 322    //Codigo para bloquear un DTB
+#define MESSAGETYPE_CPU_EOQUANTUM 323	//Codigo cuando se termina el quantum de un DTB
+#define MESSAGETYPE_CPU_WAIT 324		//Comando: wait
+#define MESSAGETYPE_CPU_SIGNAL 325		//Comando: signal
+//Se utilizan con FM9 y DAM
+#define MESSAGETYPE_CPU_ABRIR 330		//Comando: Abrir
+#define MESSAGETYPE_CPU_FLUSH 331		//Comando: flush
+#define MESSAGETYPE_CPU_BORRAR 332		//Comando: borrar
+#define MESSAGETYPE_CPU_CREAR 333		//Comando crear
 #define MESSAGETYPE_CPU_RECEIVELINE 334	//Recibir linea del FM9
 
 //PROTOCOLO FM9 (4X)
