@@ -32,6 +32,9 @@
  * 		openedFiles: Diccionario que representa la tabla de archivos abiertos por el DTB. Key: path, Value: dirLogica (uint32_t*)
  * 		quantumRemainder: Cantidad de UTs del quantum que le quedan al DTB para ejecutar
  * 		ioOperations: Cantidad de operaciones de entrada/salida (MDJ) realizadas por el DTB; para el algoritmo Propio (IOBF)
+ * 		sentencesWhileAtNEW: Cantidad de sentencias que se ejecutaron en el sistema mientras estaba en NEW; para la metrica 1
+ * 		spawnTime: Instante en el cual ingreso al sistema (en el cual ingreso a la cola NEW)
+ * 		firstResponseTime: Instante en el cual recibe la primera respuesta del sistema (primera respuesta de IO?)
  */
 struct DTB_s
 {
@@ -45,6 +48,9 @@ struct DTB_s
 	t_dictionary* openedFiles;
 	uint32_t quantumRemainder;
 	uint32_t ioOperations;
+	int sentencesWhileAtNEW;
+	time_t spawnTime;
+	time_t firstResponseTime;
 } typedef DTB;
 
 /*
@@ -136,6 +142,7 @@ struct AlgorithmStatus_s
 #define DTB_STATUS_EXEC 		33
 #define DTB_STATUS_BLOCKED 		34
 #define DTB_STATUS_EXIT 		35
+#define DTB_STATUS_DUMMYING		36
 
 ///-------------VARIABLES GLOBALES-------------///
 
@@ -147,6 +154,7 @@ extern int algorithmChange;						//Valor que registra de que a que algoritmo se 
 //--SEMAFOROS A EMPLEAR--//
 pthread_mutex_t mutexPLPtask;
 pthread_mutex_t mutexPCPtask;
+pthread_mutex_t mutexNEW;						//Mutex sobre la cola NEW, para cuando modifico sus elementos
 pthread_mutex_t mutexREADY;						//Garantiza mutua exclusion sobre las colas READY (la actual);
 												//extern en ConsoleHandler.h, ya que este lo usara al hacer metricas/status
 pthread_mutex_t mutexScriptsQueue;				//Mutua exclusion sobre la cola de scripts; usado tanto en este mismo
@@ -174,6 +182,8 @@ int algorithmChange;							//Codigo del cambio de algoritmo sufrido; constantes 
 DTB* dummyDTB;									//DTB que se usara como Dummy
 extern CreatableGDT* justDummied;				//Estructura con el path del script, la direccion logica y el id del DTB
 												//cuya carga Dummy acaba de terminar (segun informo el DAM); ext para Comm.h
+t_list* beingDummied;							//Lista de DTBs que estan haciendo el Dummy (deberia ser solo uno)
+												//Contiene info relevante de los mismos, para no perderla
 
 //--COLAS DE PLANIFICACION GLOBALES--//
 t_queue* NEWqueue;								//Cola NEW, gestionada por PLP con FIFO; es lista para ser modificable
@@ -243,7 +253,7 @@ void SetPLPTask(int taskCode);
 void SetPCPTask(int taskCode);
 
 /*
- * 	ACCION: Crea un DTB nuevo con un cierto script asociado, sin estado y solo pre-malloceado
+ * 	ACCION: Crea un DTB nuevo con un cierto script asociado, sin estado y solo pre-malloceado; contadores e instante nulos
  * 	PARAMETROS:
  * 		script: Script de lenguaje Escriptorio que tendra asociado el DTB
  */
@@ -326,16 +336,24 @@ void ShowDTBInfo_Deep(DTB* target);
 DTB* GetNextReadyDTB();
 
 /*
- * 	ACCION: Funcion para el hilo del PLP, con todas sus posibles acciones a llevar a cabo
- */
-void PlanificadorLargoPlazo();
-/*
  * 	ACCION: Cargar los datos del DTB elegido para inicializar en la estructura del Dummy; NO LO MUEVE A READY
  * 	PARAMETROS:
  * 		id: ID del DTB que estaba en NEW y fue elegido para hacersele la carga en memoria
  * 		path: Path del script asociado a dicho DTB; sera el que el DAM debe hablar para cargar en memoria
  */
 void SetDummy(uint32_t id, char* path);
+
+/*
+ * 	ACCION: Funcion para el hilo del PLP, con todas sus posibles acciones a llevar a cabo
+ */
+void PlanificadorLargoPlazo();
+
+/*
+ * 	ACCION: Actualizar los contadores de sentencias esperadas en NEW de todos los DTBs de esa cola (para metrica 1)
+ * 	PARAMETROS:
+ * 		amount: Cantidad de sentencias ejecutadas que se deben agregar a cada DTB
+ */
+void AggregateSentencesWhileAtNEW(int amount);
 
 /*
  * 	ACCION: Funcion para el hilo del PCP, con todas sus posibles acciones a llevar a cabo
@@ -405,7 +423,6 @@ SerializedPart* ScheduleRR(int quantum);
  */
 SerializedPart* ScheduleVRR(int maxQuantum);
 
-SerializedPart* ScheduleIOBF(int quantum);
 /*
  * 	ACCION: Planificar con el algoritmo propio asignado por la catedra para obtener el proximo DTB a ejecutar,
  * 			moverlo a la cola de EXEC y obtener el mensaje a enviarle al CPU que luego se asigne.
@@ -414,6 +431,55 @@ SerializedPart* ScheduleIOBF(int quantum);
  * 	PARAMETROS:
  * 		maxQuantum: Quantum definido por el sistema como maximo de ejecucion
  */
+SerializedPart* ScheduleIOBF(int quantum);
+
+/*
+ * 	ACCION: Devuelve la cantidad total de sentencias ejecutadas en el sistema, este como este
+ * 			cada DTB. Usada para la metrica 4 (porcentaje de sentencias que fueron al DAM)
+ */
+int Metrics_TotalRunSentencesAmount();
+
+/*
+ * 	ACCION: Devuelve la cantidad de sentencias ejecutadas del sistema que fueron de IO (llamadas al DAM). Para metrica 4
+ */
+int Metrics_TotalIOSentencesAmount();
+
+/*
+ * 	ACCION: Devuelve la cantidad total de DTBs en el sistema, sin contar NEW y hasta EXIT inclusive. Para metrica 2
+ */
+int Metrics_TotalDTBPopulation();
+
+/*
+ * 	ACCION: Devuelve la METRICA 2. Cantidad promedio de sentencias ejecutadas que usan al DAM (segun cantidad de procesos)
+ */
+float Metrics_AverageIOSentences();
+
+/*
+ * 	ACCION: Devuelve la METRICA 3. Cantidad promedio de sentencias ejecutadas que llevan a un DTB a EXIT (ya sea error o fin)
+ */
+float Metrics_AverageExitingSentences();
+
+/*
+ * 	ACCION: Devuelve la METRICA 4. Porcentaje del total de sentencias ejecutadas que correspondian a operaciones de IO
+ */
+float Metrics_IOSentencesPercentage();
+
+/*
+ * 	ACCION: Devuelve la suma de todos los tiempos de espera de los DTBs del sistema; usado para metrica 5
+ */
+float Metrics_SumAllResponseTimes();
+
+/*
+ * 	ACCION: Devuelve la cantidad de DTBs que recibieron la primer respuesta del sistema
+ * 			Con esta cantidad se como calcular la metrica 5 (es el divisor en la cuenta)
+ */
+int Metrics_ResponsedDTBPopulation();
+
+/*
+ * 	ACCION: Devuelve la METRICA 5. Tiempo de respuesta promedio del sistema.
+ * 	TODO: Definir que es el tiempo Promedio, cuando se declara el tiempo de respuesta
+ */
+float Metrics_AverageResponseTime();
 
 /*
  * 	ACCION: Elimina apropiadamente todos los semaforos utilizados

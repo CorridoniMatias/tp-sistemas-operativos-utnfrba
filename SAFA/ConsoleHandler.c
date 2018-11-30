@@ -164,10 +164,42 @@ void CommandMetricas (int argC, char** args, char* callingLine, void* extraData)
 		CommandInterpreter_FreeArguments(args);
 		return;
 	}
-	//ToDo: para el punto 1, esperar respuesta de ayudantes (agregar un campo en DTBs?)
-	//Para el punto 2, sumar operaciones IO de todos los proceso no en NEW y dividirlos por la cantidad
-	//Para el 3, mismo con PCs de los que estan en EXIT; para el 4, sumar IOs dividido la suma de PCs
-	//Para el 5.....
+
+	//Si se paso como parametro el ID de un DTB, muestro solo la emtrica 1
+	else if(argC == 2)
+	{
+
+		//Busco el DTB con ese ID y su informacion; si esta (!NULL) muestro la metrica; si no, lo informo
+		pthread_mutex_lock(&mutexSettings);
+		DTB* wanted = GetDTBbyID(args[1], settings->algoritmo);
+		pthread_mutex_lock(&mutexSettings);
+
+		if(wanted)
+		{
+			printf("***METRICAS DEL DTB DE ID %d***\n", args[1]);
+			printf("Estando en NEW, espero a que se ejecutaran %d sentencias\n", wanted->sentencesWhileAtNEW);
+		}
+		else
+		{
+			printf("**NO EXISTE NINGUN DTB CON EL ID ESPECIFICADO**\n");
+			return;
+		}
+
+	}
+
+	else
+	{
+		printf("***METRICAS DEL SISTEMA***\n");
+		//Uso estos mutex para acceder univocamente a las colas, sin que nadie me joda
+		//TODO: Poner un mejor semaforo
+		pthread_mutex_lock(&mutexREADY);
+		printf("--Cantidad promedio de sentencias ejecutadas que usaron el DAM: %f\n", Metrics_AverageIOSentences());
+		printf("--Cantidad promedio de sentencias que llevan a un DTB a EXIT: %f\n", Metrics_AverageExitingSentences());
+		printf("--Porcentaje de respuestas ejecutadas que fueron al DAM: %f%%\n", Metrics_IOSentencesPercentage());
+		printf("--Tiempo de respuesta promedio del sistema: %f s\n", Metrics_AverageResponseTime());
+		pthread_mutex_unlock(&mutexREADY);
+	}
+
 	CommandInterpreter_FreeArguments(args);
 
 }

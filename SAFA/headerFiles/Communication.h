@@ -17,7 +17,6 @@
 extern t_list* cpus;									//Lista de CPUs conectados; declarada en CPUsManager.h
 extern sem_t assignmentPending;							//Semaforo que indica que ya se asigno un DTB a un CPU
 CreatableGDT* justDummied;								//Estructuras, no llevan extern aca sino en modulo originario
-AssignmentInfo* toBeAssigned;
 extern t_queue* toBeUnlocked;
 extern t_queue* toBeBlocked;
 extern t_queue* toBeEnded;

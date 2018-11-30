@@ -40,7 +40,7 @@ void FreeCPU(int socketID)
 
 }
 
-void RemoveCPU(int socketID)
+int RemoveCPU(int socketID)
 {
 
 	int size = CPUsCount();
@@ -51,9 +51,11 @@ void RemoveCPU(int socketID)
 		if(counter->socket == socketID)
 		{
 			list_remove(cpus, i); //No hacemos el free porque el espacio de memoria que guardamos pertenece a SocketServer y es el quien hace el free de esa memoria!.
-			break;			   	  //No hace falta seguir buscando otro con ese ID, salgo del ciclo
+			return 1;			  //Si encontre un CPU con ese socket y lo removi, devuelvo 1 (para el OnDisconnect)
 		}
 	}
+
+	return 0;					  //Si no encontre, devuelvo un 0 para que no informe nada
 
 }
 
