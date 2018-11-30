@@ -125,8 +125,7 @@ void FM9_AskForLine(void* data) {
 
 void FM9_Close(void* data) {
 	OnArrivedData* arriveData = data;
-	DeserializedData* actualData = Serialization_Deserialize(
-			arriveData->receivedData);
+	DeserializedData* actualData = Serialization_Deserialize(arriveData->receivedData);
 	uint32_t* status = malloc(sizeof(uint32_t));
 	if (actualData->count == 2) {
 		int dtbID = *((int *) actualData->parts[0]);
@@ -138,8 +137,10 @@ void FM9_Close(void* data) {
 			*status = 1;
 	} else
 		*status = 400;
-	SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT,
-			status, sizeof(uint32_t));
+	SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT, status, sizeof(uint32_t));
+	SocketServer_CleanOnArrivedData(arriveData);
+	Serialization_CleanupDeserializationStruct(actualData);
+	free(status);
 }
 //Recibir un pedazo por pedazo hace un wakemeupwhen y un if messagelength = 0 break;
 void FM9_Open(void* data) {
@@ -186,8 +187,7 @@ void FM9_Open(void* data) {
 
 void FM9_Flush(void* data) {
 	OnArrivedData* arriveData = data;
-	DeserializedData* actualData = Serialization_Deserialize(
-			arriveData->receivedData);
+	DeserializedData* actualData = Serialization_Deserialize(arriveData->receivedData);
 	if (actualData->count == 3) {
 		uint32_t id = *((int*) actualData->parts[0]);
 		uint32_t logicalAddress = *((int*) actualData->parts[1]);
@@ -198,8 +198,10 @@ void FM9_Flush(void* data) {
 		if (bufferSize <= 0) {
 			free(buffer);
 			declare_and_init(response_code, uint32_t, 2)
-			SocketCommons_SendData(arriveData->calling_SocketID,
-			MESSAGETYPE_INT, response_code, sizeof(uint32_t));
+			SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT, response_code, sizeof(uint32_t));
+			free(response_code);
+			SocketServer_CleanOnArrivedData(arriveData);
+			Serialization_CleanupDeserializationStruct(actualData);
 			return;
 		}
 
@@ -216,7 +218,6 @@ void FM9_Flush(void* data) {
 		}
 		free(buffer);
 		//Falta mandar las cosas de a transfersizes
-		//TODO Hay que hacer un wakemeup
 		offset = 0;
 		int size = 0;
 		while (1) {
@@ -227,19 +228,29 @@ void FM9_Flush(void* data) {
 			else
 				size = transferSize;
 			SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_STRING, buffer + offset, size);
+			if(size==0)
+				break;
 			offset += size;
 			realSize -= size;
+			OnArrivedData* wakeData=SocketServer_WakeMeUpWhenDataIsAvailableOn(arriveData->calling_SocketID);
+			if(wakeData!=NULL){
+				SocketServer_CleanOnArrivedData(wakeData);
+			}
 
 		}
 	} else {
 		declare_and_init(response_code, uint32_t, 400)
-		SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT,
-				response_code, sizeof(uint32_t));
+		SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT, response_code, sizeof(uint32_t));
+		free(response_code);
+		SocketServer_CleanOnArrivedData(arriveData);
+		Serialization_CleanupDeserializationStruct(actualData);
+		return;
 	}
-	return;
+	SocketServer_CleanOnArrivedData(arriveData);
+	Serialization_CleanupDeserializationStruct(actualData);
 }
 
-}
+
 
 void FM9_Dump(void* data) {
 //int argC, char** args, char* callingLine, void* extraData) {

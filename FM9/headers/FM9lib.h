@@ -35,7 +35,7 @@ typedef struct{
 	int (*readData)(void*, int, int);
 	int (*closeFile)(int,int);
 	int (*dump)(int);
-	int (*size)(int,int);
+//	int (*size)(int,int);
 	//No es necesaria esta creo, con hacer la traduccion esta bien;
 //	int (*readLine)(void*,int,int);
 } t_memoryFunctions;

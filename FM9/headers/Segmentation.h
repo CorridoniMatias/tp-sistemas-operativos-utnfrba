@@ -54,9 +54,9 @@ void freeSegmentationStructures();
  */
 int writeData_SEG(void* data, int size, int dtbID);
 
-int readDataSegmentation(void* target, int virtualAddress, int dtbID);
+int readData_SEG(void* target, int virtualAddress, int dtbID);
 
-int segmentationAddressTranslation(int virtualAddress, int dtbID);
+int addressTranslation_SEG(int virtualAddress, int dtbID);
 
 int getSegmentFromAddress(int virtualAddress);
 
@@ -64,9 +64,9 @@ int getOffsetFromAddress(int virtualAddress);
 
 int getNewSegmentNumber();
 
-int dumpSegmentation(int dtbID);
+int dump_SEG(int dtbID);
 
-int closeSegmentation(int dtbID, int virtualAddress);
+int closeFile_SEG(int dtbID, int virtualAddress);
 
 void addFreeSegment(t_segment* segment);
 

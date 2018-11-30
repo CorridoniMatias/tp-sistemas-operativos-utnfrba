@@ -9,12 +9,12 @@ void testSEG() {
 	int resultado;
 	int dir;
 	dir = writeData_SEG(datos, 10, 1);
-	resultado = readDataSegmentation(buffer, dir, 1);
-	resultado = readDataSegmentation(buffer, dir + 1, 1);
+	resultado = readData_SEG(buffer, dir, 1);
+	resultado = readData_SEG(buffer, dir + 1, 1);
 
 	dir = writeData_SEG(datos2, 15, 1);
-	resultado = readDataSegmentation(buffer, dir, 1);
-	resultado = readDataSegmentation(buffer, dir + 1, 1);
+	resultado = readData_SEG(buffer, dir, 1);
+	resultado = readData_SEG(buffer, dir + 1, 1);
 	free(buffer);
 	freeSegmentationStructures();
 }

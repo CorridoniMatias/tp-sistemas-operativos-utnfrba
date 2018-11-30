@@ -7,11 +7,16 @@
 #include "FM9lib.h"
 #include "Storage.h"
 #include "FM9Errors.h"
+
+typedef struct{
+	int firstPage;
+	int numberOfPages;
+} t_pages_per_file;
+
 int tamanioFrame;
 int cantLineasPorFrame;
 int cantFrames;
 t_list* framesLibres;
-
 
 //Requerimiento: Inicializa las estructuras de la paginación, que son el tamanio del frame, la cantidad de frames y los frames libres.
 /*
@@ -42,6 +47,14 @@ void addFreeFrame(int numFrame);
  *	Retorna: El número de frame libre, en caso de no haber ninguno devuelve NO_FRAMES_AVAILABLE.
  */
 int getFreeFrame();
+
+//Requerimiento: Obtener una cantidad de frames libres para usar que pueda guardar datos de tamaño size.
+/*
+ * Descripción: Devuelve una lista con la cantidad de frames que alcanze para guardar size, con cada el número de cada uno de ellos.
+ *
+ * 	Retorna: una lista con los números de frame libre, o NULL si no hay los suficientes.
+ */
+t_list* getFreeFrames(int size);
 
 //Requerimiento: Escribir una página en un frame.
 /*

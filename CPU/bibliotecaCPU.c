@@ -193,7 +193,7 @@ void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 
 			SerializedPart* packetToFM9 = Serialization_Serialize(3, fieldForFM91, fieldForFM92, fieldForFM93);
 
-			SocketCommons_SendData(((Operation*) extraData)->socketFM9, MESSAGETYPE_CPU_ASIGNAR, packetToFM9->data, packetToFM9->size);
+			SocketCommons_SendData(((Operation*) extraData)->socketFM9, MESSAGETYPE_FM9_ASIGN, packetToFM9->data, packetToFM9->size);
 
 			int messageType, err, msglength;
 //
@@ -218,9 +218,8 @@ void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 				case 2:
 					free(dataToWrite);
 					Logger_Log(LOG_INFO, "Error fallo de segmento/memoria en FM9");
-					int32_t idDtb = ((Operation*) extraData)->dtb;
-					declare_and_init(id, int32_t, idDtb)
-					;
+//					int32_t idDtb = ((Operation*) extraData)->dtb;
+//					declare_and_init(id, int32_t, idDtb)
 
 					SocketCommons_SendData(((Operation*) extraData)->socketSAFA,
 							MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
@@ -236,9 +235,8 @@ void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 				case 3:
 					free(dataToWrite);
 					Logger_Log(LOG_INFO, "Espacio insuficiente en FM9");
-					int32_t idDtb = ((Operation*) extraData)->dtb;
-					declare_and_init(id, int32_t, idDtb)
-					;
+//					int32_t idDtb = ((Operation*) extraData)->dtb;
+//					declare_and_init(id, int32_t, idDtb)
 
 					SocketCommons_SendData(((Operation*) extraData)->socketSAFA,
 							MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));

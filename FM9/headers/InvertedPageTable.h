@@ -6,7 +6,6 @@
 #include "Paging.h"
 #include "FM9Errors.h"
 
-
 typedef struct {
 	int dtbId;
 	int page;
@@ -14,11 +13,17 @@ typedef struct {
 
 IPTEntry* IPTable;
 
-/*El diccionario DTBsPages es un diccionario que cada key es la id de un DTB y el valor
- * es otro diccionario más, cuyas keys son las direcciones lógicas de cada archivo abierto
- * y el valor es una lista con las paginas en las que esta el archivo.
+typedef struct{
+	t_dictionary * pagesPerFiles;
+	int nextPageNumber;
+}t_pages;
+
+
+/*El diccionario pagesPerDTBTable es un diccionario que cada key es la id de un DTB y el valor es
+ * una t_pages con un diccionario que cada key es la dirección lógica del archivo y los valores
+ * son una t_pages_per_file con la pagina inicial y la cantidad de páginas.
  */
-t_dictionary* DTBsPages;
+t_dictionary* pagesPerDTBTable;
 
 //Requerimiento: Inicializa la variable IPTable
 /*
@@ -44,6 +49,6 @@ void freeIPTStructures();
  *	Retorna: si se pudo leer retorna la dirección lógica perteneciente a la primera página para poder
  *	acceder posteriormente. Si no hubo espacio suficiente retorna INSUFFICIENT_SPACE.
  */
-int saveData(void* data, int size);
+int writeDataIPT(void* data, int size, int dtbID);
 
 #endif /* INVERTED_PAGE_TABLE_H_ */

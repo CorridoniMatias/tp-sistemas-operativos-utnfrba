@@ -87,8 +87,8 @@ int writeData_SEG(void* data, int size, int dtbID) {
 	return virtualAddress;
 }
 
-int readDataSegmentation(void* target, int logicalAddress, int dtbID) {
-	int baseLine = segmentationAddressTranslation(logicalAddress, dtbID);
+int readData_SEG(void* target, int logicalAddress, int dtbID) {
+	int baseLine = addressTranslation_SEG(logicalAddress, dtbID);
 	if (baseLine == ITS_A_TRAP)
 		return ITS_A_TRAP;
 	char * dtbKey = string_itoa(dtbID);
@@ -118,13 +118,13 @@ int readDataSegmentation(void* target, int logicalAddress, int dtbID) {
 	return sizeRead;
 }
 
-int segmentationAddressTranslation(int virtualAddress, int dtbID) {
+int addressTranslation_SEG(int logicalAddress, int dtbID) {
 	char * dtbKey = string_itoa(dtbID);
 	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey))
 		return ITS_A_TRAP;
 	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
 	free(dtbKey);
-	int segmentNumber = getSegmentFromAddress(virtualAddress);
+	int segmentNumber = getSegmentFromAddress(logicalAddress);
 	char* segmentKey = string_itoa(segmentNumber);
 	if (!dictionary_has_key(segments->segments, segmentKey)) {
 		free(segmentKey);
@@ -132,11 +132,11 @@ int segmentationAddressTranslation(int virtualAddress, int dtbID) {
 	}
 	t_segment* segment = dictionary_get(segments->segments, segmentKey);
 	free(segmentKey);
-	if (getOffsetFromAddress(virtualAddress) >= segment->limit)
+	if (getOffsetFromAddress(logicalAddress) >= segment->limit)
 		return ITS_A_TRAP;
 
-	Logger_Log(LOG_INFO, "FM9 -> Dirección lógica = %d.", virtualAddress);
-	int numLinea = segment->base + getOffsetFromAddress(virtualAddress);
+	Logger_Log(LOG_INFO, "FM9 -> Dirección lógica = %d.", logicalAddress);
+	int numLinea = segment->base + getOffsetFromAddress(logicalAddress);
 	Logger_Log(LOG_INFO, "FM9 -> Dirección física = %d.", numLinea);
 
 	return numLinea;
@@ -154,7 +154,7 @@ int getNewSegmentNumber(t_segments* segments) {
 	return segments->nextSegmentNumber;
 }
 
-int dumpSegmentation(int dtbID) {
+int dump_SEG(int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
 	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey))
 		return -1;
@@ -171,13 +171,14 @@ int dumpSegmentation(int dtbID) {
 		for (int i = 0; i < segment->limit; i++) {
 			readLine(buffer, segment->base + i);
 		}
+		free(buffer);
 	}
 	dictionary_iterator(segments->segments, segmentDumper);
 	return 1;
 
 }
 
-int closeSegmentation(int dtbID, int virtualAddress) {
+int closeFile_SEG(int dtbID, int virtualAddress) {
 	char* dtbKey = string_itoa(dtbID);
 	if (dictionary_has_key(segmentsPerDTBTable, dtbKey))
 		return -1;

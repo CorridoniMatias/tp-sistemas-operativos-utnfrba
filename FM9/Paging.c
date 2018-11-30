@@ -76,11 +76,19 @@ int readFrame(void* page, int numFrame){
 	return useFrame(page,numFrame,"Lectura",readLine);
 }
 
-int framesNeededAreAvailable(int size) {
+int framesNeeded(int size) {
 	int framesNecesarios = size / tamanioFrame;
 	if (size % tamanioFrame > 0)
 		framesNecesarios++;
-	return framesLibres->elements_count >= framesNecesarios ? framesNecesarios : INSUFFICIENT_FRAMES_AVAILABLE;
+//	return framesLibres->elements_count >= framesNecesarios ? framesNecesarios : INSUFFICIENT_FRAMES_AVAILABLE;
+	return framesNecesarios;
+}
+
+t_list* getFreeFrames(int size){
+	int framesNecesarios = framesNeeded(size);
+	if(framesLibres->elements_count<framesNecesarios)
+		return NULL;
+	return list_take_and_remove(framesLibres,framesNecesarios);
 }
 
 static int useFrame(void* page, int numFrame,char* log, int (*operation)(void*,int)){
