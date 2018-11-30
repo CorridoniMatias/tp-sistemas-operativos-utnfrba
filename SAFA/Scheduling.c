@@ -668,9 +668,18 @@ void PlanificadorCortoPlazo()
 					sentencesRun = 1;
 				}
 
-				//Agrego las sentencias esperadas de los de NEW, y tambien paso este DTB a READY, con abiertos actualizados
+				//Agrego las sentencias esperadas de los de NEW, y actualizo los archivos abiertos
 				AggregateSentencesWhileAtNEW(sentencesRun);
 				UpdateOpenedFiles(target, nextToUnlock->openedFilesUpdate, nextToUnlock->singleOFaddition);
+
+				//Si no tiene marcado el instante de la primer respuesta (esta como 0),
+				//entonces debo marcarlo en este instante (es una respuesta del sistema)
+				if(target->firstResponseTime == 0)
+				{
+					time(target->firstResponseTime);
+				}
+
+				//Muevo este DTB a la cola de READY
 				AddToReady(target, schedulingRules.name);
 
 			}
@@ -723,6 +732,13 @@ void PlanificadorCortoPlazo()
 				if(!target)
 				{
 					target = list_remove_by_condition(EXECqueue, IsDTBToBeEnded);
+				}
+
+				//Si no tiene marcado el instante de la primer respuesta (esta como 0),
+				//entonces debo marcarlo en este instante (es una respuesta del sistema)
+				if(target->firstResponseTime == 0)
+				{
+					time(target->firstResponseTime);
 				}
 
 				//Lo muevo a la "cola" de EXIT, actualizando su estado

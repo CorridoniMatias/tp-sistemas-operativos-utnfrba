@@ -185,7 +185,8 @@ void ProcessLineInput(char* line)
 /*
  * 	ACCION: Levanta el servidor (al SAFA se le conectan el DAM y los CPU, y mantiene sus ambos planificadores internamente
  * 			Registro los comandos del CommandInterpreter, y agrego los listeners al server
- * 			Lo pongo a escuchar conexiones entrantes y, como ultima linea, manejo el cierre del server al terminar
+ * 			Lo pongo a escuchar conexiones entrantes, arranco los hilos de los planificadores y, como ultima
+ * 			linea, me encargo del cierre del servidor
  */
 void StartServer()
 {
@@ -207,6 +208,20 @@ void StartServer()
 	actions.OnClientConnected = (void*)ClientConnected;
 	actions.OnClientDisconnect = (void*)ClientDisconnected;
 	actions.OnReceiveError = (void*)ClientError;
+
+	ThreadPoolRunnable* plpJob = ThreadPool_CreateRunnable();
+	plpJob->data = NULL;
+	plpJob->free_data = NULL;
+	plpJob->runnable = (void*)PlanificadorLargoPlazo;
+	ThreadPool_AddJob(threadPool, plpJob);
+	Logger_Log(LOG_INFO, "Planificador de Largo Plazo ya operativo");
+
+	ThreadPoolRunnable* pcpJob = ThreadPool_CreateRunnable();
+	pcpJob->data = NULL;
+	pcpJob->free_data = NULL;
+	pcpJob->runnable = (void*)PlanificadorCortoPlazo;
+	ThreadPool_AddJob(threadPool, plpJob);
+	Logger_Log(LOG_INFO, "Planificador de Corto Plazo ya operativo");
 
 	SocketServer_ListenForConnection(actions);
 
@@ -234,7 +249,7 @@ void initialize()
 	Logger_Log(LOG_INFO, "Inicializado interprete de comandos");
 	CreateResourcesTable();
 	Logger_Log(LOG_INFO, "Creada tabla de recursos");
-	threadPool = ThreadPool_CreatePool(15, false);
+	threadPool = ThreadPool_CreatePool(20, false);
 	Logger_Log(LOG_INFO, "Creado ThreadPool para 10 threads");
 
 	//Agrego al ThreadPool la tarea de monitorear el archivo de configuracion; tiene un read, debe ir en hilo aparte
