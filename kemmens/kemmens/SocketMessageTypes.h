@@ -44,6 +44,7 @@
 #define MESSAGETYPE_CPU_EOQUANTUM 323	//Codigo cuando se termina el quantum de un DTB
 #define MESSAGETYPE_CPU_WAIT 324		//Comando: wait
 #define MESSAGETYPE_CPU_SIGNAL 325		//Comando: signal
+#define MESSAGETYPE_CPU_EXECDUMMY 326	//Pedirle al DAM que haga el Dummy
 //Se utilizan con FM9 y DAM
 #define MESSAGETYPE_CPU_ABRIR 330		//Comando: Abrir
 #define MESSAGETYPE_CPU_FLUSH 331		//Comando: flush

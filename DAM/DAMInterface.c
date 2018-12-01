@@ -313,7 +313,11 @@ void DAM_Abrir(void* arriveData)
 
 					SerializedPart* part = Serialization_Serialize(3, p_iddtb, p_filepath, p_direccion);
 
-					SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ABRIR, part->data, part->size);
+					//Verificamos si la operacion real fue abrir un archivo o hacer la operacion dummy
+					if(onArriveData->message_type == MESSAGETYPE_CPU_EXECDUMMY)
+						SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_DUMMY, part->data, part->size);
+					else
+						SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ABRIR, part->data, part->size);
 
 					Serialization_CleanupSerializedPacket(part);
 					free(p_logic);

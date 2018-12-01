@@ -59,10 +59,7 @@ void executeDummy(DeserializedData* dtb, int diego, int safa){
 
 	SerializedPart* packetToDiego = Serialization_Serialize(2, fieldForDiego1,fieldForDiego2);
 
-	SocketCommons_SendData(diego, MESSAGETYPE_VOIDPOINTER, packetToDiego->data, packetToDiego->size);
-
-
-
+	SocketCommons_SendData(diego, MESSAGETYPE_CPU_EXECDUMMY, packetToDiego->data, packetToDiego->size);
 
 	SocketCommons_SendData(safa,MESSAGETYPE_CPU_BLOCKDUMMY, id, sizeof(uint32_t));
 
