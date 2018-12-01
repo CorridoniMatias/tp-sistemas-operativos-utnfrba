@@ -666,3 +666,15 @@ void* FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 	return result;											//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
 
 }
+void Start_commands(){
+	CommandInterpreter_RegisterCommand("abrir",(void*)CommandAbrir);
+	CommandInterpreter_RegisterCommand("concentrar",(void*)CommandConcentrar);
+	CommandInterpreter_RegisterCommand("asignar",(void*)CommandAsignar);
+	CommandInterpreter_RegisterCommand("wait",(void*)CommandWait);
+	CommandInterpreter_RegisterCommand("signal",(void*)CommandSignal);
+	CommandInterpreter_RegisterCommand("flush",(void*)CommandFlush);
+	CommandInterpreter_RegisterCommand("close",(void*)CommandClose);
+	CommandInterpreter_RegisterCommand("crear",(void*)CommandCrear);
+	CommandInterpreter_RegisterCommand("borrar",(void*)CommandBorrar);
+}
+
