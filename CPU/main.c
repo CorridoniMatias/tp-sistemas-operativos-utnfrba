@@ -43,15 +43,7 @@ int main(int argc, char *argv[])
 				Operation extraData;
 				extraData.dictionary = dictionary;
 
-				CommandInterpreter_RegisterCommand("abrir",(void*)CommandAbrir);
-				CommandInterpreter_RegisterCommand("concentrar",(void*)CommandConcentrar);
-				CommandInterpreter_RegisterCommand("asignar",(void*)CommandAsignar);
-				CommandInterpreter_RegisterCommand("wait",(void*)CommandWait);
-				CommandInterpreter_RegisterCommand("signal",(void*)CommandSignal);
-				CommandInterpreter_RegisterCommand("flush",(void*)CommandFlush);
-				CommandInterpreter_RegisterCommand("close",(void*)CommandClose);
-				CommandInterpreter_RegisterCommand("crear",(void*)CommandCrear);
-				CommandInterpreter_RegisterCommand("borrar",(void*)CommandBorrar);
+				Start_commands(); //Se incian los comandos
 
 
 
@@ -89,10 +81,6 @@ int main(int argc, char *argv[])
 
 					// Terminar el command interpretar siempre ejecutando linea por linea y actualizando el PC de SAFA,
 					}
-
-
-
-
 
 					else if (strcmp(line,"") != 0){
 						int32_t idDtb = extraData.dtb;
@@ -159,9 +147,7 @@ int main(int argc, char *argv[])
 
 
 
-
-
-
+	free(settings);
 	exit_gracefully(0);
 
 }

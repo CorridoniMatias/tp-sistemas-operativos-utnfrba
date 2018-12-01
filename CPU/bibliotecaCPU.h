@@ -66,6 +66,7 @@ void* CommandBorrar(int argC, char** args, char* callingLine, void* extraData);
 t_dictionary* BuildDictionary(void* flattened, int amount);
 bool openFileVerificator(t_dictionary* dictionary,char* path);
 void* FlattenPathsAndAddresses(t_dictionary* openFilesTable);
+void Start_commands();
 
 
 
