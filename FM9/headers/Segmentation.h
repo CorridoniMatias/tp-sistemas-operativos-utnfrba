@@ -52,21 +52,22 @@ void freeSegmentationStructures();
  *
  *	Retorna: si se pudo escribir devuelve la dirección lógica del segmento, caso contrario INSUFFICIENT_SPACE.
  */
+
+int addressTranslation_SEG(int virtualAddress, int dtbID);
+
 int writeData_SEG(void* data, int size, int dtbID);
 
 int readData_SEG(void* target, int virtualAddress, int dtbID);
 
-int addressTranslation_SEG(int virtualAddress, int dtbID);
+int closeFile_SEG(int dtbID, int virtualAddress);
+
+int dump_SEG(int dtbID);
 
 int getSegmentFromAddress(int virtualAddress);
 
 int getOffsetFromAddress(int virtualAddress);
 
 int getNewSegmentNumber();
-
-int dump_SEG(int dtbID);
-
-int closeFile_SEG(int dtbID, int virtualAddress);
 
 void addFreeSegment(t_segment* segment);
 
@@ -77,4 +78,4 @@ void freeSegmentCompaction();
 int sizeOfSegment(int dtbID, int virtualAddress);
 
 
-#endif /* #define SEGMENTATION_H_ */
+#endif /* SEGMENTATION_H_ */

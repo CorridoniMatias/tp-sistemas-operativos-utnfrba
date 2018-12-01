@@ -142,12 +142,12 @@ int addressTranslation_SEG(int logicalAddress, int dtbID) {
 	return numLinea;
 }
 
-int getSegmentFromAddress(int virtualAddress) {
-	return virtualAddress / round(pow(10, offsetNumberOfDigits));
+int getSegmentFromAddress(int logicalAddress) {
+	return logicalAddress / round(pow(10, offsetNumberOfDigits));
 }
 
-int getOffsetFromAddress(int virtualAddress) {
-	return virtualAddress % ((int) round(pow(10, offsetNumberOfDigits)));
+int getOffsetFromAddress(int logicalAddress) {
+	return logicalAddress % ((int) round(pow(10, offsetNumberOfDigits)));
 }
 
 int getNewSegmentNumber(t_segments* segments) {
@@ -225,8 +225,4 @@ void freeSegmentCompaction() {
 		else
 			index++;
 	}
-}
-
-int sizeOfSegment(int dtbID, int virtualAddress){
-	return 1;
 }

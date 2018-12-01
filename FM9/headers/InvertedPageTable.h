@@ -49,6 +49,21 @@ void freeIPTStructures();
  *	Retorna: si se pudo leer retorna la dirección lógica perteneciente a la primera página para poder
  *	acceder posteriormente. Si no hubo espacio suficiente retorna INSUFFICIENT_SPACE.
  */
-int writeDataIPT(void* data, int size, int dtbID);
+
+int addressTranslation_TPI(int logicalAddress, int dtbID);
+
+int writeData_TPI(void* data, int size, int dtbID);
+
+int readData_TPI(void* target, int logicalAddress, int dtbID);
+
+int closeFile_TPI(int dtbID, int logicalAddress) ;
+
+int dump_TPI(int dtbID);
+
+void freeFrames(t_pages_per_file* pages, int dtbID);
+
+void updateIPTable(int frameNumber, int pageNumber, int dtbID);
+
+int getFrameOfPage(int page, int dtbID);
 
 #endif /* INVERTED_PAGE_TABLE_H_ */
