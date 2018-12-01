@@ -14,11 +14,12 @@ int main(int argc, char *argv[])
 
 	while(1)
 	{
+
 		int err,messageType,msglength;
 		void* msgFromSafa = SocketCommons_ReceiveData(safa,&messageType,&msglength,&err);
 		DeserializedData* data = Serialization_Deserialize(msgFromSafa);
-
-		if ( *(int*)data->parts[1] == 0)
+		 int flagg = *(int*)data->parts[1];
+		if (flagg == 0)
 			{
 
 				executeDummy(data, safa, diego);
@@ -26,16 +27,17 @@ int main(int argc, char *argv[])
 				sleep(settings->retardo);
 
 				continue;
+
 			}
 
 		else
 			{
 				int i = 0;
-				uint32_t totalQuantum = *((int32_t*)data->parts[4]);
+				uint32_t totalQuantum = *((int32_t*)data->parts[5]);
 				uint32_t updatedProgramCounter = *((int32_t*)data->parts[4]);
 				CommandInterpreter_Init();
 
-				t_dictionary* dictionary= BuildDictionary(data->parts[5],*((int*)data->parts[6]));
+				t_dictionary* dictionary= BuildDictionary(data->parts[7],*((int*)data->parts[6]));
 				//Defino aca el struct para que se vaya actualizando el diccionario dependiendo cualquier cambio
 				Operation extraData;
 				extraData.dictionary = dictionary;
@@ -49,7 +51,6 @@ int main(int argc, char *argv[])
 				CommandInterpreter_RegisterCommand("close",(void*)CommandClose);
 				CommandInterpreter_RegisterCommand("crear",(void*)CommandCrear);
 				CommandInterpreter_RegisterCommand("borrar",(void*)CommandBorrar);
-				//pensar como ignorar cuando empiece con #
 
 
 
@@ -70,13 +71,14 @@ int main(int argc, char *argv[])
 						bool res = CommandInterpreter_Do(line, " ",&extraData);
 
 						if(res == 1 && extraData.commandResult == 0){
-							//TODO hacer todos los free
 							sleep(settings->retardo); //retardo por operacion
 
 							updatedProgramCounter ++;
 
 							continue;
 						}
+
+
 						else if (extraData.commandResult == 2) {
 
 							break;
@@ -141,8 +143,8 @@ int main(int argc, char *argv[])
 
 
 
-
 /*
+
 		 * EXPLICACION VILLERA TODO DOCUMENTAR BIEN
 		ACORDARME DE MANDARME EL QUANTUM QUE SOBRO A SAFA
 							bloqueado esperando recv del SAFA
@@ -155,8 +157,10 @@ int main(int argc, char *argv[])
 						SI NO ES -> 0. Le hablo al FM9, me pasa el archivo o las lineas y me voy fijando que ejecutar
 										y voy haciendo las acciones requeridas
 
-
 */
+
+
+
 
 	exit_gracefully(0);
 
