@@ -113,8 +113,10 @@ static int DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 
 	while(1)
 	{
-		if(len <= 0)
+		if(len <= 0){
+			SocketCommons_SendData(socketFM9,MESSAGETYPE_INT, NULL, 0);
 			break;
+		}
 
 		if(len < settings->transferSize)
 			sizeToSend = len;
