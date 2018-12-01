@@ -19,10 +19,11 @@ void FM9_Open(void* data);
 
 void FM9_Close(void* data);
 
-void FM9_Dump(void* data);
-
 void FM9_Flush(void* data);
 
+void FM9_Dump(int argC, char** args, char* callingLine, void* extraData);
+
 int sizeOfLine(char* line);
+
 #endif /* FM9_INTERFACE_H_ */
 

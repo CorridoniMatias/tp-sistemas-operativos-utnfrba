@@ -113,8 +113,10 @@ static int DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 
 	while(1)
 	{
-		if(len <= 0)
+		if(len <= 0){
+			SocketCommons_SendData(socketFM9,MESSAGETYPE_INT, NULL, 0);
 			break;
+		}
 
 		if(len < settings->transferSize)
 			sizeToSend = len;
@@ -183,14 +185,11 @@ static int DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 void DAM_ErrorOperacion(uint32_t idDTB)
 {
 	//le comunico del error al SAFA y le paso el id del DTB
-	int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoSAFA);
-
 	declare_and_init(pointer_iddtb, uint32_t, idDTB);
 
 	Logger_Log(LOG_DEBUG, "Enviando error de operacion al SAFA para %d", idDTB);
-	SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ERR, (void*)pointer_iddtb, sizeof(uint32_t));
+	SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_ERR, (void*)pointer_iddtb, sizeof(uint32_t));
 	free(pointer_iddtb);
-	close(socketSAFA);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -233,9 +232,7 @@ void DAM_Crear(void* arriveData)
 			case 0: //OK
 				Logger_Log(LOG_INFO, "DAM::DAM_Crear -> Se realizo correctamente la operacion.");
 				//Avisamos al SAFA que el crear termino
-				int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoFM9);
-				SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_CREAR, data->parts[0], sizeof(uint32_t));
-				close(socketSAFA);
+				SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_CREAR, data->parts[0], sizeof(uint32_t));
 			break;
 			case 1: //EXISTING_FILE
 			case 2: //METADATA_CREATE_ERROR
@@ -295,7 +292,6 @@ void DAM_Abrir(void* arriveData)
 			{
 				//establecemos conexion con el FM9 y SAFA
 				int socketFM9 = SocketClient_ConnectToServerIP(settings->ipFM9, settings->puertoFM9);
-				int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoFM9);
 
 				int file_size;
 				//Recibimos Archivo desde MDJ
@@ -313,17 +309,20 @@ void DAM_Abrir(void* arriveData)
 
 					SerializedPart* part = Serialization_Serialize(3, p_iddtb, p_filepath, p_direccion);
 
-					SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ABRIR, part->data, part->size);
+					//Verificamos si la operacion real fue abrir un archivo o hacer la operacion dummy
+					if(onArriveData->message_type == MESSAGETYPE_CPU_EXECDUMMY)
+						SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_DUMMY, part->data, part->size);
+					else
+						SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_ABRIR, part->data, part->size);
 
 					Serialization_CleanupSerializedPacket(part);
 					free(p_logic);
 				} else
 				{
-					SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_ERR, data->parts[0], sizeof(uint32_t));
+					SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_ERR, data->parts[0], sizeof(uint32_t));
 				}
 
 				close(socketFM9);
-				close(socketSAFA);
 				break;
 			}
 		}
@@ -424,9 +423,7 @@ void DAM_Flush(void* arriveData)
 				case 0: //OPERATION_SUCCESSFUL
 				{
 					//Avisamos al SAFA que el flush termino
-					int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoFM9);
-					SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_FLUSH, dest->parts[0], sizeof(uint32_t));
-					close(socketSAFA);
+					SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_FLUSH, dest->parts[0], sizeof(uint32_t));
 				break;
 				}
 				case 12: //FILE_NOT_EXISTS
@@ -484,9 +481,7 @@ void DAM_Borrar(void* arriveData)
 				//El DAM se conecta con el SAFA para avisarle que se elimino OK el archivo
 				Logger_Log(LOG_INFO, "DAM::DAM_Borrar -> Se elimino correctamente el archivo de path %s.", filePath);
 				//Avisamos al SAFA que el borrar termino
-				int socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoFM9);
-				SocketCommons_SendData(socketSAFA, MESSAGETYPE_DAM_SAFA_BORRAR, (void*)data->parts[0], sizeof(uint32_t));
-				close(socketSAFA);
+				SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_BORRAR, (void*)data->parts[0], sizeof(uint32_t));
 			break;
 			}
 

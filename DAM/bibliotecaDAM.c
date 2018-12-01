@@ -144,7 +144,17 @@ void levantarServidor()
 	acciones.OnClientConnected = (void*)clienteConectado;
 	acciones.OnClientDisconnect = (void*)clienteDesconectado;
 	acciones.OnReceiveError = NULL;								//A definir a futuro
-	SocketServer_ListenForConnection(acciones);
+
+	settings->socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoSAFA);
+
+	if(settings->socketSAFA != -1)
+	{
+		SocketCommons_SendMessageString(settings->socketSAFA, "iam dam"); //handshake con DAM
+		SocketServer_ListenForConnection(acciones);
+	}
+	else
+		Logger_Log(LOG_ERROR, "Error al conectar al SAFA. Cancelando ejecucion...");
+
 	Logger_Log(LOG_INFO, "Se cierra el servidor");
 
 }
@@ -194,6 +204,8 @@ void llegoUnPaquete(int socketID, int message_type, void* datos, int message_len
 
 	arriveData->calling_SocketID = socketID;
 	arriveData->receivedData = datos;
+	arriveData->receivedDataLength = message_length;
+	arriveData->message_type = message_type;
 
 	run->data = (void*)arriveData;
 
@@ -210,10 +222,10 @@ void llegoUnPaquete(int socketID, int message_type, void* datos, int message_len
 		case MESSAGETYPE_CPU_BORRAR:
 			run->runnable = (void*)DAM_Borrar;
 		break;
+		case MESSAGETYPE_CPU_EXECDUMMY:
 		case MESSAGETYPE_CPU_ABRIR:
 			run->runnable = (void*)DAM_Abrir;
 		break;
-
 
 		default:
 			free(run);

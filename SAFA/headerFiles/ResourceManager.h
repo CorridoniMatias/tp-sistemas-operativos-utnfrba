@@ -54,7 +54,7 @@ void SignalForResource(char* name);
  * 	PARAMETROS:
  * 		name: Nombre del recurso a retener, es la key en la tabla
  */
-bool WaitForResource(char* name, int requesterID);
+bool WaitForResource(char* name, uint32_t requesterID);
 
 /*
  *	ACCION: Closure para liberar el espacio ocupado por un solicitante de la cola de bloqueados de un recurso

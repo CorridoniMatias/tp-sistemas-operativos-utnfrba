@@ -43,27 +43,14 @@ void FM9_AsignLine(void* data) {
 	} else {
 		*status = 400;
 	}
-	SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT, status, sizeof(uint32_t));
+	SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT,
+			status, sizeof(uint32_t));
 
 	SocketServer_CleanOnArrivedData(arriveData);
 	Serialization_CleanupDeserializationStruct(actualData);
 	free(status);
 
-
 }
-
-//		int virtualAddress, int dtbID, void* data)
-
-//
-//	char* buffer = malloc(tamanioLinea);
-//	int result = readLine(buffer, lineNumber);
-//	int size = sizeOfLine(buffer);
-//	int sizeOfData = string_length((char*) data);
-//	if (size + sizeOfData >= tamanioLinea)
-//		return INSUFFICIENT_SPACE;
-//	memcpy(buffer + size, data, sizeOfData);
-//	buffer[tamanioLinea - 1] = '\n';
-//	return writeLine(buffer, lineNumber);
 
 void FM9_AskForLine(void* data) {
 	OnArrivedData* arriveData = data;
@@ -99,7 +86,7 @@ void FM9_AskForLine(void* data) {
 	}
 	SerializedPart* packetToCPU;
 	SerializedPart code;
-	char* newLine = '\n';
+	char* newLine = "\n";
 	if (!error) {
 		char* line = strtok(buffer, newLine);
 		int sizeLine = strlen(line) + 1;
@@ -125,7 +112,8 @@ void FM9_AskForLine(void* data) {
 
 void FM9_Close(void* data) {
 	OnArrivedData* arriveData = data;
-	DeserializedData* actualData = Serialization_Deserialize(arriveData->receivedData);
+	DeserializedData* actualData = Serialization_Deserialize(
+			arriveData->receivedData);
 	uint32_t* status = malloc(sizeof(uint32_t));
 	if (actualData->count == 2) {
 		int dtbID = *((int *) actualData->parts[0]);
@@ -137,7 +125,8 @@ void FM9_Close(void* data) {
 			*status = 1;
 	} else
 		*status = 400;
-	SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT, status, sizeof(uint32_t));
+	SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT,
+			status, sizeof(uint32_t));
 	SocketServer_CleanOnArrivedData(arriveData);
 	Serialization_CleanupDeserializationStruct(actualData);
 	free(status);
@@ -147,58 +136,89 @@ void FM9_Open(void* data) {
 	OnArrivedData* arriveData = data;
 	DeserializedData* actualData = Serialization_Deserialize(
 			arriveData->receivedData);
-	uint32_t* status = malloc(sizeof(uint32_t));
+	uint32_t* response_code = malloc(sizeof(uint32_t));
+	int socket = arriveData->calling_SocketID;
 
-	if (actualData->count == 2) {
+	if (actualData->count == 3) {
 		int dtbID = *((int *) actualData->parts[0]);
-		void* buffer = actualData->parts[1];
-		int bufferSize = arriveData->receivedDataLength - sizeof(uint32_t);
-//		void* buffer = malloc(1);
-		while (1) {
-			int message_type, error_status, message_length;
-			void* recvData = SocketCommons_ReceiveData(
-					arriveData->calling_SocketID, &message_type,
-					&message_length, &error_status);
+		int size = 0, sizeReceived;
+		void* buffer = malloc(1);
 
-			if (message_length == 0) //recvData es NULL por definicion de las kemmens, si llegamos a length 0 es porque no hay mas nada para recibir, tenemos el archivo completo.
+		while (1) {
+
+			sizeReceived = *((int *) actualData->parts[1]);
+
+			buffer = realloc(buffer, size + sizeReceived);
+			memcpy(buffer + size, actualData->parts[2], sizeReceived);
+			size += sizeReceived;
+			*response_code = 1;
+
+			SocketCommons_SendData(arriveData->calling_SocketID,
+			MESSAGETYPE_INT, response_code, sizeof(uint32_t));
+
+			SocketServer_CleanOnArrivedData(arriveData);
+			Serialization_CleanupDeserializationStruct(actualData);
+
+			arriveData = SocketServer_WakeMeUpWhenDataIsAvailableOn(socket);
+
+			if (arriveData->receivedDataLength == 0) //receivedDataLength es NULL por definicion de las kemmens, si llegamos a length 0 es porque no hay mas nada para recibir, tenemos el archivo completo.
 				break;
-			bufferSize += message_length;
-			buffer = realloc(buffer, bufferSize);
-			memcpy(buffer + (bufferSize - message_length), recvData,
-					message_length);
-			free(recvData);
-			break;
+
+			actualData = Serialization_Deserialize(arriveData->receivedData);
 
 		}
-		if (bufferSize == 0)
+		if (size == 0)
 			free(buffer);
+
+		//Aca se copia en un nuevo buffer los datos hasta el \n pero haciendo que ocupen una linea entera, habiendo datos basura.
+		void* realData = malloc(1);
+		int sizeLine, realSize = 0, offset = 0;
+		while (offset < size) {
+			sizeLine = sizeOfLine(buffer + offset) + 1;
+			buffer = realloc(realData, realSize + tamanioLinea);
+			memcpy(realData + realSize, buffer + offset, sizeLine);
+			realSize += tamanioLinea;
+			offset += sizeLine;
+		}
+		free(buffer);
+		int logicalAddress = memoryFunctions->writeData(realData,realSize,dtbID);
+
+		if(logicalAddress == INSUFFICIENT_SPACE){
+			*response_code = 2;
+			SocketCommons_SendData(socket, MESSAGETYPE_INT, response_code, sizeof(uint32_t));
+		}
+		else {
+			declare_and_init(address, uint32_t, logicalAddress)
+			SocketCommons_SendData(socket, MESSAGETYPE_ADDRESS, address, sizeof(uint32_t));
+			free(address);
+		}
+
+		free(realData);
 	}
-
-	else
-		*status = 1;
-//	else
-//		*status = 400;
-
-	SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT,
-			status, sizeof(uint32_t));
-//int dtbID, void* data, int size) {
-//return memoryFunctions->writeData(data, size, dtbID);
+	else {
+		*response_code = 400;
+		SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT,
+				response_code, sizeof(uint32_t));
+	}
+	SocketServer_CleanOnArrivedData(arriveData);
 }
 
 void FM9_Flush(void* data) {
 	OnArrivedData* arriveData = data;
-	DeserializedData* actualData = Serialization_Deserialize(arriveData->receivedData);
+	DeserializedData* actualData = Serialization_Deserialize(
+			arriveData->receivedData);
 	if (actualData->count == 3) {
 		uint32_t id = *((int*) actualData->parts[0]);
 		uint32_t logicalAddress = *((int*) actualData->parts[1]);
 		uint32_t transferSize = *((int*) actualData->parts[2]);
-		void* buffer;
+		void* buffer = NULL;
 		int bufferSize = memoryFunctions->readData(buffer, id, logicalAddress);
 
 		if (bufferSize <= 0) {
 			free(buffer);
 			declare_and_init(response_code, uint32_t, 2)
-			SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT, response_code, sizeof(uint32_t));
+			SocketCommons_SendData(arriveData->calling_SocketID,
+			MESSAGETYPE_INT, response_code, sizeof(uint32_t));
 			free(response_code);
 			SocketServer_CleanOnArrivedData(arriveData);
 			Serialization_CleanupDeserializationStruct(actualData);
@@ -207,11 +227,10 @@ void FM9_Flush(void* data) {
 
 		//Aca se copia en un nuevo buffer los datos hasta el \n, de forma que no hayan datos basura.
 		void* realData = malloc(1);
-		char* newLine = '\n';
 		int sizeLine, realSize = 0, offset = 0;
 		while (offset < bufferSize) {
 			sizeLine = sizeOfLine(buffer + offset) + 1;
-			realloc(realData, realSize + sizeLine);
+			realData = realloc(realData, realSize + sizeLine);
 			memcpy(realData + realSize, buffer + offset, sizeLine);
 			realSize += sizeLine;
 			offset += tamanioLinea;
@@ -228,19 +247,22 @@ void FM9_Flush(void* data) {
 			else
 				size = transferSize;
 			SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_STRING, buffer + offset, size);
-			if(size==0)
+			if (size == 0)
 				break;
 			offset += size;
 			realSize -= size;
-			OnArrivedData* wakeData=SocketServer_WakeMeUpWhenDataIsAvailableOn(arriveData->calling_SocketID);
-			if(wakeData!=NULL){
+			OnArrivedData* wakeData =
+					SocketServer_WakeMeUpWhenDataIsAvailableOn(
+							arriveData->calling_SocketID);
+			if (wakeData != NULL) {
 				SocketServer_CleanOnArrivedData(wakeData);
 			}
 
 		}
 	} else {
 		declare_and_init(response_code, uint32_t, 400)
-		SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT, response_code, sizeof(uint32_t));
+		SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT,
+				response_code, sizeof(uint32_t));
 		free(response_code);
 		SocketServer_CleanOnArrivedData(arriveData);
 		Serialization_CleanupDeserializationStruct(actualData);
@@ -250,10 +272,7 @@ void FM9_Flush(void* data) {
 	Serialization_CleanupDeserializationStruct(actualData);
 }
 
-
-
-void FM9_Dump(void* data) {
-//int argC, char** args, char* callingLine, void* extraData) {
+void FM9_Dump(int argC, char** args, char* callingLine, void* extraData) {
 //switch (argC) {
 //case 0:
 //Logger_Log(LOG_INFO, "Tiene que indicar el id de un DTB.");
@@ -268,8 +287,8 @@ void FM9_Dump(void* data) {
 }
 
 int sizeOfLine(char* line) {
-int i = 0;
-while (line[i] != '\n')
-	i++;
-return i;
+	int i = 0;
+	while (line[i] != '\n')
+		i++;
+	return i;
 }

@@ -7,6 +7,12 @@
 #include "FM9Errors.h"
 
 typedef struct {
+	int firstPage;
+	int numberOfPages;
+}t_pages_per_file;
+
+
+typedef struct {
 	int dtbId;
 	int page;
 } IPTEntry;
