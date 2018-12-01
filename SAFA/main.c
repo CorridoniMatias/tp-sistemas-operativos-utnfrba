@@ -57,6 +57,11 @@ void* postDo(char* cmd, char* sep, void* args, bool fired)
 	return 0;
 }
 
+void OnPostInterpreter(char* cmd, char* sep, void* args, bool actionFired)
+{
+	free(cmd);
+}
+
 void ThreadedCommandInterpreter(char* line, void* extraData)
 {
 	ThreadableDoStructure* st = CommandInterpreter_MallocThreadableStructure();
@@ -139,13 +144,15 @@ void onPacketArrived(int socketID, int message_type, void* data)
 			break;
 
 		case MESSAGETYPE_STRING:
+		{
 			declare_and_init(p_socketfd, int, socketID);
 			ThreadedCommandInterpreter((char*)data, (void*)p_socketfd);
 			free(run);
 			free(arriveData);
 			free(data);
 			run = NULL;
-		break;
+			break;
+		}
 
 
 		default:
@@ -186,12 +193,6 @@ void ClientError(int socketID, int errorCode)
 {
 	printf("Se reporto un error del cliente %d: %s!\n", socketID, strerror(errorCode));
 }
-
-void OnPostInterpreter(char* cmd, char* sep, void* args, bool actionFired)
-{
-	free(cmd);
-}
-
 
 
 void ProcessLineInput(char* line)

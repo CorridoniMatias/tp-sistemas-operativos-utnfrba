@@ -49,14 +49,14 @@ void ShowQueuesInformation(char* PCPalgorithm)
 void CommandEjecutar (int argC, char** args, char* callingLine, void* extraData)
 {
 
-	if(argC < 2)
+	if(argC < 1)
 	{
 		printf("ERROR: Debe indicar la ruta del script a ejecutar\n");
 		CommandInterpreter_FreeArguments(args);
 		return;
 	}
 
-	else if(argC > 2)
+	else if(argC > 1)
 	{
 		printf("ERROR: Debe ingresar solo la ruta del script a ejecutar como parametro\n");
 		printf("       Ejemplo: ejecutar miScript.txt\n");
@@ -81,7 +81,7 @@ void CommandEjecutar (int argC, char** args, char* callingLine, void* extraData)
 void CommandStatus (int argC, char** args, char* callingLine, void* extraData)
 {
 
-	if(argC >= 3)
+	if(argC >= 2)
 	{
 		printf("ERROR: No puede agregar mas de un parametro al comando!\n");
 		printf("       Ingrese simplemente status para ver el estado de las colas\n");
@@ -96,7 +96,7 @@ void CommandStatus (int argC, char** args, char* callingLine, void* extraData)
 	pthread_mutex_unlock(&mutexSettings);
 
 	//Si solo se ingreso status, debo mostrar la informacion principal de las colas
-	if(argC == 1)
+	if(argC == 0)
 	{
 		//Aprovecho esperar a que no se este trabajando sobre READY para mostrar la info de las colas
 		pthread_mutex_lock(&mutexREADY);
@@ -108,7 +108,7 @@ void CommandStatus (int argC, char** args, char* callingLine, void* extraData)
 	}
 
 	//Si se ingreso como parametro un ID de DTB, busco dicho DTB y muestro su informacion
-	if(argC == 2)
+	if(argC == 1)
 	{
 
 		//Los elementos de args son cadenas, debo tomarla y convertirla a entero
@@ -133,7 +133,7 @@ void CommandStatus (int argC, char** args, char* callingLine, void* extraData)
 void CommandFinalizar (int argC, char** args, char* callingLine, void* extraData)
 {
 
-	if(argC != 2)
+	if(argC != 1)
 	{
 		printf("ERROR: Debe indicar el ID del DTB a finalizar como parametro\n");
 		printf("       Ejemplo: finalizar dtbID\n");
@@ -156,7 +156,7 @@ void CommandFinalizar (int argC, char** args, char* callingLine, void* extraData
 void CommandMetricas (int argC, char** args, char* callingLine, void* extraData)
 {
 
-	if(argC >= 3)
+	if(argC >= 2)
 	{
 		printf("ERROR: No puede agregar mas de un parametro al comando!\n");
 		printf("       Ingrese simplemente metricas para ver metricas generales del sistema\n");
@@ -166,7 +166,7 @@ void CommandMetricas (int argC, char** args, char* callingLine, void* extraData)
 	}
 
 	//Si se paso como parametro el ID de un DTB, muestro solo la emtrica 1
-	else if(argC == 2)
+	else if(argC == 1)
 	{
 
 		//Busco el DTB con ese ID y su informacion; si esta (!NULL) muestro la metrica; si no, lo informo
