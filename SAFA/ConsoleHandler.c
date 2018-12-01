@@ -66,7 +66,9 @@ void CommandEjecutar (int argC, char** args, char* callingLine, void* extraData)
 
 	//Agrego el script a ejecutar en la cola de Scripts que maneja el PLP; tomo el recaudo de ser el unico alterandola
 	pthread_mutex_lock(&mutexScriptsQueue);
-	queue_push(scriptsQueue, args[1]);
+	char * path = string_duplicate(args[1]);
+	queue_push(scriptsQueue, path);
+	printf("path introducido %s\n",path);
 	pthread_mutex_unlock(&mutexScriptsQueue);
 
 	//Le aviso al PLP que tiene trabajo para hacer, previamente seteando su tarea en crear un DTB con ese script

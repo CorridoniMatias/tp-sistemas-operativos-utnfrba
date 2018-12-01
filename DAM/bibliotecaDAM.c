@@ -195,7 +195,7 @@ void clienteDesconectado(int unSocket)
 
 }
 
-void llegoUnPaquete(int socketID, int message_type, void* datos, int message_length)
+void llegoUnPaquete(int socketID, int message_code, void* datos, int message_length)
 {
 	ThreadPoolRunnable* run = ThreadPool_CreateRunnable();
 
@@ -205,13 +205,13 @@ void llegoUnPaquete(int socketID, int message_type, void* datos, int message_len
 	arriveData->calling_SocketID = socketID;
 	arriveData->receivedData = datos;
 	arriveData->receivedDataLength = message_length;
-	arriveData->message_type = message_type;
+	arriveData->message_type = message_code;
 
 	run->data = (void*)arriveData;
 
 	//TODO: al no haber un free data para arrive data (run->free_data) podrian haber memory leaks si no se ejecuta el job que se manda al pool!
 
-	switch(message_type)
+	switch(message_code)
 	{
 		case MESSAGETYPE_CPU_FLUSH:
 			run->runnable = (void*)DAM_Flush;

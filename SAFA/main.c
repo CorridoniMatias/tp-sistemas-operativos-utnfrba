@@ -23,7 +23,7 @@ ThreadPool* threadPool;
  */
 void *CommandIAm (int argC, char** args, char* callingLine, void* extraData)
 {
-
+	printf("\nculo:%s\n", callingLine);
 	if(argC == 1)
 	{
 		if(string_equals_ignore_case(args[1], "dam"))
@@ -33,7 +33,10 @@ void *CommandIAm (int argC, char** args, char* callingLine, void* extraData)
 		}
 		else if(string_equals_ignore_case(args[1], "cpu"))
 		{
+			printf("cpu socket = %d\n",*((int*)extraData));
 			AddCPU((int*)extraData);
+			printf("llego cpu\n");
+			printf("%d\n",CPUsCount());
 		}
 
 		if(CPUsCount() > 0 && elDiego != -1)
@@ -145,11 +148,11 @@ void onPacketArrived(int socketID, int message_type, void* data)
 
 		case MESSAGETYPE_STRING:
 		{
+			printf("%s",data);
 			declare_and_init(p_socketfd, int, socketID);
 			ThreadedCommandInterpreter((char*)data, (void*)p_socketfd);
 			free(run);
 			free(arriveData);
-			free(data);
 			run = NULL;
 			break;
 		}
@@ -238,7 +241,7 @@ void StartServer()
 	pcpJob->data = NULL;
 	pcpJob->free_data = NULL;
 	pcpJob->runnable = (void*)PlanificadorCortoPlazo;
-	ThreadPool_AddJob(threadPool, plpJob);
+	ThreadPool_AddJob(threadPool, pcpJob);
 	Logger_Log(LOG_INFO, "Planificador de Corto Plazo ya operativo");
 
 	SocketServer_ListenForConnection(actions);

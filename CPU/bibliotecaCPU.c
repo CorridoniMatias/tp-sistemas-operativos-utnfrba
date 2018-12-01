@@ -53,6 +53,7 @@ int conectarAProceso(char* ip, char* puerto, char* nombreProceso)
 void executeDummy(DeserializedData* dtb, int diego, int safa){
 	uint32_t idDtb = *((uint32_t*)dtb->parts[0]);
 	char* path = (char*)dtb->parts[2];
+	printf("path recibido %s\n",path);
 	declare_and_init(id, uint32_t,idDtb);
 	SerializedPart fieldForDiego1 = {.size = sizeof(uint32_t), .data = id};
 	SerializedPart fieldForDiego2 = {.size = strlen(path)+1, .data = path};

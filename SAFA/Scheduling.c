@@ -43,9 +43,11 @@ void CreateDummy()
 	dummyDTB->id = 0;									//Valor basura, siempre tendra el del DTB que este cargando
 	dummyDTB->initialized = 0;
 	dummyDTB->programCounter = 0;
-	dummyDTB->status = -1;								//Valor basura, todavia no esta en ninguna cola
+	dummyDTB->status = DTB_STATUS_BLOCKED;								//Valor basura, todavia no esta en ninguna cola
 	dummyDTB->ioOperations = 0;							//Nunca las tendra; ya lo preseteo asi
-
+	dummyDTB->pathEscriptorio = malloc(1);
+	dummyDTB->openedFiles = dictionary_create();
+	dummyDTB->openedFilesAmount = 0 ;
 	return;
 
 }
@@ -91,9 +93,7 @@ void SetPCPTask(int taskCode)
 
 DTB* CreateDTB(char* script)
 {
-
-	int dtbSize = (sizeof(int) * 5) + strlen(script) + 1;		//Medio cabeza, mejorar; 5 por los 5 enteros fijos
-	DTB* newDTB = (DTB*) malloc(dtbSize);
+	DTB* newDTB = (DTB*) malloc(sizeof(DTB));
 
 	newDTB->id = nextID++;
 	//Le pongo 1 para saber que no es el Dummy; solo el dummy lo tiene en 0
@@ -102,7 +102,7 @@ DTB* CreateDTB(char* script)
 	strcpy(newDTB->pathEscriptorio, script);
 	newDTB->programCounter = 0;
 	//Le pongo un malloc fantasma para luego poder realocar
-	newDTB->openedFiles = malloc(1);
+	newDTB->openedFiles = dictionary_create();
 	//De entrada no tiene ningun archivo abierto
 	newDTB->openedFilesAmount = 0;
 	//Le pongo un valor basura, para su primera ejecucion (por si fuera con VRR)
@@ -330,12 +330,10 @@ void SetDummy(uint32_t id, char* path)
 
 	//Realloco el dummyDTB, porque su char* cambio; cargo el path del DTB a inicializar (no lo hace el PCP)
 	int pathLength = strlen(path) + 1;
-	int newSize = (sizeof(int) * 6) + pathLength;		//Medio cabeza, mejorar; 6 por los 6 enteros fijos
 	dummyDTB->id = id;
-	dummyDTB = realloc(dummyDTB, newSize);
 	dummyDTB->pathEscriptorio = realloc(dummyDTB->pathEscriptorio, pathLength);
 	strcpy(dummyDTB->pathEscriptorio, path);
-
+printf("dummy dtb path %s\n",dummyDTB->pathEscriptorio);
 	//Le aviso al PCP que debe hacer la tarea de LOAD_DUMMY (pasarlo a READY, nada mas)
 	SetPCPTask(PCP_TASK_LOAD_DUMMY);
 
@@ -344,11 +342,12 @@ void SetDummy(uint32_t id, char* path)
 void PlanificadorLargoPlazo()
 {
 
+	printf("PLLLLLLLC ejecutando\n");
 	while(1)
 	{
 
 		sem_wait(&workPLP);
-
+		printf("MEGUSTALAPORONGA\n");
 		//Me agarro el grado de multiprogramacion, antes que alguien lo cambie
 		pthread_mutex_lock(&mutexSettings);
 		int multiprogrammingDegree = settings->multiprogramacion;
@@ -373,9 +372,15 @@ void PlanificadorLargoPlazo()
 			//Si el Dummy esta en estado BLOCKED (no en la cola, sino esperando a ser asignado), agarro el primero de la cola
 			if(dummyDTB->status == DTB_STATUS_BLOCKED)
 			{
+
+				printf("MIRA SI A VOS TE VIENEN CON UNA MEMORIA DE CALCULO DE 5000 HOJAS\n");
 				//Saco el primero de la cola, y seteo su informacion en el Dummy; borro su referencia?
 				pthread_mutex_lock(&mutexNEW);
 				DTB* queuesFirst = queue_pop(NEWqueue);
+
+				printf("DTB FIRST PATH %s\n",queuesFirst->pathEscriptorio);
+
+			    printf("%d\n",list_size(NEWqueue->elements));
 				pthread_mutex_unlock(&mutexNEW);
 				//Aumento en uno la cantidad de procesos en memoria, asi ya le guardo un lugar
 				inMemoryAmount++;
@@ -384,6 +389,8 @@ void PlanificadorLargoPlazo()
 				//Agrego el DTB que saque de la cola a la lista de DTBs siendo inicializados, para conservar su info
 				queuesFirst->status = DTB_STATUS_DUMMYING;
 				list_add(beingDummied, queuesFirst);
+
+				printf("%d\n",list_size(beingDummied));
 			}
 			//Si el Dummy esta en READY o en EXEC, esta ocupado; espero un poco mas y reactivo el semaforo
 			else if(dummyDTB -> status == DTB_STATUS_READY || dummyDTB -> status == DTB_STATUS_EXEC)
@@ -396,6 +403,7 @@ void PlanificadorLargoPlazo()
 
 		else if(PLPtask == PLP_TASK_CREATE_DTB)
 		{
+			printf("NO ME GUSTA LA DROGA\n");
 			//Para que no se recorra la cola mientras se estan agregando scripts a ejecutar (por las dudas)
 			pthread_mutex_lock(&mutexScriptsQueue);
 			//Hasta vaciar la cola de scripts, los voy sacando y guardando en DTBs que agrego a NEW
@@ -403,9 +411,13 @@ void PlanificadorLargoPlazo()
 			{
 				DTB* newDTB;
 				char* newPath = (char*) queue_pop(scriptsQueue);
+				printf("SAQUE EL PUTO PATH %s \n",newPath);
 				//No le hago free aca, cuando elimine todos lo hare
 				newDTB = CreateDTB(newPath);
 			    AddToNew(newDTB);
+			    printf("PATH del dtb %s \n",newDTB->pathEscriptorio);
+			    printf("%d\n",list_size(NEWqueue->elements));
+			    printf("MEGUSTA LA NATURALEZA\n");
 			}
 			pthread_mutex_unlock(&mutexScriptsQueue);
 
@@ -471,11 +483,9 @@ void AggregateSentencesWhileAtNEW(int amount)
 
 void PlanificadorCortoPlazo()
 {
-
 	AlgorithmStatus schedulingRules;				//Para consultar aca y reducir la region critica
 	while(1)
 	{
-
 		//Excluyentemente, guardo la informacion de la configuracion para planificar; al principio de cada ciclo
 		pthread_mutex_lock(&mutexSettings);
 		strcpy(schedulingRules.name, settings->algoritmo);
@@ -500,6 +510,7 @@ void PlanificadorCortoPlazo()
 		if(PCPtask == PCP_TASK_NORMAL_SCHEDULE)
 		{
 
+			printf("entre al caso normal de planificacion\n");
 			//Si no hay ningun CPU libre o ningun DTB en READY, espero dos segundos y voy a la proxima iteracion
 			if(!ExistsIdleCPU() || NoReadyDTBs(schedulingRules.name))
 			{
@@ -507,9 +518,13 @@ void PlanificadorCortoPlazo()
 				continue;
 			}
 
+			printf("HIMMMMMMMM\n");
 			//Agarro el primer CPU libre que haya, lo saco de la lista y lo pongo aca
 			pthread_mutex_lock(&mutexCPUs);
+
+			printf("cpu primer count %d\n",CPUsCount());
 			CPU* chosenCPU = list_remove_by_condition(cpus, IsIdle);
+			printf("cpu count 2 = %d\n",CPUsCount());
 			pthread_mutex_unlock(&mutexCPUs);
 
 			SerializedPart* messageToSend;
@@ -529,7 +544,7 @@ void PlanificadorCortoPlazo()
 				messageToSend = ScheduleIOBF(schedulingRules.quantum);
 			}
 			pthread_mutex_unlock(&mutexREADY);
-
+			printf("arme elporro\n");
 			//Envio, a traves del socket del CPU elegido, el mensaje acerca del DTB y su tamanio
 			SocketCommons_SendData(chosenCPU->socket, MESSAGETYPE_SAFA_CPU_EXECUTE, messageToSend->data, messageToSend->size);
 
@@ -550,6 +565,8 @@ void PlanificadorCortoPlazo()
 			dummyDTB->status = DTB_STATUS_READY;
 			AddToReady(dummyDTB, schedulingRules.name);
 			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
+
+			printf("entre al loaddummy\n");
 		}
 
 		else if(PCPtask == PCP_TASK_FREE_DUMMY)
@@ -890,24 +907,28 @@ void* FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 	void* result = malloc(1);
 	int offset = 0, totalSize = 0;
 	int nextSize;
-
+	if(openFilesTable==NULL)
+		printf("PUEDE QUE ESTE LOCO PERO FALTA UN PUNTO Y COMA");
+	else
+		printf("CUAL ES UN GIT BRANCH FAVORITO");
 	void CopyPath(char* path, void* address)
 	{
 		nextSize = strlen(path);							//Obtengo el largo del path
-		totalSize += (nextSize + 2 + sizeof(int));			//Sumo a totalSize, y sumo 2 mas por los : y la ,
+		totalSize += (nextSize + 2 + sizeof(uint32_t));		//Sumo a totalSize, y sumo 2 mas por los : y la ,
 		result = realloc(result, totalSize);				//Realloco memoria
 		memcpy(result + offset, path, nextSize);			//Copio el path y muevo el offset
 		offset += nextSize;
 		memcpy(result + offset, ":", 1);					//Copio el : (separa path de DL) y muevo el offset
 		offset++;
-		memcpy(result + offset, address, sizeof(int));		//Copio la DL y muevo el offset
-		offset += sizeof(int);
+		memcpy(result + offset, address, sizeof(uint32_t));	//Copio la DL y muevo el offset
+		offset += sizeof(uint32_t);
 		memcpy(result + offset, ",", 1);					//Copio la , (separa registros) y muevo el offset
 		offset++;
 	}
 
 	dictionary_iterator(openFilesTable, CopyPath);			//Llamo al closure de arriba para hacerlo con todos los registros
-
+	if (offset == 0)
+		offset = 1;
 	memcpy(result + offset - 1, ";", 1);					//Pongo el ; al final de la cadena
 
 	return result;											//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
@@ -938,6 +959,7 @@ SerializedPart* GetMessageForCPU(DTB* chosenDTB)
 	flagSP.size = sizeof(flagToSend);
 	flagSP.data = flagToSend;
 	pathSP.size = strlen(chosenDTB->pathEscriptorio) + 1;
+	pathSP.data = malloc(pathSP.size);
 	strcpy(pathSP.data, chosenDTB->pathEscriptorio);
 	pathAddressSP.size = sizeof(pathAddressToSend);
 	pathAddressSP.data = pathAddressToSend;
@@ -974,7 +996,7 @@ SerializedPart* ScheduleRR(int quantum)
 	//Round Robin es un FIFO en el cual tengo en cuenta el quantum, no mucho mas que eso
 	DTB* chosenDTB = GetNextReadyDTB();
 	chosenDTB->quantumRemainder = quantum;
-
+	printf("chosenDTB path %s\n",chosenDTB->pathEscriptorio);
 	//Obtengo la cadena a enviarle al CPU asignado; detalle de la misma dentro de la funcion; el free es en otro lado
 	SerializedPart* packet = GetMessageForCPU(chosenDTB);
 

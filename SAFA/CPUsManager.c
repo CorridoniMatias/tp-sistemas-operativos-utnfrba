@@ -87,7 +87,7 @@ bool ExistsIdleCPU()
 	bool exists;
 	pthread_mutex_lock(&mutexCPUs);
 	exists = list_any_satisfy(cpus, IsIdle);
-	pthread_mutex_lock(&mutexCPUs);
+	pthread_mutex_unlock(&mutexCPUs);
 	return exists;
 
 }

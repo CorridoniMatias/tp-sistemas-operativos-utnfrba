@@ -149,6 +149,7 @@ void FM9_Open(void* data) {
 			sizeReceived = *((int *) actualData->parts[1]);
 
 			buffer = realloc(buffer, size + sizeReceived);
+			printf("size receoved es = %d\n",sizeReceived);
 			memcpy(buffer + size, actualData->parts[2], sizeReceived);
 			size += sizeReceived;
 			*response_code = 1;
@@ -160,22 +161,27 @@ void FM9_Open(void* data) {
 			Serialization_CleanupDeserializationStruct(actualData);
 
 			arriveData = SocketServer_WakeMeUpWhenDataIsAvailableOn(socket);
-
+			printf("size = %d\n",size);
 			if (arriveData->receivedDataLength == 0) //receivedDataLength es NULL por definicion de las kemmens, si llegamos a length 0 es porque no hay mas nada para recibir, tenemos el archivo completo.
 				break;
 
 			actualData = Serialization_Deserialize(arriveData->receivedData);
 
 		}
-		if (size == 0)
+		printf("size final es = %d\n",size);
+		if (size == 0){
+			printf("se va a liberar esta poronga");
 			free(buffer);
+		}
 
+		printf("\npor hacer malloc\n");
 		//Aca se copia en un nuevo buffer los datos hasta el \n pero haciendo que ocupen una linea entera, habiendo datos basura.
 		void* realData = malloc(1);
 		int sizeLine, realSize = 0, offset = 0;
+		printf("\npor acomodar el buffer\n");
 		while (offset < size) {
 			sizeLine = sizeOfLine(buffer + offset) + 1;
-			buffer = realloc(realData, realSize + tamanioLinea);
+			realData = realloc(realData, realSize + tamanioLinea);
 			memcpy(realData + realSize, buffer + offset, sizeLine);
 			realSize += tamanioLinea;
 			offset += sizeLine;

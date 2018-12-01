@@ -7,6 +7,7 @@
 #include "kemmens/SocketClient.h"
 #include "kemmens/SocketCommons.h"
 #include "kemmens/SocketServer.h"
+#include "kemmens/SocketMessageTypes.h"
 #include "Config.h"
 #include "DAMInterface.h"
 

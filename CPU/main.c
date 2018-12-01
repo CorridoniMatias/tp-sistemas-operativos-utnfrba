@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
 		if (flagg == 0)
 			{
 
-				executeDummy(data, safa, diego);
+				executeDummy(data, diego, safa);
 
 				sleep(settings->retardo);
 

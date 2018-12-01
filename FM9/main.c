@@ -14,8 +14,8 @@ int main(int argc, char **argv) {
 	Logger_Log(LOG_INFO, "Proceso FM9 iniciado...");
 	configurar();
 	createStorage();
-
-	testLineLength();
+	memoryFunctions->createStructures();
+//	testLineLength();
 
 	StartServer();
 	ThreadPool_FreeGracefully(threadPool);
