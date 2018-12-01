@@ -6,6 +6,7 @@
 //------BIBLIOTECAS EXTERNAS------//
 #include "stdlib.h"
 #include "commons/collections/list.h"
+#include "pthread.h"
 
 //------BIBLIOTECAS INTERNAS------//
 

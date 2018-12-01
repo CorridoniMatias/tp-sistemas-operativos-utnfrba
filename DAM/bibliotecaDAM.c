@@ -144,7 +144,17 @@ void levantarServidor()
 	acciones.OnClientConnected = (void*)clienteConectado;
 	acciones.OnClientDisconnect = (void*)clienteDesconectado;
 	acciones.OnReceiveError = NULL;								//A definir a futuro
-	SocketServer_ListenForConnection(acciones);
+
+	settings->socketSAFA = SocketClient_ConnectToServerIP(settings->ipSAFA, settings->puertoSAFA);
+
+	if(settings->socketSAFA != -1)
+	{
+		SocketCommons_SendMessageString(settings->socketSAFA, "iam dam"); //handshake con DAM
+		SocketServer_ListenForConnection(acciones);
+	}
+	else
+		Logger_Log(LOG_ERROR, "Error al conectar al SAFA. Cancelando ejecucion...");
+
 	Logger_Log(LOG_INFO, "Se cierra el servidor");
 
 }

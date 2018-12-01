@@ -171,12 +171,12 @@ void CommandMetricas (int argC, char** args, char* callingLine, void* extraData)
 
 		//Busco el DTB con ese ID y su informacion; si esta (!NULL) muestro la metrica; si no, lo informo
 		pthread_mutex_lock(&mutexSettings);
-		DTB* wanted = GetDTBbyID(args[1], settings->algoritmo);
+		DTB* wanted = GetDTBbyID(atoi(args[1]), settings->algoritmo);
 		pthread_mutex_lock(&mutexSettings);
 
 		if(wanted)
 		{
-			printf("***METRICAS DEL DTB DE ID %d***\n", args[1]);
+			printf("***METRICAS DEL DTB DE ID %d***\n", atoi(args[1]));
 			printf("Estando en NEW, espero a que se ejecutaran %d sentencias\n", wanted->sentencesWhileAtNEW);
 		}
 		else
