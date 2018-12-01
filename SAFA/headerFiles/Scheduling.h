@@ -270,8 +270,9 @@ void AddToNew(DTB* myDTB);
  * 	ACCION: Alterar el estado interno de un DTB, y ponerlo en la cola de READY
  * 	PARAMETROS:
  * 		myDTB: DTB, en forma de estructura, que quiero mover
+ * 		currentAlgorithm: Algoritmo que se esta usando actualmente, para saber que cola de READY revisar
  */
-void AddToReady(DTB* myDTB);
+void AddToReady(DTB* myDTB, char* currentAlgorithm);
 
 /*
  * 	ACCION: Alterar el estado interno de un DTB, y ponerlo en la cola de BLOCKED
@@ -477,7 +478,7 @@ int Metrics_ResponsedDTBPopulation();
 
 /*
  * 	ACCION: Devuelve la METRICA 5. Tiempo de respuesta promedio del sistema.
- * 	TODO: Definir que es el tiempo Promedio, cuando se declara el tiempo de respuesta
+ * 	Definir que es el tiempo Promedio, cuando se declara el tiempo de respuesta
  */
 float Metrics_AverageResponseTime();
 
