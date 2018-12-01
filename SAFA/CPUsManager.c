@@ -14,6 +14,7 @@ void AddCPU(int* socketID)
 	newCPU->busy = false;
 	pthread_mutex_lock(&mutexCPUs);
 	list_add(cpus, newCPU);
+	Logger_Log(LOG_INFO, "SAFA::CPUS->Agregado el CPU del socket %d. CPUs registrados = %d", newCPU->socket, CPUsCount());
 	pthread_mutex_unlock(&mutexCPUs);
 
 }
@@ -33,6 +34,7 @@ void FreeCPU(int socketID)
 			toModify = list_remove(cpus, i);		//Saco el CPU buscado de la lista, lo marco como desocupado,
 			toModify->busy = false;					//y lo vuelvo a poner en la lista de CPUs
 			list_add_in_index(cpus, i, toModify);
+			Logger_Log(LOG_DEBUG, "SAFA::CPUS->Se libero el CPU del socket %d", toModify->socket);
 			break;			   	  //No hace falta seguir buscando otro con ese ID, salgo del ciclo
 		}
 	}
@@ -51,6 +53,7 @@ int RemoveCPU(int socketID)
 		if(counter->socket == socketID)
 		{
 			list_remove(cpus, i); //No hacemos el free porque el espacio de memoria que guardamos pertenece a SocketServer y es el quien hace el free de esa memoria!.
+			Logger_Log(LOG_INFO, "SAFA::CPUS->Se desconecto el CPU del socket %d. CPUs registrados: %d", socketID, CPUsCount());
 			return 1;			  //Si encontre un CPU con ese socket y lo removi, devuelvo 1 (para el OnDisconnect)
 		}
 	}
@@ -88,6 +91,10 @@ bool ExistsIdleCPU()
 	pthread_mutex_lock(&mutexCPUs);
 	exists = list_any_satisfy(cpus, IsIdle);
 	pthread_mutex_unlock(&mutexCPUs);
+	if(!exists)
+	{
+		Logger_Log(LOG_DEBUG, "SAFA::CPUS->No hay CPUs libres. PCP no puede planificar");
+	}
 	return exists;
 
 }

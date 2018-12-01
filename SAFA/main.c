@@ -148,7 +148,7 @@ void onPacketArrived(int socketID, int message_type, void* data)
 
 		case MESSAGETYPE_STRING:
 		{
-			printf("%s",data);
+			printf("%s",(char*)data);
 			declare_and_init(p_socketfd, int, socketID);
 			ThreadedCommandInterpreter((char*)data, (void*)p_socketfd);
 			free(run);

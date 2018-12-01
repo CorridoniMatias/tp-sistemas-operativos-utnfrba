@@ -142,6 +142,11 @@ void MonitorConfigFile()
 		UpdateSettings();
 		pthread_mutex_unlock(&mutexSettings);
 		Logger_Log(LOG_INFO, "Se actualizaron los parametros internos de configuracion con exito");
+		printf("El quantum es %d\n", settings->quantum);
+		printf("El grado de multiprogramacion es %d\n", settings->multiprogramacion);
+		printf("El retardo es %d\n", settings->retardo);
+		printf("El algoritmo es %s\n", settings->algoritmo);
+		printf("El puerto es %d\n", settings->puerto);
 	}
 
 	//Dejo el lugar ordenado antes de irme...

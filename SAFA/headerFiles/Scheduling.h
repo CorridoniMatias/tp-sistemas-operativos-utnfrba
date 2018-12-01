@@ -58,8 +58,8 @@ struct DTB_s
  * 	CAMPOS:
  * 		id: ID del DTB que quiero mover a READY
  * 		newProgramCounter: Valor actualizado del program counter del DTB en su script
- * 		singleOFaddition: Booleano para saber si solo se añadio un archivo abierto (operacion Abrir exitosa,
- * 						  informada por el DAM) o si se deben pisar los archivos abiertos (desalojo de CPU)
+ * 		appendOFs: Booleano para saber si solo se deben añadir archivos (sin pisar el diccionario existente)
+ * 				   Debe valer true si se busca desbloquear tras un signal recurso, o si fue una operacion Abrir exitosa
  * 		openedFilesUpdate: Diccionario con los archivos a (posiblemente) actualizar en la tabla de archivos abiertos
  * 						   Puede informar tanto nuevos archivos abiertos como cerrados; CPU pasa todos, DAM nuevo abierto
  */
@@ -67,7 +67,7 @@ struct UnlockableInfo_s
 {
 	uint32_t id;
 	uint32_t newProgramCounter;
-	bool singleOFaddition;
+	bool appendOFs;
 	t_dictionary* openedFilesUpdate;
 } typedef UnlockableInfo;
 

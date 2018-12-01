@@ -9,6 +9,7 @@
 #include "pthread.h"
 
 //------BIBLIOTECAS INTERNAS------//
+#include "kemmens/logger.h"
 
 //------BIBLIOTECAS PROPIAS------//
 
