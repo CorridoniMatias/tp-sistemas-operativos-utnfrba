@@ -42,6 +42,7 @@ void *CommandIAm (int argC, char** args, char* callingLine, void* extraData)
 		}
 	}
 
+	free(extraData);
 	CommandInterpreter_FreeArguments(args);
 	return 0;
 
@@ -54,6 +55,24 @@ void* postDo(char* cmd, char* sep, void* args, bool fired)
 
 	free(cmd);
 	return 0;
+}
+
+void ThreadedCommandInterpreter(char* line, void* extraData)
+{
+	ThreadableDoStructure* st = CommandInterpreter_MallocThreadableStructure();
+
+	st->commandline = line;
+	st->data = extraData;
+	st->separator = " ";
+	st->postDo = (void*)OnPostInterpreter;
+
+	ThreadPoolRunnable* run = ThreadPool_CreateRunnable();
+
+	run->data = (void*)st;
+	run->runnable = (void*)CommandInterpreter_DoThreaded;
+	run->free_data = (void*)CommandInterpreter_FreeThreadableDoStructure;
+
+	ThreadPool_AddJob(threadPool, run);
 }
 
 /*
@@ -119,6 +138,15 @@ void onPacketArrived(int socketID, int message_type, void* data)
 			run->runnable = (void*)Comms_CPU_SignalResource;
 			break;
 
+		case MESSAGETYPE_STRING:
+			declare_and_init(p_socketfd, int, socketID);
+			ThreadedCommandInterpreter((char*)data, (void*)p_socketfd);
+			free(run);
+			free(arriveData);
+			free(data);
+			run = NULL;
+		break;
+
 
 		default:
 			free(run);
@@ -164,22 +192,11 @@ void OnPostInterpreter(char* cmd, char* sep, void* args, bool actionFired)
 	free(cmd);
 }
 
+
+
 void ProcessLineInput(char* line)
 {
-	ThreadableDoStructure* st = CommandInterpreter_MallocThreadableStructure();
-
-	st->commandline = line;
-	st->data = NULL;
-	st->separator = " ";
-	st->postDo = (void*)OnPostInterpreter;
-
-	ThreadPoolRunnable* run = ThreadPool_CreateRunnable();
-
-	run->data = (void*)st;
-	run->runnable = (void*)CommandInterpreter_DoThreaded;
-	run->free_data = (void*)CommandInterpreter_FreeThreadableDoStructure;
-
-	ThreadPool_AddJob(threadPool, run);
+	ThreadedCommandInterpreter(line, NULL);
 }
 
 /*

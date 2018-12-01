@@ -55,6 +55,7 @@ struct Configuracion_s
 	char ipFM9[TAMMAXIP];
 	char puertoFM9[TAMMAXPUERTO];
 	int transferSize;
+	int socketSAFA;
 } typedef Configuracion;
 
 
