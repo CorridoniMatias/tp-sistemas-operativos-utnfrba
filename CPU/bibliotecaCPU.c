@@ -113,7 +113,7 @@ char* askLineToFM9(DeserializedData* dtb, int fm9){
 }
 
 void* CommandAbrir(int argC, char** args, char* callingLine, void* extraData){
-	if(openFileVerificator(((Operation*)extraData)->dictionary,args[0])){
+	if(openFileVerificator(((Operation*)extraData)->dictionary,args[1])){
 		Logger_Log(LOG_INFO, "El archivo ya se encuentra abierto");
 		return 0;
 	}
@@ -126,7 +126,7 @@ void* CommandAbrir(int argC, char** args, char* callingLine, void* extraData){
 		declare_and_init(newQ,int32_t,quantum);
 		int32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
 		declare_and_init(newNumberOfFiles,int32_t,numberOfFiles);
-		char* path = (char*)args[0];
+		char* path = (char*)args[1];
 
 		SerializedPart fieldForDAM1 = {.size = sizeof(int32_t), .data =id};
 		SerializedPart fieldForDAM2 = {.size = strlen(path)+1, .data = path};
@@ -157,23 +157,22 @@ return 0;
 }
 
 void* CommandConcentrar(int argC, char** args, char* callingLine, void* extraData){
-	//sleep(settings->retardo);
+	sleep(settings->retardo);
 	StringUtils_FreeArray(args);
-	((Operation*)extraData)->commandResult = 2;
 
 	return 0;
 
 	}
 
 void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
-	if(argC == 3){
-		if (openFileVerificator(((Operation*) extraData)->dictionary, args[0])) {
+	if(argC == 4){
+		if (openFileVerificator(((Operation*) extraData)->dictionary, args[1])) {
 
 			int32_t idDtb = ((Operation*) extraData)->dtb;
 			declare_and_init(id, int32_t, idDtb);
-			uint32_t logicDirToWrite = *((uint32_t*) dictionary_get(((Operation*) extraData)->dictionary, args[0]));
-			uint32_t lineToWrite = atoi(args[1]);
-			char* dataToWrite = args[2];
+			uint32_t logicDirToWrite = *((uint32_t*) dictionary_get(((Operation*) extraData)->dictionary, args[1]));
+			uint32_t lineToWrite = atoi(args[2]);
+			char* dataToWrite = args[3];
 			logicDirToWrite = ((Operation*) extraData)->programCounter + lineToWrite - 1;
 			declare_and_init(newLogicDir, int32_t, logicDirToWrite);
 
@@ -269,13 +268,13 @@ return 0;
 
 void* CommandWait(int argC, char** args, char* callingLine, void* extraData){
 
-	if(argC == 1){
+	if(argC == 2){
 		int32_t idDtb = ((Operation*)extraData)->dtb;
 		declare_and_init(id, int32_t,idDtb);
-		char* resource = args[0];
+		char* resource = args[1];
 
 		SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
-		SerializedPart fieldForSAFA2 = {.size = strlen(args[0]) + 1 , .data = resource};
+		SerializedPart fieldForSAFA2 = {.size = strlen(args[1]) + 1 , .data = resource};
 
 		SerializedPart* packetToSAFA = Serialization_Serialize(2, fieldForSAFA1, fieldForSAFA2);
 
@@ -359,14 +358,14 @@ void* CommandWait(int argC, char** args, char* callingLine, void* extraData){
 void* CommandSignal(int argC, char** args, char* callingLine, void* extraData){
 
 
-	if(argC == 1){
+	if(argC == 2){
 
 		int32_t idDtb = ((Operation*)extraData)->dtb;
 		declare_and_init(id, int32_t,idDtb);
-		char* resource = args[0];
+		char* resource = args[1];
 
 		SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
-		SerializedPart fieldForSAFA2 = {.size = strlen(args[0]) + 1 , .data = resource};
+		SerializedPart fieldForSAFA2 = {.size = strlen(args[1]) + 1 , .data = resource};
 
 		SerializedPart* packetToSAFA = Serialization_Serialize(2, fieldForSAFA1, fieldForSAFA2);
 
@@ -397,7 +396,7 @@ void* CommandSignal(int argC, char** args, char* callingLine, void* extraData){
 }
 
 void* CommandFlush(int argC, char** args, char* callingLine, void* extraData){
-	if(!(openFileVerificator(((Operation*)extraData)->dictionary,args[0]))){
+	if(!(openFileVerificator(((Operation*)extraData)->dictionary,args[1]))){
 
 		int32_t idDtb = ((Operation*)extraData)->dtb;
 		declare_and_init(id, int32_t,idDtb);
@@ -412,7 +411,7 @@ void* CommandFlush(int argC, char** args, char* callingLine, void* extraData){
 	else{
 		int32_t idDtb = ((Operation*)extraData)->dtb;
 		declare_and_init(id, int32_t,idDtb);
-		char* path = args[0];
+		char* path = args[1];
 		int32_t pc = ((Operation*)extraData)->programCounter;
 		declare_and_init(newPc,int32_t,pc);
 		int32_t quantum = ((Operation*)extraData)->quantum;
@@ -453,8 +452,8 @@ return 0;
 }
 
 void* CommandClose(int argC, char** args, char* callingLine, void* extraData){
-	if (argC == 1) {
-		if (openFileVerificator(((Operation*) extraData)->dictionary, args[0])) {
+	if (argC == 2) {
+		if (openFileVerificator(((Operation*) extraData)->dictionary, args[1])) {
 			int32_t idDtb = ((Operation*) extraData)->dtb;
 			declare_and_init(id, int32_t, idDtb);
 			uint32_t logicDirToClose = *((uint32_t*) dictionary_get(((Operation*) extraData)->dictionary, args[0]));
@@ -525,8 +524,8 @@ void* CommandClose(int argC, char** args, char* callingLine, void* extraData){
 void* CommandCrear(int argC, char** args, char* callingLine, void* extraData){
 	int32_t idDtb = ((Operation*)extraData)->dtb;
 	declare_and_init(id, int32_t,idDtb);
-	char* path = args[0];
-	char* lines = args[1];
+	char* path = args[1];
+	char* lines = args[2];
 	int32_t pc = ((Operation*)extraData)->programCounter;
 	declare_and_init(newPc,int32_t,pc);
 	int32_t quantum = ((Operation*)extraData)->quantum;
@@ -566,7 +565,7 @@ return 0;
 void* CommandBorrar(int argC, char** args, char* callingLine, void* extraData){
 	int32_t idDtb = ((Operation*)extraData)->dtb;
 	declare_and_init(id, int32_t,idDtb);
-	char* path = args[0];
+	char* path = args[1];
 	int32_t pc = ((Operation*)extraData)->programCounter;
 	declare_and_init(newPc,int32_t,pc);
 	int32_t quantum = ((Operation*)extraData)->quantum;
@@ -575,7 +574,7 @@ void* CommandBorrar(int argC, char** args, char* callingLine, void* extraData){
 	declare_and_init(newNumberOfFiles,int32_t,numberOfFiles);
 
 	SerializedPart fieldForDAM1 = {.size = sizeof(int32_t), .data =id};
-	SerializedPart fieldForDAM2 = {.size = sizeof(args[0]), .data = path};
+	SerializedPart fieldForDAM2 = {.size = strlen(args[1])+1, .data = path};
 
 	SerializedPart* packetToDAM = Serialization_Serialize(2, fieldForDAM1, fieldForDAM2);
 
