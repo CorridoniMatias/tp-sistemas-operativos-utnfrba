@@ -12,7 +12,7 @@
 typedef struct{
 	t_dictionary* pages;
 	int limit;
-} t_segment_paged;
+}t_segment_paged;
 
 typedef struct{
 	t_dictionary * segments;

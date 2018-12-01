@@ -109,7 +109,7 @@ int readData_SEG(void* target, int logicalAddress, int dtbID) {
 	target=malloc(1);
 	while(linesRead<segment->limit)
 	{
-		realloc(target, sizeRead + tamanioLinea);
+		target = realloc(target, sizeRead + tamanioLinea);
 		if (readLine(target, baseLine+linesRead) == INVALID_LINE_NUMBER)
 			break;
 		sizeRead += tamanioLinea;

@@ -41,7 +41,11 @@ void onPacketArrived(int socketID, int message_type, void* data, int message_len
 	arriveData->receivedDataLength = message_length;
 
 	run->data = (void*) arriveData;
-	run->free_data = SocketServer_CleanOnArrivedData;
+	void freeData(void * data){
+		OnArrivedData* onArriveData = data;
+		SocketServer_CleanOnArrivedData(onArriveData);
+	}
+	run->free_data = freeData;
 
 	switch (message_type)
 	{

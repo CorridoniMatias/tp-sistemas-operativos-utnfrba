@@ -52,19 +52,6 @@ void FM9_AsignLine(void* data) {
 
 }
 
-//		int virtualAddress, int dtbID, void* data)
-
-//
-//	char* buffer = malloc(tamanioLinea);
-//	int result = readLine(buffer, lineNumber);
-//	int size = sizeOfLine(buffer);
-//	int sizeOfData = string_length((char*) data);
-//	if (size + sizeOfData >= tamanioLinea)
-//		return INSUFFICIENT_SPACE;
-//	memcpy(buffer + size, data, sizeOfData);
-//	buffer[tamanioLinea - 1] = '\n';
-//	return writeLine(buffer, lineNumber);
-
 void FM9_AskForLine(void* data) {
 	OnArrivedData* arriveData = data;
 	DeserializedData* actualData = Serialization_Deserialize(
@@ -99,7 +86,7 @@ void FM9_AskForLine(void* data) {
 	}
 	SerializedPart* packetToCPU;
 	SerializedPart code;
-	char* newLine = '\n';
+	char* newLine = "\n";
 	if (!error) {
 		char* line = strtok(buffer, newLine);
 		int sizeLine = strlen(line) + 1;
@@ -161,7 +148,7 @@ void FM9_Open(void* data) {
 
 			sizeReceived = *((int *) actualData->parts[1]);
 
-			realloc(buffer, size + sizeReceived);
+			buffer = realloc(buffer, size + sizeReceived);
 			memcpy(buffer + size, actualData->parts[2], sizeReceived);
 			size += sizeReceived;
 			*response_code = 1;
@@ -185,11 +172,10 @@ void FM9_Open(void* data) {
 
 		//Aca se copia en un nuevo buffer los datos hasta el \n pero haciendo que ocupen una linea entera, habiendo datos basura.
 		void* realData = malloc(1);
-		char* newLine = '\n';
 		int sizeLine, realSize = 0, offset = 0;
 		while (offset < size) {
 			sizeLine = sizeOfLine(buffer + offset) + 1;
-			realloc(realData, realSize + tamanioLinea);
+			buffer = realloc(realData, realSize + tamanioLinea);
 			memcpy(realData + realSize, buffer + offset, sizeLine);
 			realSize += tamanioLinea;
 			offset += sizeLine;
@@ -201,8 +187,11 @@ void FM9_Open(void* data) {
 			*response_code = 2;
 			SocketCommons_SendData(socket, MESSAGETYPE_INT, response_code, sizeof(uint32_t));
 		}
-		else
-			SocketCommons_SendData(socket, MESSAGETYPE_ADDRESS, logicalAddress, sizeof(uint32_t));
+		else {
+			declare_and_init(address, uint32_t, logicalAddress)
+			SocketCommons_SendData(socket, MESSAGETYPE_ADDRESS, address, sizeof(uint32_t));
+			free(address);
+		}
 
 		free(realData);
 	}
@@ -222,7 +211,7 @@ void FM9_Flush(void* data) {
 		uint32_t id = *((int*) actualData->parts[0]);
 		uint32_t logicalAddress = *((int*) actualData->parts[1]);
 		uint32_t transferSize = *((int*) actualData->parts[2]);
-		void* buffer;
+		void* buffer = NULL;
 		int bufferSize = memoryFunctions->readData(buffer, id, logicalAddress);
 
 		if (bufferSize <= 0) {
@@ -238,11 +227,10 @@ void FM9_Flush(void* data) {
 
 		//Aca se copia en un nuevo buffer los datos hasta el \n, de forma que no hayan datos basura.
 		void* realData = malloc(1);
-		char* newLine = '\n';
 		int sizeLine, realSize = 0, offset = 0;
 		while (offset < bufferSize) {
 			sizeLine = sizeOfLine(buffer + offset) + 1;
-			realloc(realData, realSize + sizeLine);
+			realData = realloc(realData, realSize + sizeLine);
 			memcpy(realData + realSize, buffer + offset, sizeLine);
 			realSize += sizeLine;
 			offset += tamanioLinea;
@@ -284,8 +272,7 @@ void FM9_Flush(void* data) {
 	Serialization_CleanupDeserializationStruct(actualData);
 }
 
-void FM9_Dump(void* data) {
-//int argC, char** args, char* callingLine, void* extraData) {
+void FM9_Dump(int argC, char** args, char* callingLine, void* extraData) {
 //switch (argC) {
 //case 0:
 //Logger_Log(LOG_INFO, "Tiene que indicar el id de un DTB.");

@@ -6,6 +6,8 @@
 #include "commons/string.h"
 #include "Segmentation.h"
 #include "Paging.h"
+#include "InvertedPageTable.h"
+#include "PagedSegmentation.h"
 
 #define RUTA_CONFIG "FM9.config"
 

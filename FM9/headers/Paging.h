@@ -8,11 +8,6 @@
 #include "Storage.h"
 #include "FM9Errors.h"
 
-typedef struct{
-	int firstPage;
-	int numberOfPages;
-} t_pages_per_file;
-
 int tamanioFrame;
 int cantLineasPorFrame;
 int cantFrames;
@@ -88,4 +83,4 @@ int readFrame(void* target, int numFrame);
  */
 int framesNeededAreAvailable(int size);
 
-#endif /* #define PAGING_H_ */
+#endif /* PAGING_H_ */

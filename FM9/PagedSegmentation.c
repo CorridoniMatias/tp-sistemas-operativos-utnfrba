@@ -28,7 +28,7 @@ void freePagedSegmentationStructures() {
 	}
 	dictionary_clean_and_destroy_elements(segmentsPerDTBTable,
 			destroyMasterTable);
-
+	freePagingStructures();
 }
 
 int addressTranslation_SPA(int logicalAddress, int dtbID) {
@@ -132,7 +132,7 @@ int readData_SPA(void* target, int logicalAddress, int dtbID) {
 	target = malloc(1);
 	void pageIterator(char* pageKey, void* frameValue) {
 		int frameNumber = *((int*) frameValue);
-		realloc(target, sizeRead + tamanioFrame);
+		target = realloc(target, sizeRead + tamanioFrame);
 		if (readFrame(target + sizeRead, frameNumber) == INVALID_LINE_NUMBER)
 			return;
 		sizeRead += tamanioFrame;
@@ -171,4 +171,5 @@ int dump_SPA(int dtbID){
 	char* dtbKey = string_itoa(dtbID);
 	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey))
 		return -1;
+	return 1;
 }
