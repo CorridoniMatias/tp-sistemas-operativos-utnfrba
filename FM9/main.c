@@ -5,6 +5,7 @@
 #include "headers/Paging.h"
 #include "headers/InvertedPageTable.h"
 #include "headers/Segmentation.h"
+#include "headers/PagedSegmentation.h"
 #include <stdlib.h>
 #include "headers/Tests.h"
 

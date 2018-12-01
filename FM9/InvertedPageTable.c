@@ -32,7 +32,7 @@ void freeIPTStructures() {
 
 	dictionary_clean_and_destroy_elements(pagesPerDTBTable,
 			dictionaryDestroyer);
-
+	freePagingStructures();
 	Logger_Log(LOG_INFO, "FM9 -> Tabla de páginas invertida liberada.");
 }
 
@@ -86,7 +86,7 @@ int readData_TPI(void* target, int logicalAddress, int dtbID) {
 	target = malloc(1);
 	while (offset < pages->numberOfPages) {
 		frameNumber = getFrameOfPage(initialPage + offset, dtbID);
-		realloc(target, sizeRead + tamanioFrame);
+		target = realloc(target, sizeRead + tamanioFrame);
 		if (readFrame(target + sizeRead, frameNumber) == INVALID_LINE_NUMBER)
 			break;
 		sizeRead += tamanioFrame;
@@ -124,7 +124,7 @@ int dump_TPI(int dtbID) {
 	void pageDumper(char* key, void * data) {
 		t_pages_per_file* pages = data;
 		int offset = 0;
-		int frameNumber = getFrameOfPage(pages->firstPage + offset);
+		int frameNumber = getFrameOfPage(pages->firstPage + offset,dtbID);
 		Logger_Log(LOG_INFO,
 				"Archivo número %d : Página inicial = %d : Cantidad de páginas usadas = %d",
 				i, pages->firstPage, pages->numberOfPages);
@@ -167,13 +167,13 @@ int addressTranslation_TPI(int logicalAddress, int dtbID) {
 }
 
 void updateIPTable(int frameNumber, int pageNumber, int dtbID) {
-	IPTable[frameNumber]->dtbId = dtbID;
-	IPTable[frameNumber]->page = pageNumber;
+	IPTable[frameNumber].dtbId = dtbID;
+	IPTable[frameNumber].page = pageNumber;
 }
 
 int getFrameOfPage(int page, int dtbID) {
 	for (int i = 0; i < cantFrames; i++) {
-		if (IPTable[i]->dtbId == dtbID && IPTable[i]->page == page)
+		if (IPTable[i].dtbId == dtbID && IPTable[i].page == page)
 			return i;
 	}
 	return ITS_A_TRAP;
