@@ -87,7 +87,7 @@ int readData_TPI(void* target, int logicalAddress, int dtbID) {
 	while (offset < pages->numberOfPages) {
 		frameNumber = getFrameOfPage(initialPage + offset, dtbID);
 		realloc(target, sizeRead + tamanioFrame);
-		if (readFrame(target, frameNumber) == INVALID_LINE_NUMBER)
+		if (readFrame(target + sizeRead, frameNumber) == INVALID_LINE_NUMBER)
 			break;
 		sizeRead += tamanioFrame;
 		offset++;
@@ -157,6 +157,7 @@ int addressTranslation_TPI(int logicalAddress, int dtbID) {
 	int lineNum = getFrameOfPage(logicalAddress / cantLineasPorFrame, dtbID);
 	if (lineNum == ITS_A_TRAP)
 		return ITS_A_TRAP;
+	lineNum *= cantLineasPorFrame;
 	int offset = logicalAddress % cantLineasPorFrame;
 	lineNum += offset;
 	Logger_Log(LOG_INFO, "FM9 -> Dirección lógica = %d.", logicalAddress);
