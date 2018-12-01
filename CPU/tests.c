@@ -110,7 +110,7 @@ int main (void){
 
 		printf( "este es el valor %d \n,*(int*)data->parts[1]);
 
-		/*
+
 		 * TEST INTEGRAL
 		 *
 		 * 		uint32_t idDtb = 0;

@@ -121,11 +121,11 @@ void AddToNew(DTB* myDTB)
 
 	//Le pongo el status en NEW y ya registro su instante de ingreso al sistema
 	myDTB->status = DTB_STATUS_NEW;
-	time(myDTB->spawnTime);
+	time(&(myDTB->spawnTime));
 	//Todavia no prendo el flag initialized, falta la operacion Dummy
-	pthread_mutex_lock(mutexNEW);
+	pthread_mutex_lock(&mutexNEW);
 	queue_push(NEWqueue, myDTB);
-	pthread_mutex_unlock(mutexNEW);
+	pthread_mutex_unlock(&mutexNEW);
 
 }
 
@@ -358,21 +358,25 @@ void PlanificadorLargoPlazo()
 		{
 
 			//Si el grado de multiprogramacion no lo permite, o no hay procesos en NEW, voy a la proxima iteracion del while
-			pthread_mutex_lock(NEWqueue);
+			pthread_mutex_lock(&mutexNEW);
 			if(inMemoryAmount >= multiprogrammingDegree || queue_is_empty(NEWqueue))
 			{
 				sleep(3);				//Retardo ficticio, para debuggear; puede servir, para esperar
-				pthread_mutex_unlock(NEWqueue);
+				pthread_mutex_unlock(&mutexNEW);
 				continue;
+			}
+			else
+			{
+				pthread_mutex_unlock(&mutexNEW);
 			}
 
 			//Si el Dummy esta en estado BLOCKED (no en la cola, sino esperando a ser asignado), agarro el primero de la cola
 			if(dummyDTB->status == DTB_STATUS_BLOCKED)
 			{
 				//Saco el primero de la cola, y seteo su informacion en el Dummy; borro su referencia?
-				pthread_mutex_lock(NEWqueue);
+				pthread_mutex_lock(&mutexNEW);
 				DTB* queuesFirst = queue_pop(NEWqueue);
-				pthread_mutex_unlock(NEWqueue);
+				pthread_mutex_unlock(&mutexNEW);
 				//Aumento en uno la cantidad de procesos en memoria, asi ya le guardo un lugar
 				inMemoryAmount++;
 				//Aca seteo su info en el Dummy, y le indico al PCP que lo pase a READY
@@ -676,7 +680,7 @@ void PlanificadorCortoPlazo()
 				//entonces debo marcarlo en este instante (es una respuesta del sistema)
 				if(target->firstResponseTime == 0)
 				{
-					time(target->firstResponseTime);
+					time(&(target->firstResponseTime));
 				}
 
 				//Muevo este DTB a la cola de READY
@@ -738,7 +742,7 @@ void PlanificadorCortoPlazo()
 				//entonces debo marcarlo en este instante (es una respuesta del sistema)
 				if(target->firstResponseTime == 0)
 				{
-					time(target->firstResponseTime);
+					time(&(target->firstResponseTime));
 				}
 
 				//Lo muevo a la "cola" de EXIT, actualizando su estado
@@ -1111,7 +1115,7 @@ float Metrics_AverageIOSentences()
 
 	float avg;
 	//Para hallar el promedio, hago SentenciasIO/CantidadDTBs
-	avg = (float) (TotalIOSentencesAmount() / TotalDTBPopulation());
+	avg = (float) (Metrics_TotalIOSentencesAmount() / Metrics_TotalDTBPopulation());
 	return avg;
 
 }
@@ -1142,7 +1146,7 @@ float Metrics_IOSentencesPercentage()
 
 	float percentage;
 	//Casteo a float para que tome decimales, y multiplico por 100 para que quede tipo porcentaje
-	percentage = (float) (TotalIOSentencesAmount() / TotalRunSentencesAmount());
+	percentage = (float) (Metrics_TotalIOSentencesAmount() / Metrics_TotalRunSentencesAmount());
 	percentage *= 100;
 	return percentage;
 
@@ -1164,7 +1168,7 @@ float Metrics_SumAllResponseTimes()
 		}
 	}
 
-	list_iterate(READYqueue_RR->elements, SumTimeFromSingleDTB());
+	list_iterate(READYqueue_RR->elements, SumTimeFromSingleDTB);
 	list_iterate(READYqueue_VRR, SumTimeFromSingleDTB);
 	list_iterate(READYqueue_Own, SumTimeFromSingleDTB);
 	list_iterate(BLOCKEDqueue, SumTimeFromSingleDTB);
@@ -1208,7 +1212,7 @@ float Metrics_AverageResponseTime()
 
 	float avg;
 	//Para el tiempo promedio hago SumaTiemposRespuesta/CantidadDTBsRespondidos
-	avg = (float) (SumAllResponseTimes() / ResponsedDTBPopulation());
+	avg = (float) (Metrics_SumAllResponseTimes() / Metrics_ResponsedDTBPopulation());
 	return avg;
 
 }
