@@ -79,4 +79,75 @@ int main(void)
 	return 0;
 
 }
-*/
+int main (void){
+		uint32_t idDtb = 0;
+		uint32_t flag = 0;
+		uint32_t pc = 1;
+		uint32_t q = 3;
+		uint32_t nfiles = 3;
+		char* dir = "34567";
+		declare_and_init(id, uint32_t,idDtb);
+		declare_and_init(newPc, uint32_t,pc);
+		declare_and_init(newNumberOfFiles, uint32_t,nfiles);
+		declare_and_init(newQ, uint32_t,q);
+		declare_and_init(newFlag, uint32_t,flag);
+
+		char* path = "home/utnso";
+		char* archs = "archivo1.txt,archivo2.txt,archivo3.txt;"
+
+		SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
+		SerializedPart fieldForSAFA5 = {.size = sizeof(int32_t), .data = newPc};
+		SerializedPart fieldForSAFA4 = {.size = strlen(dir), .data = dir};
+		SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newFlag};
+		SerializedPart fieldForSAFA6 = {.size = sizeof(int32_t), .data = newQ};
+		SerializedPart fieldForSAFA7 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
+	    SerializedPart fieldForSAFA3 = {.size = strlen(path)+1 , .data = path};
+	    SerializedPart fieldForSAFA8 = {.size = strlen(archs)+1 , .data = archs};
+
+	    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(8, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5,fieldForSAFA6,fieldForSAFA7,fieldForSAFA8);
+		void* msgFromSAFA = packetToSAFAToBlockGDT;
+		DeserializedData* data = Serialization_Deserialize(msgFromSafa);
+
+		printf( "este es el valor %d \n,*(int*)data->parts[1]);
+
+		/*
+		 * TEST INTEGRAL
+		 *
+		 * 		uint32_t idDtb = 0;
+		uint32_t flag = 1;
+		uint32_t pc = 1;
+		uint32_t q = 3;
+		uint32_t nfiles = 3;
+		char* dir = "34567";
+		declare_and_init(id, uint32_t,idDtb);
+		declare_and_init(newPc, uint32_t,pc);
+		declare_and_init(newNumberOfFiles, uint32_t,nfiles);
+		declare_and_init(newQ, uint32_t,q);
+		declare_and_init(newFlag, uint32_t,flag);
+
+		char* path = "home/utnso";
+		char* archs = "archivo1.txt,archivo2.txt,archivo3.txt;";
+
+		SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
+		SerializedPart fieldForSAFA5 = {.size = sizeof(int32_t), .data = newPc};
+		SerializedPart fieldForSAFA4 = {.size = strlen(dir), .data = dir};
+		SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newFlag};
+		SerializedPart fieldForSAFA6 = {.size = sizeof(int32_t), .data = newQ};
+		SerializedPart fieldForSAFA7 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
+	    SerializedPart fieldForSAFA3 = {.size = strlen(path)+1 , .data = path};
+	    SerializedPart fieldForSAFA8 = {.size = strlen(archs)+1 , .data = archs};
+
+
+	    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(8, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5,fieldForSAFA6,fieldForSAFA7,fieldForSAFA8);
+
+
+		DeserializedData* data = Serialization_Deserialize(packetToSAFAToBlockGDT->data);
+
+		 *
+		 *
+		 */
+
+//return 0;
+//}
+
+

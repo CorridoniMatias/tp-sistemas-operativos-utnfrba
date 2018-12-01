@@ -49,28 +49,18 @@ int conectarAProceso(char* ip, char* puerto, char* nombreProceso)
 
 
 }
-/*
- * uint32_t cantNewLines = *((uint32_t*)data->parts[1])
- * 	uint32_t cantNewLines = *((uint32_t*)data->parts[1]);
 
-	int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
-
-	declare_and_init(newlines, uint32_t, cantNewLines);
-	SerializedPart p_newlines = {.size = sizeof(uint32_t), .data = newlines};
- *
-*/
 void executeDummy(DeserializedData* dtb, int diego, int safa){
 	uint32_t idDtb = *((uint32_t*)dtb->parts[0]);
-	char* path = (char*)malloc(sizeof(dtb->parts[1]));
-	strcpy(path,(char*)dtb->parts[1]);
-
+	char* path = (char*)dtb->parts[2];
 	declare_and_init(id, uint32_t,idDtb);
 	SerializedPart fieldForDiego1 = {.size = sizeof(uint32_t), .data = id};
 	SerializedPart fieldForDiego2 = {.size = strlen(path)+1, .data = path};
 
-	SerializedPart* packetToDiego = Serialization_Serialize(2, fieldForDiego1, fieldForDiego2);
+	SerializedPart* packetToDiego = Serialization_Serialize(2, fieldForDiego1,fieldForDiego2);
 
 	SocketCommons_SendData(diego, MESSAGETYPE_VOIDPOINTER, packetToDiego->data, packetToDiego->size);
+
 
 
 
@@ -79,15 +69,14 @@ void executeDummy(DeserializedData* dtb, int diego, int safa){
 	Serialization_CleanupSerializedPacket(packetToDiego);
 	Serialization_CleanupDeserializationStruct(dtb);
 	free(id);
-	free(path);
 
 }
 
 char* askLineToFM9(DeserializedData* dtb, int fm9){
 
 	uint32_t idDtb = *((uint32_t*)dtb->parts[0]);
-	int32_t logicDir = *((uint32_t*)dtb->parts[2]);
-	uint32_t pc = *((uint32_t*)dtb->parts[3]);
+	int32_t logicDir = *((uint32_t*)dtb->parts[3]);
+	uint32_t pc = *((uint32_t*)dtb->parts[4]);
 
 	logicDir = logicDir + pc - 1;  //Sumar 1 a logicDir para pedir la siguiente linea
 
@@ -173,7 +162,10 @@ return 0;
 void* CommandConcentrar(int argC, char** args, char* callingLine, void* extraData){
 	sleep(settings->retardo);
 	StringUtils_FreeArray(args);
+
+
 	return 0;
+
 	}
 
 void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
