@@ -160,9 +160,9 @@ return 0;
 }
 
 void* CommandConcentrar(int argC, char** args, char* callingLine, void* extraData){
-	sleep(settings->retardo);
+	//sleep(settings->retardo);
 	StringUtils_FreeArray(args);
-
+	((Operation*)extraData)->commandResult = 2;
 
 	return 0;
 
@@ -312,7 +312,7 @@ void* CommandWait(int argC, char** args, char* callingLine, void* extraData){
 			SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
 			SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
 			SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
-			SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
+			SerializedPart fieldForSAFA5 = {.size = strlen(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
 			SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
 
 			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
@@ -342,7 +342,7 @@ void* CommandWait(int argC, char** args, char* callingLine, void* extraData){
 		SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
 		SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
 		SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
-		SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
+		SerializedPart fieldForSAFA5 = {.size = strlen(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
 		SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
 
 		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
@@ -437,7 +437,7 @@ void* CommandFlush(int argC, char** args, char* callingLine, void* extraData){
 		SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
 		SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
 		SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
-	    SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
+	    SerializedPart fieldForSAFA5 = {.size = strlen(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
 	    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
 
 		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
@@ -549,7 +549,7 @@ void* CommandCrear(int argC, char** args, char* callingLine, void* extraData){
 	SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
 	SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
 	SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
-    SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
+    SerializedPart fieldForSAFA5 = {.size = strlen(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
     SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
 
 	SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
@@ -588,7 +588,7 @@ void* CommandBorrar(int argC, char** args, char* callingLine, void* extraData){
 	SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
 	SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
 	SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
-    SerializedPart fieldForSAFA5 = {.size = sizeof(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
+    SerializedPart fieldForSAFA5 = {.size = strlen(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
     SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
 
 	SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);

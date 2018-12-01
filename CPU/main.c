@@ -15,6 +15,7 @@ int main(int argc, char *argv[])
 	while(1)
 	{
 
+
 		int err,messageType,msglength;
 		void* msgFromSafa = SocketCommons_ReceiveData(safa,&messageType,&msglength,&err);
 		DeserializedData* data = Serialization_Deserialize(msgFromSafa);
@@ -83,36 +84,35 @@ int main(int argc, char *argv[])
 
 							break;
 
+
 						}
 
 					// Terminar el command interpretar siempre ejecutando linea por linea y actualizando el PC de SAFA,
 					}
+
+
+
+
+
 					else if (strcmp(line,"") != 0){
 						int32_t idDtb = extraData.dtb;
 						declare_and_init(id, int32_t,idDtb);
 
-						SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
+						SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
 
-						SerializedPart* packetToSafa = Serialization_Serialize(1,fieldForSAFA1);
-
-						SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, packetToSafa->data, packetToSafa->size);
 
 						free(id);
-						Serialization_CleanupSerializedPacket(packetToSafa);
+
 						break;
 					}
 					else{
 						int32_t idDtb = extraData.dtb;
 						declare_and_init(id, int32_t,idDtb);
 
-						SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
-
-						SerializedPart* packetToSafa = Serialization_Serialize(1,fieldForSAFA1);
-
-						SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, packetToSafa->data, packetToSafa->size);
+						SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
 
 						free(id);
-						Serialization_CleanupSerializedPacket(packetToSafa);
+
 						break;
 					}
 
@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
 
 			// TODO TESTEAR BIEN SI ESTO QUEDARIA ACTUALIZADO CON EL ULTIMO VALOR O NO
 			SerializedPart fieldForSAFA3 = {.size = sizeof(uint32_t) , .data = newNumberOfFiles};
-			SerializedPart fieldForSAFA4 = {.size = sizeof(FlattenPathsAndAddresses(dictionary)) + 1 , .data = FlattenPathsAndAddresses(dictionary)};
+			SerializedPart fieldForSAFA4 = {.size = strlen(FlattenPathsAndAddresses(dictionary)) + 1 , .data = FlattenPathsAndAddresses(dictionary)};
 			SerializedPart* packetToSAFA = Serialization_Serialize(4, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4);
 
 			SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOQUANTUM,packetToSAFA->data, packetToSAFA->size);
@@ -143,21 +143,21 @@ int main(int argc, char *argv[])
 
 
 
-/*
 
-		 * EXPLICACION VILLERA TODO DOCUMENTAR BIEN
-		ACORDARME DE MANDARME EL QUANTUM QUE SOBRO A SAFA
-							bloqueado esperando recv del SAFA
+
+//		 * EXPLICACION VILLERA TODO DOCUMENTAR BIEN
+//		ACORDARME DE MANDARME EL QUANTUM QUE SOBRO A SAFA
+//							bloqueado esperando recv del SAFA
 						 //Deserializo todó el mensaje
 						// Me fijo el id del DTb -> si es 0 es DUMMY, le hablo al DAM y al DAM le paso el path(pensar la estructura)
-						 * apenas le hablo al diego, le hablo al safa para que lo desaloje (le paso la estructura del id del dtb, codigo de error
-						 y )
+//						 * apenas le hablo al diego, le hablo al safa para que lo desaloje (le paso la estructura del id del dtb, codigo de error
+//						 y )
 
-						---- usar continue ---- SALTEA CICLICAS
-						SI NO ES -> 0. Le hablo al FM9, me pasa el archivo o las lineas y me voy fijando que ejecutar
-										y voy haciendo las acciones requeridas
+//						---- usar continue ---- SALTEA CICLICAS
+//						SI NO ES -> 0. Le hablo al FM9, me pasa el archivo o las lineas y me voy fijando que ejecutar
+//										y voy haciendo las acciones requeridas
 
-*/
+
 
 
 
