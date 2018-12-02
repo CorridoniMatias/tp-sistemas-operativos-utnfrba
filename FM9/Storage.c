@@ -1,7 +1,5 @@
 #include "headers/Storage.h"
 
-
-
 void createStorage() {
 
 	Logger_Log(LOG_INFO, "FM9 -> Creando Storage.");
@@ -33,10 +31,13 @@ int writeLine(void* data, int numLinea) {
 
 	verifyLineNumber(numLinea);
 
-	Logger_Log(LOG_DEBUG, "Contenido de Data: %s.", data);
+	char* linea = malloc(tamanioLinea);
 
-	memcpy(storage[numLinea], data, tamanioLinea);
-
+	memcpy(linea, data, tamanioLinea);
+	linea = realloc(linea, tamanioLinea + 1);
+	memcpy(linea + tamanioLinea, "\0", 1);
+	Logger_Log(LOG_DEBUG, "Contenido de Data: %s.", linea);
+	free(linea);
 //	Logger_Log(LOG_DEBUG, "FM9 -> Contenido guardado en Storage = %s - En linea = %d.", storage[numLinea], numLinea);
 //
 //	Logger_Log(LOG_INFO, "FM9 -> Escritura en Storage exitosa en linea %d.", numLinea);
@@ -46,13 +47,21 @@ int writeLine(void* data, int numLinea) {
 
 int readLine(void* target, int numLinea) {
 
+
+	printf("\n\n cant lineas %d\n\n", cantLineas);
 	verifyLineNumber(numLinea)
+	printf("\n\nnum linea %d\n\n", numLinea);
+	char* linea = malloc(tamanioLinea);
 
-	Logger_Log(LOG_DEBUG, "Contenido de Storage = %s -- En linea = %d.", storage[numLinea], numLinea);
+	memcpy(linea, storage[numLinea], tamanioLinea);
+	linea = realloc(linea, tamanioLinea + 1);
+	memcpy(linea + tamanioLinea, "\0", 1);
+	Logger_Log(LOG_DEBUG, "Contenido de Storage = %s -- En linea = %d.", linea,
+			numLinea);
 
-	memcpy(target, storage[numLinea], tamanioLinea);
-
-	Logger_Log(LOG_DEBUG, "Contenido guardado en target = %s.", (char*)target);
+	memcpy(target, linea, tamanioLinea);
+	free(linea);
+	Logger_Log(LOG_DEBUG, "Contenido guardado en target = %s.", (char*) target);
 
 //	Logger_Log(LOG_INFO, "FM9 -> Lectura de Storage exitosa de linea %d.", numLinea);
 

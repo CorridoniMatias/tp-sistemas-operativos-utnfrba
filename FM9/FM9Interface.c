@@ -64,10 +64,13 @@ void FM9_AskForLine(void* data) {
 	if (actualData->count == 2) {
 		int dtbID = *((int *) actualData->parts[0]);
 		int virtualAddress = *((int *) actualData->parts[1]);
+
+		printf("\n\n\nid = %d\n\n\n",dtbID);
+		printf("\n\n\nvirtualAddress = %d\n\n\n",virtualAddress);
 		int lineNumber = memoryFunctions->virtualAddressTranslation(
 				virtualAddress, dtbID);
-
-		if (lineNumber != -1) {
+printf("\n\n\nlineNumber = %d\n\n\n",lineNumber);
+		if (lineNumber >=0) {
 			buffer = malloc(tamanioLinea);
 			freeBuffer = true;
 			int result = readLine(buffer, lineNumber);
