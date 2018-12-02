@@ -98,7 +98,7 @@ void onPacketArrived(int socketID, int message_type, void* data)
 	arriveData->calling_SocketID = socketID;
 	arriveData->receivedData = data;
 
-	run->data = (void*)arriveData;
+	run->data = arriveData;
 
 	//OJO: al no haber un free data para arrive data (run->free_data) podrian haber memory leaks si no se ejecuta el job que se manda al pool!
 

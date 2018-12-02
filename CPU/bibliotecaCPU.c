@@ -70,22 +70,20 @@ void executeDummy(DeserializedData* dtb, int diego, int safa){
 
 }
 
-char* askLineToFM9(DeserializedData* dtb, int fm9){
 
-	uint32_t idDtb = *((uint32_t*)dtb->parts[0]);
-	uint32_t logicDir = *((uint32_t*)dtb->parts[3]);
-	uint32_t pc = *((uint32_t*)dtb->parts[4]);
+char* askLineToFM9(uint32_t idDtb, uint32_t logicDir, uint32_t pc, int fm9){
 
 	logicDir = logicDir + pc;  //Sumar 1 a logicDir para pedir la siguiente linea
 
 	declare_and_init(id, uint32_t,idDtb);
 	declare_and_init(newLogicDir, uint32_t,logicDir);
 
-	SerializedPart fieldForFM91 = {.size = 4, .data = id};
-	SerializedPart fieldForFM92 = {.size = sizeof(uint32_t), .data = newLogicDir};
-printf("\nid= %d\n",idDtb);
-printf("\ndir lógica = %d\n",logicDir);
-printf("\ndir lógica = %d\n",logicDir);
+	SerializedPart fieldForFM91 = { .size = 4, .data = id };
+	SerializedPart fieldForFM92 = { .size = sizeof(uint32_t), .data = newLogicDir };
+	printf("\nid= %d\n", idDtb);
+	printf("\ndir lógica = %d\n", logicDir);
+
+	printf("\npc = %d\n", pc);
 	SerializedPart* packetToFM9 = Serialization_Serialize(2, fieldForFM91, fieldForFM92);
 
 	SocketCommons_SendData(fm9,MESSAGETYPE_FM9_GETLINE, packetToFM9->data, packetToFM9->size);
@@ -101,25 +99,23 @@ printf("\ndir lógica = %d\n",logicDir);
 		free(id);
 		free(newLogicDir);
 		Serialization_CleanupSerializedPacket(packetToFM9);
-		Serialization_CleanupDeserializationStruct(dtb);
-		char* line = (char*)data->parts[1];
+		char* line = string_duplicate((char*)data->parts[1]);
 		Serialization_CleanupDeserializationStruct(data);
-		printf("linea recibida = %s",line);
+		printf("\nlinea recibida = %s\n",line);
 		return line;
 	}
 		free(id);
 		free(newLogicDir);
 		Serialization_CleanupSerializedPacket(packetToFM9);
-		Serialization_CleanupDeserializationStruct(dtb);
 		Serialization_CleanupDeserializationStruct(data);
 		Logger_Log(LOG_INFO, "Error fallo de segmento/memoria en FM9");
 		return "error"; //
 }
 
-void* CommandAbrir(int argC, char** args, char* callingLine, void* extraData){
+void CommandAbrir(int argC, char** args, char* callingLine, void* extraData){
 	if(openFileVerificator(((Operation*)extraData)->dictionary,args[1])){
 		Logger_Log(LOG_INFO, "El archivo ya se encuentra abierto");
-		return 0;
+		return;
 	}
 	else{
 		int32_t idDtb = ((Operation*)extraData)->dtb;
@@ -157,18 +153,13 @@ void* CommandAbrir(int argC, char** args, char* callingLine, void* extraData){
 		((Operation*)extraData)->commandResult = 2; //el 2 significa hacer un break
 
 	}
-return 0;
 }
 
-void* CommandConcentrar(int argC, char** args, char* callingLine, void* extraData){
-	usleep(settings->retardo*1000);
+void CommandConcentrar(int argC, char** args, char* callingLine, void* extraData){
 	StringUtils_FreeArray(args);
+}
 
-	return 0;
-
-	}
-
-void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
+void CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 	if(argC == 4){
 		if (openFileVerificator(((Operation*) extraData)->dictionary, args[1])) {
 
@@ -204,7 +195,7 @@ void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 					StringUtils_FreeArray(args);
 					Serialization_CleanupSerializedPacket(packetToFM9);
 	//				Serialization_CleanupDeserializationStruct(data);
-					return 0;  // 0 SALIO to BIEN
+					return;  // 0 SALIO to BIEN
 	//			}
 	//			else {
 	//				if(*(int*)data->parts[0] == 2){
@@ -222,7 +213,7 @@ void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 	//					Serialization_CleanupDeserializationStruct(data);
 					Serialization_CleanupSerializedPacket(packetToFM9);
 					((Operation*) extraData)->commandResult = 2;
-					return 0;
+					return;
 	//				}
 	//				else {
 				case 3:
@@ -240,7 +231,7 @@ void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 	//					Serialization_CleanupDeserializationStruct(data);
 					Serialization_CleanupSerializedPacket(packetToFM9);
 					((Operation*) extraData)->commandResult = 2;
-					return 0;
+					return;
 			}
 
 
@@ -255,7 +246,7 @@ void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 			free(id);
 
 			((Operation*)extraData)->commandResult = 2; // hacer break
-			return 0;
+			return;
 
 		}
 		int32_t idDtb = ((Operation*)extraData)->dtb;
@@ -267,10 +258,9 @@ void* CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 		((Operation*)extraData)->commandResult = 2; // hacer break
 
 	}
-return 0;
 }
 
-void* CommandWait(int argC, char** args, char* callingLine, void* extraData){
+void CommandWait(int argC, char** args, char* callingLine, void* extraData){
 
 	if(argC == 2){
 		int32_t idDtb = ((Operation*)extraData)->dtb;
@@ -296,7 +286,7 @@ void* CommandWait(int argC, char** args, char* callingLine, void* extraData){
 			Serialization_CleanupDeserializationStruct(data);
 			Serialization_CleanupSerializedPacket(packetToSAFA);
 			((Operation*)extraData)->commandResult = 0; // 0 SALIO to BIEN
-			return 0;
+			return;
 		}
 		else {
 			int32_t idDtb = ((Operation*)extraData)->dtb;
@@ -325,7 +315,7 @@ void* CommandWait(int argC, char** args, char* callingLine, void* extraData){
 			free(newQ);
 			free(newNumberOfFiles);
 			((Operation*)extraData)->commandResult = 2;
-			return 0;
+			return;
 		}
 	}
 	else {
@@ -354,12 +344,12 @@ void* CommandWait(int argC, char** args, char* callingLine, void* extraData){
 		free(newNumberOfFiles);
 		((Operation*)extraData)->commandResult = 2;
 
-		return 0;
+		return;
 	}
 
 }
 
-void* CommandSignal(int argC, char** args, char* callingLine, void* extraData){
+void CommandSignal(int argC, char** args, char* callingLine, void* extraData){
 
 
 	if(argC == 2){
@@ -386,7 +376,7 @@ void* CommandSignal(int argC, char** args, char* callingLine, void* extraData){
 			StringUtils_FreeArray(args);
 			free(id);
 			((Operation*)extraData)->commandResult = 0;
-			return 0;
+			return;
 		}
 
 
@@ -394,12 +384,12 @@ void* CommandSignal(int argC, char** args, char* callingLine, void* extraData){
 
 	StringUtils_FreeArray(args);
 	((Operation*)extraData)->commandResult = 1;
-	return 0;
+	return;
 
 
 }
 
-void* CommandFlush(int argC, char** args, char* callingLine, void* extraData){
+void CommandFlush(int argC, char** args, char* callingLine, void* extraData){
 	if(!(openFileVerificator(((Operation*)extraData)->dictionary,args[1]))){
 
 		int32_t idDtb = ((Operation*)extraData)->dtb;
@@ -410,7 +400,7 @@ void* CommandFlush(int argC, char** args, char* callingLine, void* extraData){
 		((Operation*)extraData)->commandResult = 2;
 	    StringUtils_FreeArray(args);
 		Logger_Log(LOG_INFO, "El archivo no se encuentra abierto");
-		return 0;
+		return;
 	}
 	else{
 		int32_t idDtb = ((Operation*)extraData)->dtb;
@@ -451,10 +441,10 @@ void* CommandFlush(int argC, char** args, char* callingLine, void* extraData){
 
 		//TODO me quedo esperando alguna respuesta o sigo con mi operatoria?
 	}
-return 0;
+return;
 }
 
-void* CommandClose(int argC, char** args, char* callingLine, void* extraData){
+void CommandClose(int argC, char** args, char* callingLine, void* extraData){
 	if (argC == 2) {
 		if (openFileVerificator(((Operation*) extraData)->dictionary, args[1])) {
 			int32_t idDtb = ((Operation*) extraData)->dtb;
@@ -481,7 +471,7 @@ void* CommandClose(int argC, char** args, char* callingLine, void* extraData){
 					Serialization_CleanupSerializedPacket(packetToFM9);
 					free(id);
 					((Operation*) extraData)->commandResult = 2; //SE DESALOJA SIEMPRE QUE HAYA CLOSE
-					return 0;
+					return;
 
 	//				else {
 				case 2:
@@ -496,7 +486,7 @@ void* CommandClose(int argC, char** args, char* callingLine, void* extraData){
 					Serialization_CleanupSerializedPacket(packetToFM9);
 
 					free(id);
-					return 0;
+					return;
 			}
 
 		} else {
@@ -507,7 +497,7 @@ void* CommandClose(int argC, char** args, char* callingLine, void* extraData){
 			free(id);
 			StringUtils_FreeArray(args);
 
-			return 0;
+			return;
 
 		}
 		int32_t idDtb = ((Operation*) extraData)->dtb;
@@ -518,25 +508,25 @@ void* CommandClose(int argC, char** args, char* callingLine, void* extraData){
 		free(id);
 		StringUtils_FreeArray(args);
 
-		return 0;
+		return;
 	}
 
-	return 0;
+	return;
 }
 
-void* CommandCrear(int argC, char** args, char* callingLine, void* extraData){
-	int32_t idDtb = ((Operation*)extraData)->dtb;
-	declare_and_init(id, int32_t,idDtb);
+void CommandCrear(int argC, char** args, char* callingLine, void* extraData){
+	uint32_t idDtb = ((Operation*)extraData)->dtb;
+	declare_and_init(id, uint32_t,idDtb);
 	char* path = args[1];
 	char* lines = args[2];
-	int32_t pc = ((Operation*)extraData)->programCounter;
-	declare_and_init(newPc,int32_t,pc);
-	int32_t quantum = ((Operation*)extraData)->quantum;
-	declare_and_init(newQ,int32_t,quantum);
-	int32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
-	declare_and_init(newNumberOfFiles,int32_t,numberOfFiles);
+	uint32_t pc = ((Operation*)extraData)->programCounter;
+	declare_and_init(newPc,uint32_t,pc);
+	uint32_t quantum = ((Operation*)extraData)->quantum;
+	declare_and_init(newQ,uint32_t,quantum);
+	uint32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
+	declare_and_init(newNumberOfFiles,uint32_t,numberOfFiles);
 
-	SerializedPart fieldForDAM1 = {.size = sizeof(int32_t), .data =id};
+	SerializedPart fieldForDAM1 = {.size = sizeof(uint32_t), .data =id};
 	SerializedPart fieldForDAM2 = {.size = strlen(path)+1, .data = path};
 	SerializedPart fieldForDAM3 = {.size = strlen(lines)+1, .data = lines};
 
@@ -544,10 +534,11 @@ void* CommandCrear(int argC, char** args, char* callingLine, void* extraData){
 
 	SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_CREAR, packetToDAM->data, packetToDAM->size);
 
-	SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
-	SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
-	SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
-	SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
+	printf("\n\nprogram counter crear = %d\n\n",pc);
+	SerializedPart fieldForSAFA1 = {.size = sizeof(uint32_t), .data =id};
+	SerializedPart fieldForSAFA2 = {.size = sizeof(uint32_t), .data = newPc};
+	SerializedPart fieldForSAFA3 = {.size = sizeof(uint32_t), .data = newQ};
+	SerializedPart fieldForSAFA4 = {.size = sizeof(uint32_t), .data = newNumberOfFiles};
 	SerializedPart dictionary = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary);
     SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,dictionary);
 	SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
@@ -561,10 +552,10 @@ void* CommandCrear(int argC, char** args, char* callingLine, void* extraData){
 
 	((Operation*)extraData)->commandResult = 2; //el 2 significa hacer un break
 
-return 0;
+return;
 }
 
-void* CommandBorrar(int argC, char** args, char* callingLine, void* extraData){
+void CommandBorrar(int argC, char** args, char* callingLine, void* extraData){
 	int32_t idDtb = ((Operation*)extraData)->dtb;
 	declare_and_init(id, int32_t,idDtb);
 	char* path = args[1];
@@ -599,7 +590,7 @@ void* CommandBorrar(int argC, char** args, char* callingLine, void* extraData){
 
 	((Operation*)extraData)->commandResult = 2; //el 2 significa hacer un break
 
-return 0;
+return;
 }
 
 
@@ -662,9 +653,11 @@ SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 	}
 
 	dictionary_iterator(openFilesTable, CopyPath);			//Llamo al closure de arriba para hacerlo con todos los registros
-	if (offset == 0)
-		offset = 1;
-	memcpy(result + offset - 1, ";", 1);					//Pongo el ; al final de la cadena
+//	if (offset == 0)
+//		offset = 1;
+//	memcpy(result + offset - 1, ";", 1);					//Pongo el ; al final de la cadena
+
+	memcpy(result + offset, ";", 1);					//Pongo el ; al final de la cadena
 	SerializedPart sp = {.data = result,.size = totalSize};
 	return sp;											//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
 

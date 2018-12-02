@@ -968,9 +968,11 @@ SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 	}
 
 	dictionary_iterator(openFilesTable, CopyPath);			//Llamo al closure de arriba para hacerlo con todos los registros
-	if (offset == 0)
-		offset = 1;
-	memcpy(result + offset - 1, ";", 1);					//Pongo el ; al final de la cadena
+//	if (offset == 0)
+//		offset = 1;
+//	memcpy(result + offset - 1, ";", 1);					//Pongo el ; al final de la cadena
+
+	memcpy(result + offset, ";", 1);					//Pongo el ; al final de la cadena
 	SerializedPart sp = {.data = result,.size = totalSize};
 	return sp;											//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
 
@@ -986,6 +988,7 @@ SerializedPart* GetMessageForCPU(DTB* chosenDTB)
 
 	printf("\n\npath address int=%d\n\n",chosenDTB->pathLogicalAddress);
 
+	printf("\n\npc del chosen dtb=%d\n\n",chosenDTB->programCounter);
 	declare_and_init(pcToSend, uint32_t, chosenDTB->programCounter)
 	declare_and_init(quantumToSend, uint32_t, chosenDTB->quantumRemainder)
 	//Cantidad de archivos abiertos
@@ -995,11 +998,11 @@ SerializedPart* GetMessageForCPU(DTB* chosenDTB)
 	SerializedPart idSP, flagSP, pathSP, pathAddressSP, pcSP, quantumSP, ofaSP, filesSP;
 	idSP.size = sizeof(uint32_t);
 	idSP.data = idToSend;
-	printf("\n\nid=%d\n\n",*((int*)(idSP.data)));
+	printf("\n\nid=%d\n\n",*((uint32_t*)(idSP.data)));
 	flagSP.size = sizeof(uint32_t);
 	flagSP.data = flagToSend;
 
-	printf("\n\nflag =%d\n\n",*((int*)(flagSP.data)));
+	printf("\n\nflag =%d\n\n",*((uint32_t*)(flagSP.data)));
 	pathSP.size = strlen(chosenDTB->pathEscriptorio) + 1;
 	printf("\n\nsize=%d--path=%s\n\n",pathSP.size,chosenDTB->pathEscriptorio);
 	pathSP.data = malloc(pathSP.size);
@@ -1007,19 +1010,19 @@ SerializedPart* GetMessageForCPU(DTB* chosenDTB)
 	pathAddressSP.size = sizeof(uint32_t);
 	pathAddressSP.data = pathAddressToSend;
 
-	printf("\n\nlogical address int=%d\n\n",*((int*)(pathAddressSP.data)));
+	printf("\n\nlogical address int=%d\n\n",*((uint32_t*)(pathAddressSP.data)));
 	pcSP.size = sizeof(uint32_t);
 	pcSP.data = pcToSend;
 
-	printf("\n\npc int=%d\n\n",*((int*)(pcSP.data)));
+	printf("\n\npc int=%d\n\n",*((uint32_t*)(pcSP.data)));
 	quantumSP.size = sizeof(uint32_t);
 	quantumSP.data = quantumToSend;
 
-	printf("\n\nquantum int=%d\n\n",*((int*)(quantumSP.data)));
+	printf("\n\nquantum int=%d\n\n",*((uint32_t*)(quantumSP.data)));
 	ofaSP.size = sizeof(uint32_t);
 	ofaSP.data = ofaToSend;
 
-	printf("\n\ncant archivos abiertos int=%d\n\n",*((int*)(ofaSP.data)));
+	printf("\n\ncant archivos abiertos int=%d\n\n",*((uint32_t*)(ofaSP.data)));
 	filesSP = FlattenPathsAndAddresses(chosenDTB->openedFiles);
 
 	//La idea es armar un paquete serializado que va a tener la estructura:

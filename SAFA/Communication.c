@@ -189,7 +189,7 @@ t_dictionary* BuildDictionary(void* flattened, int amount)
 void Comms_CPU_DTBAtDAM(void* arriveData)
 {
 
-	OnArrivedData* data = (OnArrivedData*)arriveData;
+	OnArrivedData* data = arriveData;
 	//Uso un DeserializedData, el CPU me mando mucha informacion
 	int cpuSocket = data->calling_SocketID;
 	Logger_Log(LOG_DEBUG, "SAFA::COMMS->Llego un mensaje de DTB en manos del DAM desde el CPU de socket %d", cpuSocket);
@@ -197,9 +197,10 @@ void Comms_CPU_DTBAtDAM(void* arriveData)
 
 	//Creo un BlockableInfo con la info del DTB a mover a BLOCKED
 	//El formato de la cadena es IdDTB|ProgramCounter|Quantum|CantArchivosAbiertos|Archivos
-	BlockableInfo* nextToBlock = (BlockableInfo*) malloc(sizeof(BlockableInfo));
+	BlockableInfo* nextToBlock = malloc(sizeof(BlockableInfo));
 	nextToBlock->id = *((uint32_t*)(params->parts[0]));
 	nextToBlock->newProgramCounter = *((uint32_t*)(params->parts[1]));
+	printf("\n\n\n\n\nprogram counter recibido en safa=%d\n\n\n\n\n",nextToBlock->newProgramCounter);
 	nextToBlock->quantumRemainder = *((uint32_t*)(params->parts[2]));
 	nextToBlock->dummyComeback = false;
 	uint32_t ofa = *((uint32_t*)(params->parts[3]));
