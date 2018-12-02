@@ -528,9 +528,9 @@ void PlanificadorCortoPlazo()
 
 			//Agarro el primer CPU libre que haya, lo saco de la lista y lo pongo aca
 			pthread_mutex_lock(&mutexCPUs);
-			Logger_Log(LOG_DEBUG, "SAFA::CPUS->Intentando planificar, hay %d CPUs libres", CPUsCount());
+			Logger_Log(LOG_DEBUG, "SAFA::CPUS->Intentando planificar, hay %d CPUs libres", IdleCPUsAmount());
 			CPU* chosenCPU = list_remove_by_condition(cpus, IsIdle);
-			Logger_Log(LOG_DEBUG, "SAFA::CPUS->Hallada CPU libre! Socket: %d.  Hay %d CPUs libres", chosenCPU->socket, CPUsCount());
+			Logger_Log(LOG_DEBUG, "SAFA::CPUS->Hallada CPU libre! Socket: %d.  Quedan %d CPUs libres", chosenCPU->socket, IdleCPUsAmount());
 			pthread_mutex_unlock(&mutexCPUs);
 
 			SerializedPart* messageToSend;
@@ -805,7 +805,7 @@ void PlanificadorCortoPlazo()
 		}
 
 		//Aplico retardo de planificacion; divido por mil, ya que son milisegundos
-		sleep((settings->retardo) / 1000);
+		usleep((settings->retardo) * 1000);
 
 	}
 
@@ -980,17 +980,17 @@ void* FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 SerializedPart* GetMessageForCPU(DTB* chosenDTB)
 {
 
-	declare_and_init(idToSend,uint32_t,chosenDTB->id)
-	declare_and_init(flagToSend,uint32_t,chosenDTB->initialized)
-	declare_and_init(pathAddressToSend,uint32_t,chosenDTB->pathLogicalAddress)
+	declare_and_init(idToSend, uint32_t, chosenDTB->id)
+	declare_and_init(flagToSend, uint32_t, chosenDTB->initialized)
+	declare_and_init(pathAddressToSend, uint32_t, chosenDTB->pathLogicalAddress)
 
 
 	printf("\n\npath address int=%d\n\n",chosenDTB->pathLogicalAddress);
 
-	declare_and_init(pcToSend,uint32_t,chosenDTB->programCounter)
-	declare_and_init(quantumToSend,uint32_t,chosenDTB->quantumRemainder)
+	declare_and_init(pcToSend, uint32_t, chosenDTB->programCounter)
+	declare_and_init(quantumToSend, uint32_t, chosenDTB->quantumRemainder)
 	//Cantidad de archivos abiertos
-	declare_and_init(ofaToSend,uint32_t,chosenDTB->openedFilesAmount)
+	declare_and_init(ofaToSend, uint32_t, chosenDTB->openedFilesAmount)
 
 	//Estructuras con los datos a serializar y mandar como cadena
 	SerializedPart idSP, flagSP, pathSP, pathAddressSP, pcSP, quantumSP, ofaSP, filesSP;
@@ -1134,7 +1134,7 @@ int Metrics_TotalRunSentencesAmount()
 	void AddSentencesFromDTB(void* aDTB)
 	{
 		DTB* castDTB = (DTB*) aDTB;
-		if(castDTB->id != 0)
+		if(castDTB->initialized != 0)
 		{
 			totalAmount += castDTB->programCounter;
 		}
@@ -1162,7 +1162,7 @@ int Metrics_TotalIOSentencesAmount()
 	void AddIOOpsFromDTB(void* aDTB)
 	{
 		DTB* castDTB = (DTB*) aDTB;
-		if(castDTB->id != 0)
+		if(castDTB->initialized != 0)
 		{
 			ioAmount += castDTB->ioOperations;
 		}
@@ -1219,7 +1219,7 @@ float Metrics_AverageExitingSentences()
 	void AddSentencesFromDTB(void* aDTB)
 	{
 		DTB* castDTB = (DTB*) aDTB;
-		if(castDTB->id != 0)
+		if(castDTB->initialized != 0)
 		{
 			totalAmount += castDTB->programCounter;
 		}
@@ -1254,7 +1254,7 @@ float Metrics_SumAllResponseTimes()
 	void SumTimeFromSingleDTB(void* aDTB)
 	{
 		DTB* castDTB = (DTB*) aDTB;
-		if((castDTB->firstResponseTime != 0) && (castDTB->id != 0))
+		if((castDTB->firstResponseTime != 0) && (castDTB->initialized != 0))
 		{
 			totalTime += (difftime(castDTB->firstResponseTime, castDTB->spawnTime));
 		}
@@ -1281,7 +1281,7 @@ int Metrics_ResponsedDTBPopulation()
 	void CountResponsedDTB(void* aDTB)
 	{
 		DTB* castDTB = (DTB*) aDTB;
-		if((castDTB->firstResponseTime != 0) && (castDTB->id != 0))
+		if((castDTB->firstResponseTime != 0) && (castDTB->initialized != 0))
 		{
 			quantity++;
 		}
