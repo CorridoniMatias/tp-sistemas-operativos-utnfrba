@@ -84,6 +84,15 @@ bool IsIdle(void* myCPU)
 
 }
 
+int IdleCPUsAmount()
+{
+
+	pthread_mutex_lock(&mutexCPUs);
+	return list_size(list_filter(cpus, IsIdle));
+	pthread_mutex_unlock(&mutexCPUs);
+
+}
+
 bool ExistsIdleCPU()
 {
 

@@ -74,6 +74,11 @@ int CPUsCount();
 bool IsIdle(void* myCPU);
 
 /*
+ * 	ACCION: Devuelve la cantidad de CPUs libres, sin sacar ninguno
+ */
+int IdleCPUsAmount();
+
+/*
  * 	ACCION: Devuelve true si existe algun CPU libre, para verificar si vale la pena planificar (en modulo de Scheduling)
  */
 bool ExistsIdleCPU();
