@@ -30,7 +30,7 @@ void freeStorage() {
 int writeLine(void* data, int numLinea) {
 
 	verifyLineNumber(numLinea);
-
+	memcpy(storage[numLinea], data, tamanioLinea);
 	char* linea = malloc(tamanioLinea);
 
 	memcpy(linea, data, tamanioLinea);
@@ -47,19 +47,21 @@ int writeLine(void* data, int numLinea) {
 
 int readLine(void* target, int numLinea) {
 
-
-	printf("\n\n cant lineas %d\n\n", cantLineas);
 	verifyLineNumber(numLinea)
 	printf("\n\nnum linea %d\n\n", numLinea);
-	char* linea = malloc(tamanioLinea);
 
+	printf("\n\ntamanio linea %d\n\n", tamanioLinea);
+	char* linea = malloc(tamanioLinea);
 	memcpy(linea, storage[numLinea], tamanioLinea);
 	linea = realloc(linea, tamanioLinea + 1);
+
+	Logger_Log(LOG_DEBUG, "Contenido de linea = %s\n.", linea);
 	memcpy(linea + tamanioLinea, "\0", 1);
-	Logger_Log(LOG_DEBUG, "Contenido de Storage = %s -- En linea = %d.", linea,
-			numLinea);
+
+	Logger_Log(LOG_DEBUG, "Contenido de Storage = %s -- En linea = %d.", linea,numLinea);
 
 	memcpy(target, linea, tamanioLinea);
+
 	free(linea);
 	Logger_Log(LOG_DEBUG, "Contenido guardado en target = %s.", (char*) target);
 

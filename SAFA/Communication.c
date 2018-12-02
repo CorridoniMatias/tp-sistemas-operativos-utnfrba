@@ -15,7 +15,7 @@ void Comms_DAM_DummyFinished(void* arriveData)
 	justDummied->script = realloc(justDummied->script, pathLength);	//Importante reallocar!!
 	strcpy(justDummied->script, (char*)(params->parts[1]));
 	Logger_Log(LOG_DEBUG, "SAFA::COMMS->La operacion Dummy fue sobre el script %s", justDummied->script);
-	justDummied->logicalAddress = *((uint32_t*)(params->parts[1]));
+	justDummied->logicalAddress = *((uint32_t*)(params->parts[2]));
 
 	//Seteo la tarea del PLP en inicializar el DTB (cargar datos tras operacion Dummy), y le aviso
 	SetPLPTask(PLP_TASK_INITIALIZE_DTB);

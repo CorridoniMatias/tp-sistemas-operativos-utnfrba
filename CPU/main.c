@@ -8,6 +8,8 @@ int main(int argc, char *argv[])
 	//Configuro bajo la variable settings
 	configurar();
 
+	Start_commands(); //Se incian los comandos
+
 	int safa = conectarAProceso(settings->ipSAFA,settings->puertoSAFA,"SAFA");
 	int diego = conectarAProceso(settings->ipDIEGO,settings->puertoDIEGO,"DIEGO");
 	int fm9 = conectarAProceso(settings->ipFM9,settings->puertoFM9,"FM9");
@@ -43,10 +45,6 @@ int main(int argc, char *argv[])
 				Operation extraData;
 				extraData.dictionary = dictionary;
 
-				Start_commands(); //Se incian los comandos
-
-
-
 			while( i < totalQuantum )
 			{
 					char* line = askLineToFM9(data, fm9); //Pido una linea
@@ -64,7 +62,7 @@ int main(int argc, char *argv[])
 						bool res = CommandInterpreter_Do(line, " ",&extraData);
 
 						if(res == 1 && extraData.commandResult == 0){
-							sleep(settings->retardo); //retardo por operacion
+							usleep(settings->retardo*1000); //retardo por operacion
 
 							updatedProgramCounter ++;
 
@@ -115,7 +113,9 @@ int main(int argc, char *argv[])
 
 			// TODO TESTEAR BIEN SI ESTO QUEDARIA ACTUALIZADO CON EL ULTIMO VALOR O NO
 			SerializedPart fieldForSAFA3 = {.size = sizeof(uint32_t) , .data = newNumberOfFiles};
-			SerializedPart fieldForSAFA4 = {.size = strlen(FlattenPathsAndAddresses(dictionary)) + 1 , .data = FlattenPathsAndAddresses(dictionary)};
+
+			SerializedPart fieldForSAFA4 = FlattenPathsAndAddresses(extraData.dictionary);
+
 			SerializedPart* packetToSAFA = Serialization_Serialize(4, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4);
 
 			SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOQUANTUM,packetToSAFA->data, packetToSAFA->size);

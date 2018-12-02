@@ -19,6 +19,7 @@ int main(int argc, char **argv) {
 
 	StartServer();
 	ThreadPool_FreeGracefully(threadPool);
+	memoryFunctions->freeStructures();
 	freeStorage();
 	free(settings);
 	exit_gracefully(0);

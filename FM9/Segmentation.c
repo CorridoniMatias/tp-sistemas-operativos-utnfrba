@@ -161,7 +161,7 @@ int dump_SEG(int dtbID) {
 
 	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
 	free(dtbKey);
-	Logger_Log(LOG_INFO, "Proceso %d", dtbID);
+	Logger_Log(LOG_INFO, "G.DT %d", dtbID);
 	void segmentDumper(char* key, void * data) {
 		t_segment* segment = data;
 		Logger_Log(LOG_INFO, "Segmento %s : Base = %d : Límite = %d", key,

@@ -942,7 +942,7 @@ void UpdateOpenedFiles(DTB* toBeUpdated, t_dictionary* currentOFs, bool dontOver
 
 }
 
-void* FlattenPathsAndAddresses(t_dictionary* openFilesTable)
+SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 {
 
 	void* result = malloc(1);
@@ -971,9 +971,8 @@ void* FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 	if (offset == 0)
 		offset = 1;
 	memcpy(result + offset - 1, ";", 1);					//Pongo el ; al final de la cadena
-	result = realloc(result,totalSize+1);
-	memcpy(result + totalSize, "\0", 1);
-	return result;											//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
+	SerializedPart sp = {.data = result,.size = totalSize};
+	return sp;											//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
 
 }
 
@@ -996,11 +995,11 @@ SerializedPart* GetMessageForCPU(DTB* chosenDTB)
 	SerializedPart idSP, flagSP, pathSP, pathAddressSP, pcSP, quantumSP, ofaSP, filesSP;
 	idSP.size = sizeof(uint32_t);
 	idSP.data = idToSend;
-	printf("\n\nprimer int=%d\n\n",*((int*)(idSP.data)));
+	printf("\n\nid=%d\n\n",*((int*)(idSP.data)));
 	flagSP.size = sizeof(uint32_t);
 	flagSP.data = flagToSend;
 
-	printf("\n\nsegun int=%d\n\n",*((int*)(flagSP.data)));
+	printf("\n\nflag =%d\n\n",*((int*)(flagSP.data)));
 	pathSP.size = strlen(chosenDTB->pathEscriptorio) + 1;
 	printf("\n\nsize=%d--path=%s\n\n",pathSP.size,chosenDTB->pathEscriptorio);
 	pathSP.data = malloc(pathSP.size);
@@ -1008,22 +1007,20 @@ SerializedPart* GetMessageForCPU(DTB* chosenDTB)
 	pathAddressSP.size = sizeof(uint32_t);
 	pathAddressSP.data = pathAddressToSend;
 
-	printf("\n\ntercer int=%d\n\n",*((int*)(pathAddressSP.data)));
+	printf("\n\nlogical address int=%d\n\n",*((int*)(pathAddressSP.data)));
 	pcSP.size = sizeof(uint32_t);
 	pcSP.data = pcToSend;
 
-	printf("\n\ncuarto int=%d\n\n",*((int*)(pcSP.data)));
+	printf("\n\npc int=%d\n\n",*((int*)(pcSP.data)));
 	quantumSP.size = sizeof(uint32_t);
 	quantumSP.data = quantumToSend;
 
-	printf("\n\nquinto int=%d\n\n",*((int*)(quantumSP.data)));
+	printf("\n\nquantum int=%d\n\n",*((int*)(quantumSP.data)));
 	ofaSP.size = sizeof(uint32_t);
 	ofaSP.data = ofaToSend;
 
-	printf("\n\nsexto int=%d\n\n",*((int*)(ofaSP.data)));
-	filesSP.data = FlattenPathsAndAddresses(chosenDTB->openedFiles);
-
-	filesSP.size = strlen(filesSP.data) + 1;
+	printf("\n\ncant archivos abiertos int=%d\n\n",*((int*)(ofaSP.data)));
+	filesSP = FlattenPathsAndAddresses(chosenDTB->openedFiles);
 
 	//La idea es armar un paquete serializado que va a tener la estructura:
 	//|IDdelDTB|Flag|PathEscriptorioAsociado|Dir.LogicaPath|ProgramCounterDelDTB|QuantumAEjecutar|CantArchivosAbiertos|Archivos

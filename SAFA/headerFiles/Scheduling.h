@@ -399,7 +399,7 @@ void UpdateOpenedFiles(DTB* toBeUpdated, t_dictionary* currentOFs, bool justAddO
  * 	PARAMETROS:
  * 		openFilesTable: Tabla de archivos abiertos de la cual hallar los paths y las direcciones logicas
  */
-void* FlattenPathsAndAddresses(t_dictionary* openFilesTable);
+SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable);
 
 /*
  * 	ACCION: Obtener la cadena serializada (y su tamanio) con todos los datos a mandarle a un CPU para indicarle una ejecucion

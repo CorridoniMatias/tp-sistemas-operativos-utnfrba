@@ -73,17 +73,19 @@ void executeDummy(DeserializedData* dtb, int diego, int safa){
 char* askLineToFM9(DeserializedData* dtb, int fm9){
 
 	uint32_t idDtb = *((uint32_t*)dtb->parts[0]);
-	int32_t logicDir = *((uint32_t*)dtb->parts[3]);
+	uint32_t logicDir = *((uint32_t*)dtb->parts[3]);
 	uint32_t pc = *((uint32_t*)dtb->parts[4]);
 
-	logicDir = logicDir + pc - 1;  //Sumar 1 a logicDir para pedir la siguiente linea
+	logicDir = logicDir + pc;  //Sumar 1 a logicDir para pedir la siguiente linea
 
 	declare_and_init(id, uint32_t,idDtb);
 	declare_and_init(newLogicDir, uint32_t,logicDir);
 
 	SerializedPart fieldForFM91 = {.size = 4, .data = id};
-	SerializedPart fieldForFM92 = {.size = sizeof(int32_t), .data = newLogicDir};
-
+	SerializedPart fieldForFM92 = {.size = sizeof(uint32_t), .data = newLogicDir};
+printf("\nid= %d\n",idDtb);
+printf("\ndir lógica = %d\n",logicDir);
+printf("\ndir lógica = %d\n",logicDir);
 	SerializedPart* packetToFM9 = Serialization_Serialize(2, fieldForFM91, fieldForFM92);
 
 	SocketCommons_SendData(fm9,MESSAGETYPE_FM9_GETLINE, packetToFM9->data, packetToFM9->size);
@@ -102,6 +104,7 @@ char* askLineToFM9(DeserializedData* dtb, int fm9){
 		Serialization_CleanupDeserializationStruct(dtb);
 		char* line = (char*)data->parts[1];
 		Serialization_CleanupDeserializationStruct(data);
+		printf("linea recibida = %s",line);
 		return line;
 	}
 		free(id);
@@ -140,8 +143,8 @@ void* CommandAbrir(int argC, char** args, char* callingLine, void* extraData){
 		SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
 		SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
 		SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
-	    SerializedPart fieldForSAFA5 = {.size = strlen(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
-	    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
+		SerializedPart dictionary = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary);
+	    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,dictionary);
 
 		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
 	    StringUtils_FreeArray(args);
@@ -158,7 +161,7 @@ return 0;
 }
 
 void* CommandConcentrar(int argC, char** args, char* callingLine, void* extraData){
-	sleep(settings->retardo);
+	usleep(settings->retardo*1000);
 	StringUtils_FreeArray(args);
 
 	return 0;
@@ -309,8 +312,8 @@ void* CommandWait(int argC, char** args, char* callingLine, void* extraData){
 			SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
 			SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
 			SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
-			SerializedPart fieldForSAFA5 = {.size = strlen(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
-			SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
+			SerializedPart dictionary = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary);
+		    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,dictionary);
 
 			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
 			StringUtils_FreeArray(args);
@@ -339,8 +342,8 @@ void* CommandWait(int argC, char** args, char* callingLine, void* extraData){
 		SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
 		SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
 		SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
-		SerializedPart fieldForSAFA5 = {.size = strlen(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
-		SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
+		SerializedPart dictionary = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary);
+	    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,dictionary);
 
 		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
 		StringUtils_FreeArray(args);
@@ -434,9 +437,8 @@ void* CommandFlush(int argC, char** args, char* callingLine, void* extraData){
 		SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
 		SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
 		SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
-	    SerializedPart fieldForSAFA5 = {.size = strlen(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
-	    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
-
+		SerializedPart dictionary = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary);
+	    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,dictionary);
 		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
 	    StringUtils_FreeArray(args);
 		Serialization_CleanupSerializedPacket(packetToSAFAToBlockGDT);
@@ -546,9 +548,8 @@ void* CommandCrear(int argC, char** args, char* callingLine, void* extraData){
 	SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
 	SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
 	SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
-    SerializedPart fieldForSAFA5 = {.size = strlen(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
-    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
-
+	SerializedPart dictionary = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary);
+    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,dictionary);
 	SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
     StringUtils_FreeArray(args);
     free(id);
@@ -585,9 +586,8 @@ void* CommandBorrar(int argC, char** args, char* callingLine, void* extraData){
 	SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
 	SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
 	SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
-    SerializedPart fieldForSAFA5 = {.size = strlen(FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)) + 1 , .data = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary)};
-    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,fieldForSAFA5);
-
+	SerializedPart dictionary = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary);
+    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,dictionary);
 	SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
     StringUtils_FreeArray(args);
 	Serialization_CleanupSerializedPacket(packetToSAFAToBlockGDT);
@@ -635,35 +635,38 @@ bool openFileVerificator(t_dictionary* dictionary,char* path){
 	}
 	return false;
 }
-void* FlattenPathsAndAddresses(t_dictionary* openFilesTable)
+
+SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 {
 
 	void* result = malloc(1);
 	int offset = 0, totalSize = 0;
 	int nextSize;
-
-	printf("Reserve el espacio\n");
-
+	if(openFilesTable==NULL)
+		Logger_Log(LOG_DEBUG, "CPU->Tabla de archivos abiertos invalida");
+	else
+		Logger_Log(LOG_DEBUG, "CPU->Tabla de archivos abiertos OK");
 	void CopyPath(char* path, void* address)
 	{
 		nextSize = strlen(path);							//Obtengo el largo del path
-		totalSize += (nextSize + 2 + sizeof(int));			//Sumo a totalSize, y sumo 2 mas por los : y la ,
+		totalSize += (nextSize + 2 + sizeof(uint32_t));		//Sumo a totalSize, y sumo 2 mas por los : y la ,
 		result = realloc(result, totalSize);				//Realloco memoria
 		memcpy(result + offset, path, nextSize);			//Copio el path y muevo el offset
 		offset += nextSize;
 		memcpy(result + offset, ":", 1);					//Copio el : (separa path de DL) y muevo el offset
 		offset++;
-		memcpy(result + offset, address, sizeof(int));		//Copio la DL y muevo el offset
-		offset += sizeof(int);
+		memcpy(result + offset, address, sizeof(uint32_t));	//Copio la DL y muevo el offset
+		offset += sizeof(uint32_t);
 		memcpy(result + offset, ",", 1);					//Copio la , (separa registros) y muevo el offset
 		offset++;
 	}
 
 	dictionary_iterator(openFilesTable, CopyPath);			//Llamo al closure de arriba para hacerlo con todos los registros
-
+	if (offset == 0)
+		offset = 1;
 	memcpy(result + offset - 1, ";", 1);					//Pongo el ; al final de la cadena
-
-	return result;											//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
+	SerializedPart sp = {.data = result,.size = totalSize};
+	return sp;											//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
 
 }
 void Start_commands(){

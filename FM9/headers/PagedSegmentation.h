@@ -22,7 +22,7 @@ typedef struct{
 
 
 /*
- * Es un diccionario cuyo key es el id del dtb y el value es un t_segments que tiene otro dictionary cuyas keys son
+ * Es un diccionario cuyo key es el id del dtb y el value es un t_segments_paged que tiene otro dictionary cuyas keys son
  * los números de segmento y el value es un t_segment_paged que tiene la cantidad de páginas y
  * un dictionary con las paginas como key  y los values son el frame donde esta.
  */

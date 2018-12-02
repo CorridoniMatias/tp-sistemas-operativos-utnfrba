@@ -171,5 +171,28 @@ int dump_SPA(int dtbID){
 	char* dtbKey = string_itoa(dtbID);
 	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey))
 		return -1;
+	t_segments_paged* segments = dictionary_get(segmentspagedPerDTBTable, dtbKey);
+	free(dtbKey);
+	Logger_Log(LOG_INFO, "G.DT %d", dtbID);
+	Logger_Log(LOG_INFO, "Número próximo segmento %d", segments->nextSegmentNumber);
+	Logger_Log(LOG_INFO, "Número próxima página %d", segments->nextPageNumber);
+
+	void pageDumper(char* key, void* data){
+		int frameNumber = *((int*)data);
+		Logger_Log(LOG_INFO, "Página número %s está en frame %d", key, frameNumber);
+		void* buffer = malloc(tamanioFrame);
+		Logger_Log(LOG_INFO, "Contenido Página %s", key);
+		readFrame(buffer,frameNumber);
+		free(buffer);
+	}
+
+	void segmentDumper(char* key, void * data) {
+		t_segment_paged* segment = data;
+		Logger_Log(LOG_INFO, "Segmento %s : Cantidad de páginas = %d", key, segment->limit);
+		Logger_Log(LOG_INFO, "Contenido Segmento %s", key);
+		dictionary_iterator(segment->pages,pageDumper);
+
+	}
+	dictionary_iterator(segments->segments, segmentDumper);
 	return 1;
 }

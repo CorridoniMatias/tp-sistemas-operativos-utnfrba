@@ -119,12 +119,13 @@ int dump_TPI(int dtbID) {
 
 	t_pages* paginas = dictionary_get(pagesPerDTBTable, dtbKey);
 	free(dtbKey);
-	Logger_Log(LOG_INFO, "Proceso %d", dtbID);
+	Logger_Log(LOG_INFO, "G.DT %d", dtbID);
+	Logger_Log(LOG_INFO, "Número próxima página %d", paginas->nextPageNumber);
 	int i = 0;
 	void pageDumper(char* key, void * data) {
 		t_pages_per_file* pages = data;
 		int offset = 0;
-		int frameNumber = getFrameOfPage(pages->firstPage + offset,dtbID);
+		int frameNumber = getFrameOfPage(pages->firstPage + offset, dtbID);
 		Logger_Log(LOG_INFO,
 				"Archivo número %d : Página inicial = %d : Cantidad de páginas usadas = %d",
 				i, pages->firstPage, pages->numberOfPages);
@@ -132,6 +133,8 @@ int dump_TPI(int dtbID) {
 		Logger_Log(LOG_INFO, "Contenido Archivo %d", i);
 		while (offset < pages->numberOfPages) {
 			frameNumber = getFrameOfPage(pages->firstPage + offset, dtbID);
+			Logger_Log(LOG_INFO, "Página número %d está en frame %d", pages->firstPage + offset, frameNumber);
+			Logger_Log(LOG_INFO, "Contenido Página %s", key);
 			readFrame(buffer, frameNumber);
 			offset++;
 		}
