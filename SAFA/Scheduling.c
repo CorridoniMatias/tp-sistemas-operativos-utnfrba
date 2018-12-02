@@ -564,7 +564,7 @@ void PlanificadorCortoPlazo()
 			pthread_mutex_lock(&mutexCPUs);
 			list_add(cpus, chosenCPU);
 			Logger_Log(LOG_INFO,"SAFA::CPUS->CPU elegido marcado como ocupado. Vuelven a haber %d CPUs en total", CPUsCount());
-			pthread_mutex_lock(&mutexCPUs);
+			pthread_mutex_unlock(&mutexCPUs);
 
 			//Libero la memoria de esto, ya lo mande asi que no pierdo nada
 			Serialization_CleanupSerializedPacket(messageToSend);
@@ -983,6 +983,10 @@ SerializedPart* GetMessageForCPU(DTB* chosenDTB)
 	declare_and_init(idToSend,uint32_t,chosenDTB->id)
 	declare_and_init(flagToSend,uint32_t,chosenDTB->initialized)
 	declare_and_init(pathAddressToSend,uint32_t,chosenDTB->pathLogicalAddress)
+
+
+	printf("\n\path address int=%d\n\n",chosenDTB->pathLogicalAddress);
+
 	declare_and_init(pcToSend,uint32_t,chosenDTB->programCounter)
 	declare_and_init(quantumToSend,uint32_t,chosenDTB->quantumRemainder)
 	//Cantidad de archivos abiertos
