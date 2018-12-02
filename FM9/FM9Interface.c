@@ -134,14 +134,13 @@ void FM9_Close(void* data) {
 //Recibir un pedazo por pedazo hace un wakemeupwhen y un if messagelength = 0 break;
 void FM9_Open(void* data) {
 	OnArrivedData* arriveData = data;
-	DeserializedData* actualData = Serialization_Deserialize(
-			arriveData->receivedData);
+	DeserializedData* actualData = Serialization_Deserialize(arriveData->receivedData);
 	uint32_t* response_code = malloc(sizeof(uint32_t));
 	int socket = arriveData->calling_SocketID;
 
 	if (actualData->count == 3) {
 		int dtbID = *((int *) actualData->parts[0]);
-		int size = 0, sizeReceived;
+		int size = 0, sizeReceived=0;
 		void* buffer = malloc(1);
 
 		while (1) {
@@ -149,7 +148,7 @@ void FM9_Open(void* data) {
 			sizeReceived = *((int *) actualData->parts[1]);
 
 			buffer = realloc(buffer, size + sizeReceived);
-			printf("size receoved es = %d\n",sizeReceived);
+			printf("size received es = %d\n",sizeReceived);
 			memcpy(buffer + size, actualData->parts[2], sizeReceived);
 			size += sizeReceived;
 			*response_code = 1;
@@ -162,6 +161,7 @@ void FM9_Open(void* data) {
 
 			arriveData = SocketServer_WakeMeUpWhenDataIsAvailableOn(socket);
 			printf("size = %d\n",size);
+			printf("buffer= %s\n",(char*)buffer);
 			if (arriveData->receivedDataLength == 0) //receivedDataLength es NULL por definicion de las kemmens, si llegamos a length 0 es porque no hay mas nada para recibir, tenemos el archivo completo.
 				break;
 
@@ -171,16 +171,16 @@ void FM9_Open(void* data) {
 		printf("size final es = %d\n",size);
 		if (size == 0){
 			printf("se va a liberar esta poronga");
-			free(buffer);
+//			free(buffer);
 		}
 
 		printf("\npor hacer malloc\n");
 		//Aca se copia en un nuevo buffer los datos hasta el \n pero haciendo que ocupen una linea entera, habiendo datos basura.
-		void* realData = malloc(1);
-		int sizeLine, realSize = 0, offset = 0;
+		void* realData=NULL;
+		int sizeLine=0, realSize = 0, offset = 0;
 		printf("\npor acomodar el buffer\n");
 		while (offset < size) {
-			sizeLine = sizeOfLine(buffer + offset) + 1;
+			sizeLine = sizeOfLine((char*)(buffer + offset)) + 1;
 			realData = realloc(realData, realSize + tamanioLinea);
 			memcpy(realData + realSize, buffer + offset, sizeLine);
 			realSize += tamanioLinea;
@@ -195,6 +195,7 @@ void FM9_Open(void* data) {
 		}
 		else {
 			declare_and_init(address, uint32_t, logicalAddress)
+		printf("\n enviando direccion lógica =%d\n",logicalAddress);
 			SocketCommons_SendData(socket, MESSAGETYPE_ADDRESS, address, sizeof(uint32_t));
 			free(address);
 		}
@@ -235,7 +236,7 @@ void FM9_Flush(void* data) {
 		void* realData = malloc(1);
 		int sizeLine, realSize = 0, offset = 0;
 		while (offset < bufferSize) {
-			sizeLine = sizeOfLine(buffer + offset) + 1;
+			sizeLine = sizeOfLine((char*)(buffer + offset)) + 1;
 			realData = realloc(realData, realSize + sizeLine);
 			memcpy(realData + realSize, buffer + offset, sizeLine);
 			realSize += sizeLine;

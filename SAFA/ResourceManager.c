@@ -59,7 +59,7 @@ void SignalForResource(char* name)
 
 		//Creo la estructura a meter en la cola; no modifica el PC del DTB (va en -1) ni debe registrar cambios en los archivos abiertos
 		UnlockableInfo* toBeAwakened = (UnlockableInfo*) malloc(sizeof(UnlockableInfo*));
-		toBeAwakened->id = requesterID;
+		toBeAwakened->id = *requesterID;
 		toBeAwakened->newProgramCounter = -1;
 		toBeAwakened->openedFilesUpdate = dictionary_create();
 		toBeAwakened->appendOFs = true;

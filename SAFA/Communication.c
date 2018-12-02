@@ -12,7 +12,7 @@ void Comms_DAM_DummyFinished(void* arriveData)
 	//Copio esos datos al justDummied, la estructura que usa Scheduling para saber como actualizar el DTB
 	justDummied->dtbID = *((uint32_t*)(params->parts[0]));
 	int pathLength = strlen((char*)(params->parts[1])) + 1;
-	justDummied = realloc(justDummied, (2 * sizeof(uint32_t)) + pathLength);	//Importante reallocar!!
+	justDummied->script = realloc(justDummied->script, pathLength);	//Importante reallocar!!
 	strcpy(justDummied->script, (char*)(params->parts[1]));
 	Logger_Log(LOG_DEBUG, "SAFA::COMMS->La operacion Dummy fue sobre el script %s", justDummied->script);
 	justDummied->logicalAddress = *((uint32_t*)(params->parts[1]));

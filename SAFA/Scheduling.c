@@ -46,6 +46,7 @@ void CreateDummy()
 	dummyDTB->status = DTB_STATUS_BLOCKED;				//Arranca en BLOCKED, asi ya esta disponible
 	dummyDTB->ioOperations = 0;							//Nunca las tendra; ya lo preseteo asi
 	dummyDTB->pathEscriptorio = malloc(1);				//Para poder hacerle el realloc
+	dummyDTB->pathLogicalAddress =0;
 	dummyDTB->openedFiles = dictionary_create();
 	dummyDTB->openedFilesAmount = 0 ;
 	return;
@@ -99,6 +100,7 @@ DTB* CreateDTB(char* script)
 	//Le pongo 1 para saber que no es el Dummy; solo el dummy lo tiene en 0
 	newDTB->initialized = 1;
 	newDTB->pathEscriptorio = malloc(strlen(script) + 1);
+	newDTB->pathLogicalAddress = 0;
 	strcpy(newDTB->pathEscriptorio, script);
 	newDTB->programCounter = 0;
 	//Le pongo un malloc fantasma para luego poder realocar
@@ -537,6 +539,7 @@ void PlanificadorCortoPlazo()
 			pthread_mutex_lock(&mutexREADY);
 			if((strcmp(schedulingRules.name, "RR")) == 0)
 			{
+				printf("\n\nse esta usando RR\n\n");
 				messageToSend = ScheduleRR(schedulingRules.quantum);
 			}
 			else if((strcmp(schedulingRules.name, "VRR")) == 0)
@@ -550,13 +553,17 @@ void PlanificadorCortoPlazo()
 			pthread_mutex_unlock(&mutexREADY);
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Armado el mensaje a enviarle al CPU");
 			//Envio, a traves del socket del CPU elegido, el mensaje acerca del DTB y su tamanio
+
+			printf("\n\n\nsize=%d\n\n\n",messageToSend->size);
+
+
 			SocketCommons_SendData(chosenCPU->socket, MESSAGETYPE_SAFA_CPU_EXECUTE, messageToSend->data, messageToSend->size);
 
 			//Marco el CPU como ocupado y lo vuelvo a poner en la lista de CPUs
 			chosenCPU->busy = true;
 			pthread_mutex_lock(&mutexCPUs);
 			list_add(cpus, chosenCPU);
-			Logger_Log("SAFA::CPUS->CPU elegido marcado como ocupado. Vuelven a haber %d CPUs en total", CPUsCount());
+			Logger_Log(LOG_INFO,"SAFA::CPUS->CPU elegido marcado como ocupado. Vuelven a haber %d CPUs en total", CPUsCount());
 			pthread_mutex_lock(&mutexCPUs);
 
 			//Libero la memoria de esto, ya lo mande asi que no pierdo nada
@@ -964,7 +971,8 @@ void* FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 	if (offset == 0)
 		offset = 1;
 	memcpy(result + offset - 1, ";", 1);					//Pongo el ; al final de la cadena
-
+	result = realloc(result,totalSize+1);
+	memcpy(result + totalSize, "\0", 1);
 	return result;											//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
 
 }
@@ -972,38 +980,45 @@ void* FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 SerializedPart* GetMessageForCPU(DTB* chosenDTB)
 {
 
-	uint32_t* idToSend = malloc(sizeof(uint32_t));
-	*idToSend = chosenDTB->id;
-	uint32_t* flagToSend = malloc(sizeof(uint32_t));
-	*flagToSend = chosenDTB->initialized;
-	uint32_t* pathAddressToSend = malloc(sizeof(uint32_t));
-	*pathAddressToSend = chosenDTB->pathLogicalAddress;
-	uint32_t* pcToSend = malloc(sizeof(uint32_t));
-	*pcToSend = chosenDTB->programCounter;
-	uint32_t* quantumToSend = malloc(sizeof(uint32_t));
-	*quantumToSend = chosenDTB->quantumRemainder;
+	declare_and_init(idToSend,uint32_t,chosenDTB->id)
+	declare_and_init(flagToSend,uint32_t,chosenDTB->initialized)
+	declare_and_init(pathAddressToSend,uint32_t,chosenDTB->pathLogicalAddress)
+	declare_and_init(pcToSend,uint32_t,chosenDTB->programCounter)
+	declare_and_init(quantumToSend,uint32_t,chosenDTB->quantumRemainder)
 	//Cantidad de archivos abiertos
-	uint32_t* ofaToSend = malloc(sizeof(uint32_t));
-	*ofaToSend = chosenDTB->openedFilesAmount;
+	declare_and_init(ofaToSend,uint32_t,chosenDTB->openedFilesAmount)
 
 	//Estructuras con los datos a serializar y mandar como cadena
 	SerializedPart idSP, flagSP, pathSP, pathAddressSP, pcSP, quantumSP, ofaSP, filesSP;
-	idSP.size = sizeof(idToSend);
+	idSP.size = sizeof(uint32_t);
 	idSP.data = idToSend;
-	flagSP.size = sizeof(flagToSend);
+	printf("\n\nprimer int=%d\n\n",*((int*)(idSP.data)));
+	flagSP.size = sizeof(uint32_t);
 	flagSP.data = flagToSend;
+
+	printf("\n\nsegun int=%d\n\n",*((int*)(flagSP.data)));
 	pathSP.size = strlen(chosenDTB->pathEscriptorio) + 1;
+	printf("\n\nsize=%d--path=%s\n\n",pathSP.size,chosenDTB->pathEscriptorio);
 	pathSP.data = malloc(pathSP.size);
 	strcpy(pathSP.data, chosenDTB->pathEscriptorio);
-	pathAddressSP.size = sizeof(pathAddressToSend);
+	pathAddressSP.size = sizeof(uint32_t);
 	pathAddressSP.data = pathAddressToSend;
-	pcSP.size = sizeof(pcToSend);
+
+	printf("\n\ntercer int=%d\n\n",*((int*)(pathAddressSP.data)));
+	pcSP.size = sizeof(uint32_t);
 	pcSP.data = pcToSend;
-	quantumSP.size = sizeof(quantumToSend);
+
+	printf("\n\ncuarto int=%d\n\n",*((int*)(pcSP.data)));
+	quantumSP.size = sizeof(uint32_t);
 	quantumSP.data = quantumToSend;
-	ofaSP.size = sizeof(ofaToSend);
+
+	printf("\n\nquinto int=%d\n\n",*((int*)(quantumSP.data)));
+	ofaSP.size = sizeof(uint32_t);
 	ofaSP.data = ofaToSend;
+
+	printf("\n\nsexto int=%d\n\n",*((int*)(ofaSP.data)));
 	filesSP.data = FlattenPathsAndAddresses(chosenDTB->openedFiles);
+
 	filesSP.size = strlen(filesSP.data) + 1;
 
 	//La idea es armar un paquete serializado que va a tener la estructura:
@@ -1012,6 +1027,8 @@ SerializedPart* GetMessageForCPU(DTB* chosenDTB)
 	//Los archivos se mandan como: "arch1:d1,arch2:d2,...,archN:dN;"
 	SerializedPart* message = Serialization_Serialize(8, idSP, flagSP, pathSP, pathAddressSP, pcSP, quantumSP, ofaSP, filesSP);
 
+//	SerializedPart* message = Serialization_Serialize(6, idSP, flagSP, pathAddressSP, pcSP, quantumSP, ofaSP);
+
 	//Hago free de todos esos punteros que use para crear la cadena serializada
 	free(idToSend);
 	free(flagToSend);
@@ -1019,7 +1036,7 @@ SerializedPart* GetMessageForCPU(DTB* chosenDTB)
 	free(pcToSend);
 	free(quantumToSend);
 	free(ofaToSend);
-
+	free(filesSP.data);
 	return message;
 
 }
@@ -1032,6 +1049,7 @@ SerializedPart* ScheduleRR(int quantum)
 	chosenDTB->quantumRemainder = quantum;
 	Logger_Log(LOG_DEBUG, "SAFA::PLANIF__RR->Confeccionando mensaje con DTB de path %s", chosenDTB->pathEscriptorio);
 	//Obtengo la cadena a enviarle al CPU asignado; detalle de la misma dentro de la funcion; el free es en otro lado
+	printf("\n\n\ndtb= %s\n\n\n",chosenDTB->pathEscriptorio);
 	SerializedPart* packet = GetMessageForCPU(chosenDTB);
 
 	AddToExec(chosenDTB);

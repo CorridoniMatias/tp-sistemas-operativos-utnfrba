@@ -126,8 +126,11 @@ static int SocketCommons_SendDataWithoutHeader(int socket, void* data, int dataL
 
 	int status = send(socket, data, dataLength, MSG_WAITALL | MSG_NOSIGNAL);
 
-	if(status < 0)
+	if(status < 0){
 		Logger_Log(LOG_ERROR, "KEMMENSLIB::SOCKETCOMMONS->SocketCommons_SendDataWithoutHeader - Error al enviar data, codigo: %d", status);
+		printf("\nerror code=%d\n",errno);
+	}
+
 
 	return status;
 }

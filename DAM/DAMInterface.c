@@ -171,6 +171,8 @@ static int DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 		if(msg_type == MESSAGETYPE_ADDRESS)
 		{
 			uint32_t tmp = *((uint32_t*)data);
+
+			printf("\n direccion lógica recibida=%d\n",tmp);
 			free(data);
 			return tmp;
 		} else if(msg_type == MESSAGETYPE_INT)
@@ -308,11 +310,13 @@ void DAM_Abrir(void* arriveData)
 					SerializedPart p_iddtb = {.size = sizeof(uint32_t), .data = data->parts[0]};
 
 					SerializedPart* part = Serialization_Serialize(3, p_iddtb, p_filepath, p_direccion);
-
+printf("\ndireccion lógica tomada del fm9 =%d\n",logicAddr);
 					//Verificamos si la operacion real fue abrir un archivo o hacer la operacion dummy
-					if(onArriveData->message_type == MESSAGETYPE_CPU_EXECDUMMY)
+					if(onArriveData->message_type == MESSAGETYPE_CPU_EXECDUMMY){
+						printf("\nenviando dir del dummy al safa\n");
 						SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_DUMMY, part->data, part->size);
-					else
+						printf("\nPUEDE QUE ESTE LOCO PERO FALTA UN PUNTO Y COMA\n");
+					}else
 						SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_ABRIR, part->data, part->size);
 
 					Serialization_CleanupSerializedPacket(part);
