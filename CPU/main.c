@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 
 				executeDummy(data, diego, safa);
 
-				sleep(settings->retardo);
+				usleep(settings->retardo*1000);
 
 				continue;
 

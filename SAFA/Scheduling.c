@@ -985,7 +985,7 @@ SerializedPart* GetMessageForCPU(DTB* chosenDTB)
 	declare_and_init(pathAddressToSend,uint32_t,chosenDTB->pathLogicalAddress)
 
 
-	printf("\n\path address int=%d\n\n",chosenDTB->pathLogicalAddress);
+	printf("\n\npath address int=%d\n\n",chosenDTB->pathLogicalAddress);
 
 	declare_and_init(pcToSend,uint32_t,chosenDTB->programCounter)
 	declare_and_init(quantumToSend,uint32_t,chosenDTB->quantumRemainder)
