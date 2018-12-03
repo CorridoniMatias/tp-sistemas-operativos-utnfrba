@@ -461,7 +461,7 @@ void PlanificadorLargoPlazo()
 			pthread_mutex_unlock(&mutexSettings);
 			//Vuelvo a poner la tarea del PLP en Planificacion Normal (1)
 			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
-			SetPLPTask(PLP_TASK_NORMAL_SCHEDULE);
+//			SetPLPTask(PLP_TASK_NORMAL_SCHEDULE);
 		}
 
 	}
@@ -529,7 +529,9 @@ void PlanificadorCortoPlazo()
 			//Agarro el primer CPU libre que haya, lo saco de la lista y lo pongo aca
 			pthread_mutex_lock(&mutexCPUs);
 			Logger_Log(LOG_DEBUG, "SAFA::CPUS->Intentando planificar, hay %d CPUs libres", IdleCPUsAmount());
-			CPU* chosenCPU = list_remove_by_condition(cpus, IsIdle);
+//			CPU* chosenCPU = list_remove_by_condition(cpus, IsIdle);
+			CPU* chosenCPU = list_find(cpus,IsIdle);
+			chosenCPU->busy = true;
 			Logger_Log(LOG_DEBUG, "SAFA::CPUS->Hallada CPU libre! Socket: %d.  Quedan %d CPUs libres", chosenCPU->socket, IdleCPUsAmount());
 			pthread_mutex_unlock(&mutexCPUs);
 
@@ -560,9 +562,9 @@ void PlanificadorCortoPlazo()
 			SocketCommons_SendData(chosenCPU->socket, MESSAGETYPE_SAFA_CPU_EXECUTE, messageToSend->data, messageToSend->size);
 
 			//Marco el CPU como ocupado y lo vuelvo a poner en la lista de CPUs
-			chosenCPU->busy = true;
+
 			pthread_mutex_lock(&mutexCPUs);
-			list_add(cpus, chosenCPU);
+//			list_add(cpus, chosenCPU);
 			Logger_Log(LOG_INFO,"SAFA::CPUS->CPU elegido marcado como ocupado. Vuelven a haber %d CPUs en total", CPUsCount());
 			pthread_mutex_unlock(&mutexCPUs);
 
@@ -952,8 +954,11 @@ SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 		Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Tabla de archivos abiertos invalida");
 	else
 		Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Tabla de archivos abiertos OK");
+	printf("\n\npor imprimir diciconario?\n\n");
 	void CopyPath(char* path, void* address)
 	{
+
+		printf("\n\npath=%s-address=%d\n\n",path,*((uint32_t*)address));
 		nextSize = strlen(path);							//Obtengo el largo del path
 		totalSize += (nextSize + 2 + sizeof(uint32_t));		//Sumo a totalSize, y sumo 2 mas por los : y la ,
 		result = realloc(result, totalSize);				//Realloco memoria
@@ -968,8 +973,8 @@ SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 	}
 
 	dictionary_iterator(openFilesTable, CopyPath);			//Llamo al closure de arriba para hacerlo con todos los registros
-//	if (offset == 0)
-//		offset = 1;
+	if (totalSize == 0)
+			totalSize = 1;
 //	memcpy(result + offset - 1, ";", 1);					//Pongo el ; al final de la cadena
 
 	memcpy(result + offset, ";", 1);					//Pongo el ; al final de la cadena

@@ -21,20 +21,29 @@ void AddCPU(int* socketID)
 
 void FreeCPU(int socketID)
 {
+	printf("\n\nanalizando socket=%d\n\n",socketID);
 
-	int size = CPUsCount();
 	CPU* counter;
-	CPU* toModify;
+//	CPU* toModify;
+
+	printf("\n\ncaca\n\n");
 	pthread_mutex_lock(&mutexCPUs);
+
+	printf("\n\npis\n\n");
+	int size = CPUsCount();
+
+	printf("\n\nsize=%d\n\n",size);
 	for(int i = 0; i < size; i++)
 	{
 		counter = list_get(cpus, i);
 		if(counter->socket == socketID)
 		{
-			toModify = list_remove(cpus, i);		//Saco el CPU buscado de la lista, lo marco como desocupado,
-			toModify->busy = false;					//y lo vuelvo a poner en la lista de CPUs
-			list_add_in_index(cpus, i, toModify);
-			Logger_Log(LOG_DEBUG, "SAFA::CPUS->Se libero el CPU del socket %d", toModify->socket);
+			printf("\n\ncpu =%d libre socket=%d\n\n",i,counter->socket);
+//			toModify = list_remove(cpus, i);		//Saco el CPU buscado de la lista, lo marco como desocupado,
+//			toModify = list_get(cpus, i);
+			counter->busy = false;					//y lo vuelvo a poner en la lista de CPUs
+//			list_add_in_index(cpus, i, toModify);
+			Logger_Log(LOG_DEBUG, "SAFA::CPUS->Se libero el CPU del socket %d", counter->socket);
 			break;			   	  //No hace falta seguir buscando otro con ese ID, salgo del ciclo
 		}
 	}
@@ -96,6 +105,11 @@ bool ExistsIdleCPU()
 
 	bool exists;
 	pthread_mutex_lock(&mutexCPUs);
+	void it(void* data){
+		CPU* c= data;
+		printf("\n\nsocket = %d --- busy = %d\n\n",c->socket,c->busy);
+	}
+	list_iterate(cpus,it);
 	exists = list_any_satisfy(cpus, IsIdle);
 	pthread_mutex_unlock(&mutexCPUs);
 	if(!exists)

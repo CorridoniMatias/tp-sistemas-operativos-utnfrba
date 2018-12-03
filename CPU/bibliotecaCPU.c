@@ -53,7 +53,6 @@ int conectarAProceso(char* ip, char* puerto, char* nombreProceso)
 void executeDummy(DeserializedData* dtb, int diego, int safa){
 	uint32_t idDtb = *((uint32_t*)dtb->parts[0]);
 	char* path = (char*)dtb->parts[2];
-	printf("path recibido %s\n",path);
 	declare_and_init(id, uint32_t,idDtb);
 	SerializedPart fieldForDiego1 = {.size = sizeof(uint32_t), .data = id};
 	SerializedPart fieldForDiego2 = {.size = strlen(path)+1, .data = path};
@@ -519,6 +518,7 @@ void CommandCrear(int argC, char** args, char* callingLine, void* extraData){
 	declare_and_init(id, uint32_t,idDtb);
 	char* path = args[1];
 	char* lines = args[2];
+	declare_and_init(numberOfLines,uint32_t,atoi(lines));
 	uint32_t pc = ((Operation*)extraData)->programCounter;
 	declare_and_init(newPc,uint32_t,pc);
 	uint32_t quantum = ((Operation*)extraData)->quantum;
@@ -528,7 +528,7 @@ void CommandCrear(int argC, char** args, char* callingLine, void* extraData){
 
 	SerializedPart fieldForDAM1 = {.size = sizeof(uint32_t), .data =id};
 	SerializedPart fieldForDAM2 = {.size = strlen(path)+1, .data = path};
-	SerializedPart fieldForDAM3 = {.size = strlen(lines)+1, .data = lines};
+	SerializedPart fieldForDAM3 = {.size = sizeof(uint32_t), .data = numberOfLines};
 
 	SerializedPart* packetToDAM = Serialization_Serialize(3, fieldForDAM1, fieldForDAM2, fieldForDAM3);
 
@@ -637,8 +637,10 @@ SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 		Logger_Log(LOG_DEBUG, "CPU->Tabla de archivos abiertos invalida");
 	else
 		Logger_Log(LOG_DEBUG, "CPU->Tabla de archivos abiertos OK");
+	printf("\n\npor imprimir diciconario?\n\n");
 	void CopyPath(char* path, void* address)
 	{
+		printf("\n\npath=%s-address=%d\n\n",path,*((uint32_t*)address));
 		nextSize = strlen(path);							//Obtengo el largo del path
 		totalSize += (nextSize + 2 + sizeof(uint32_t));		//Sumo a totalSize, y sumo 2 mas por los : y la ,
 		result = realloc(result, totalSize);				//Realloco memoria
@@ -653,8 +655,8 @@ SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 	}
 
 	dictionary_iterator(openFilesTable, CopyPath);			//Llamo al closure de arriba para hacerlo con todos los registros
-//	if (offset == 0)
-//		offset = 1;
+	if (totalSize == 0)
+		totalSize = 1;
 //	memcpy(result + offset - 1, ";", 1);					//Pongo el ; al final de la cadena
 
 	memcpy(result + offset, ";", 1);					//Pongo el ; al final de la cadena

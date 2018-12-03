@@ -18,15 +18,20 @@ int main(int argc, char *argv[])
 	{
 
 
+		printf("\nesperando recibir datos\n");
 		int err,messageType,msglength;
 		void* msgFromSafa = SocketCommons_ReceiveData(safa,&messageType,&msglength,&err);
+		Logger_Log(LOG_DEBUG,"Se recibio orden de ejecucion: %d",messageType);
 		DeserializedData* data = Serialization_Deserialize(msgFromSafa);
 		int flagg = *(int*)data->parts[1];
+		printf("\nflag=%d\n",flagg);
 		if (flagg == 0)
 			{
 
+			printf("\nholis\n");
 				executeDummy(data, diego, safa);
 
+				printf("\nholisrecharged\n");
 				usleep(settings->retardo*1000);
 
 				continue;
@@ -37,7 +42,7 @@ int main(int argc, char *argv[])
 			{
 
 			int cant = *((uint32_t*) data->parts[6]);
-			printf("cant=%d",cant);
+			printf("\ncant=%d\n",cant);
 			t_dictionary* dictionary = BuildDictionary(data->parts[7], cant);
 			//Defino aca el struct para que se vaya actualizando el diccionario dependiendo cualquier cambio
 			Operation extraData;

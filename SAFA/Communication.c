@@ -204,6 +204,7 @@ void Comms_CPU_DTBAtDAM(void* arriveData)
 	nextToBlock->quantumRemainder = *((uint32_t*)(params->parts[2]));
 	nextToBlock->dummyComeback = false;
 	uint32_t ofa = *((uint32_t*)(params->parts[3]));
+	printf("\n\ncant archivos=%d\n\n",ofa);
 	nextToBlock->openedFilesUpdate = BuildDictionary(params->parts[4], ofa);
 
 	//Libero la CPU que me aviso y la pongo como desocupada

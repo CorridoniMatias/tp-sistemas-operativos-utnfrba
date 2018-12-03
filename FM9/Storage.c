@@ -48,14 +48,9 @@ int writeLine(void* data, int numLinea) {
 int readLine(void* target, int numLinea) {
 
 	verifyLineNumber(numLinea)
-	printf("\n\nnum linea %d\n\n", numLinea);
-
-	printf("\n\ntamanio linea %d\n\n", tamanioLinea);
 	char* linea = malloc(tamanioLinea);
 	memcpy(linea, storage[numLinea], tamanioLinea);
 	linea = realloc(linea, tamanioLinea + 1);
-
-	Logger_Log(LOG_DEBUG, "Contenido de linea = %s\n.", linea);
 	memcpy(linea + tamanioLinea, "\0", 1);
 
 	Logger_Log(LOG_DEBUG, "Contenido de Storage = %s -- En linea = %d.", linea,numLinea);
@@ -63,7 +58,6 @@ int readLine(void* target, int numLinea) {
 	memcpy(target, linea, tamanioLinea);
 
 	free(linea);
-	Logger_Log(LOG_DEBUG, "Contenido guardado en target = %s.", (char*) target);
 
 //	Logger_Log(LOG_INFO, "FM9 -> Lectura de Storage exitosa de linea %d.", numLinea);
 
