@@ -7,7 +7,7 @@ static OnArrivedData* GetArriveData(void* data)
 
 static void delay()
 {
-	usleep(config->delay);
+	usleep(config->delay * 1000);
 }
 
 void MDJ_CheckFile(void* arriveData)
