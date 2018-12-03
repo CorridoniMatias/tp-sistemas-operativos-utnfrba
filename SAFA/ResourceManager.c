@@ -69,7 +69,7 @@ void SignalForResource(char* name)
 		queue_push(toBeUnlocked, toBeAwakened);
 		Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->Se aviso al PCP que desbloquee al DTB de id = %d", toBeAwakened->id);
 		pthread_mutex_unlock(&mutexToBeUnlocked);
-		SetPCPTask(PCP_TASK_UNLOCK_DTB);
+		AddPCPTask(PCP_TASK_UNLOCK_DTB);
 	}
 
 	//NO hago free de signaled ni de involved, salieron de un get (no hay malloc)

@@ -1,0 +1,2 @@
+TAMANIO=5
+BLOQUES=[5]

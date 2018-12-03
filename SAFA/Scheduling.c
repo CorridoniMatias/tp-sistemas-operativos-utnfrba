@@ -5,6 +5,7 @@
 void InitQueuesAndLists()
 {
 
+	PCPtasksQueue = queue_create();
 	scriptsQueue = queue_create();
 	NEWqueue = queue_create();
 	READYqueue_RR = queue_create();
@@ -24,14 +25,16 @@ void InitSemaphores()
 {
 
 	pthread_mutex_init(&mutexPLPtask, NULL);
-	pthread_mutex_init(&mutexPCPtask, NULL);
+	pthread_mutex_init(&mutexPCPtasksQueue, NULL);
 	pthread_mutex_init(&mutexREADY, NULL);
 	pthread_mutex_init(&mutexScriptsQueue, NULL);
 	pthread_mutex_init(&mutexToBeBlocked, NULL);
 	pthread_mutex_init(&mutexToBeUnlocked, NULL);
 	pthread_mutex_init(&mutexToBeEnded, NULL);
 	pthread_mutex_init(&mutexNEW, NULL);
+	pthread_mutex_init(&mutexBeingDummied, NULL);
 	sem_init(&workPLP, 0, 0);
+	sem_init(&workPCP, 0, 0);
 
 }
 
@@ -81,12 +84,15 @@ void SetPLPTask(int taskCode)
 
 }
 
-void SetPCPTask(int taskCode)
+void AddPCPTask(int taskCode)
 {
 
-	pthread_mutex_lock(&mutexPCPtask);
-	PCPtask = taskCode;
-	pthread_mutex_unlock(&mutexPCPtask);
+	pthread_mutex_lock(&mutexPCPtasksQueue);
+	int* newTask = (int*) malloc(sizeof(int));
+	*newTask = taskCode;
+	queue_push(PCPtasksQueue, newTask);
+	pthread_mutex_unlock(&mutexPCPtasksQueue);
+	sem_post(&workPCP);
 
 }
 
@@ -345,7 +351,7 @@ void SetDummy(uint32_t id, char* path)
 	strcpy(dummyDTB->pathEscriptorio, path);
 	Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Cargado el Dummy con el path %s", dummyDTB->pathEscriptorio);
 	//Le aviso al PCP que debe hacer la tarea de LOAD_DUMMY (pasarlo a READY, nada mas)
-	SetPCPTask(PCP_TASK_LOAD_DUMMY);
+	AddPCPTask(PCP_TASK_LOAD_DUMMY);
 
 }
 
@@ -397,13 +403,16 @@ void PlanificadorLargoPlazo()
 				SetDummy(queuesFirst->id, queuesFirst->pathEscriptorio);
 				//Agrego el DTB que saque de la cola a la lista de DTBs siendo inicializados, para conservar su info
 				queuesFirst->status = DTB_STATUS_DUMMYING;
+				pthread_mutex_lock(&mutexBeingDummied);
 				list_add(beingDummied, queuesFirst);
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Hay en total %d procesos siendo dummyados", list_size(beingDummied));
+				pthread_mutex_unlock(&mutexBeingDummied);
 			}
 			//Si el Dummy esta en READY o en EXEC, esta ocupado; espero un poco mas y reactivo el semaforo
 			else if(dummyDTB -> status == DTB_STATUS_READY || dummyDTB -> status == DTB_STATUS_EXEC)
 			{
 				sleep(3);
+				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Dummy ocupado, se intentara planificar con normalidad");
 				SetPLPTask(PLP_TASK_NORMAL_SCHEDULE);
 			}
 
@@ -449,7 +458,9 @@ void PlanificadorLargoPlazo()
 			}
 
 			//En base a lo que me mando el DAM (protocolo 220), busco el DTB expectante con el ID del Dummy
+			pthread_mutex_lock(&mutexBeingDummied);
 			DTB* toBeInitialized = list_remove_by_condition(beingDummied, IsDTBBeingDummied);
+			pthread_mutex_unlock(&mutexBeingDummied);
 			//Le guardo la direccion logica que proporciono la operacion Dummy, le pongo el flag en 1 y el PC en 0
 			toBeInitialized->pathLogicalAddress = justDummied->logicalAddress;
 			toBeInitialized->initialized = 1;
@@ -460,7 +471,7 @@ void PlanificadorLargoPlazo()
 			AddToReady(toBeInitialized, settings->algoritmo);
 			pthread_mutex_unlock(&mutexSettings);
 			//Vuelvo a poner la tarea del PLP en Planificacion Normal (1)
-			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
+			AddPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 //			SetPLPTask(PLP_TASK_NORMAL_SCHEDULE);
 		}
 
@@ -490,8 +501,18 @@ void AggregateSentencesWhileAtNEW(int amount)
 void PlanificadorCortoPlazo()
 {
 	AlgorithmStatus schedulingRules;				//Para consultar aca y reducir la region critica
+	int currentTask;
 	while(1)
 	{
+
+		//Espero a que le indiquen al PCP que se ejecute
+		sem_wait(&workPCP);
+
+		//En cada iteracion, saco la primer tarea de la cola, y guardo su valor para luego compararla y saber que modulo realizar
+		pthread_mutex_lock(&mutexPCPtasksQueue);
+		currentTask = *((int*) queue_pop(PCPtasksQueue));
+		pthread_mutex_unlock(&mutexPCPtasksQueue);
+
 		//Excluyentemente, guardo la informacion de la configuracion para planificar; al principio de cada ciclo
 		pthread_mutex_lock(&mutexSettings);
 		strcpy(schedulingRules.name, settings->algoritmo);
@@ -514,7 +535,7 @@ void PlanificadorCortoPlazo()
 			algorithmChange = ALGORITHM_CHANGE_UNALTERED;
 		}
 
-		if(PCPtask == PCP_TASK_NORMAL_SCHEDULE)
+		if(currentTask == PCP_TASK_NORMAL_SCHEDULE)
 		{
 
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->PCP bajo planificacion normal");
@@ -526,13 +547,13 @@ void PlanificadorCortoPlazo()
 				continue;
 			}
 
-			//Agarro el primer CPU libre que haya, lo saco de la lista y lo pongo aca
+			//Agarro el primer CPU libre que haya y lo marco como ocupado (sin sacarlo de la lista)
+
 			pthread_mutex_lock(&mutexCPUs);
 			Logger_Log(LOG_DEBUG, "SAFA::CPUS->Intentando planificar, hay %d CPUs libres", IdleCPUsAmount());
-//			CPU* chosenCPU = list_remove_by_condition(cpus, IsIdle);
 			CPU* chosenCPU = list_find(cpus,IsIdle);
 			chosenCPU->busy = true;
-			Logger_Log(LOG_DEBUG, "SAFA::CPUS->Hallada CPU libre! Socket: %d.  Quedan %d CPUs libres", chosenCPU->socket, IdleCPUsAmount());
+			Logger_Log(LOG_DEBUG, "SAFA::CPUS->Hallada CPU libre! Socket: %d. Quedan %d CPUs libres", chosenCPU->socket, IdleCPUsAmount());
 			pthread_mutex_unlock(&mutexCPUs);
 
 			SerializedPart* messageToSend;
@@ -561,10 +582,7 @@ void PlanificadorCortoPlazo()
 
 			SocketCommons_SendData(chosenCPU->socket, MESSAGETYPE_SAFA_CPU_EXECUTE, messageToSend->data, messageToSend->size);
 
-			//Marco el CPU como ocupado y lo vuelvo a poner en la lista de CPUs
-
 			pthread_mutex_lock(&mutexCPUs);
-//			list_add(cpus, chosenCPU);
 			Logger_Log(LOG_INFO,"SAFA::CPUS->CPU elegido marcado como ocupado. Vuelven a haber %d CPUs en total", CPUsCount());
 			pthread_mutex_unlock(&mutexCPUs);
 
@@ -574,17 +592,17 @@ void PlanificadorCortoPlazo()
 		}
 
 		//Esto es solo pasar el Dummy a READY para poder planificarlo desde ahi
-		else if(PCPtask == PCP_TASK_LOAD_DUMMY)
+		else if(currentTask == PCP_TASK_LOAD_DUMMY)
 		{
 
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->PCP intentara cargar el Dummy con los datos del DTB correspondiente");
 			dummyDTB->status = DTB_STATUS_READY;
 			AddToReady(dummyDTB, schedulingRules.name);
-			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
+			AddPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 
 		}
 
-		else if(PCPtask == PCP_TASK_FREE_DUMMY)
+		else if(currentTask == PCP_TASK_FREE_DUMMY)
 		{
 
 			//Previo a ello, deberia haber liberado el CPU ni bien este me hablo
@@ -593,13 +611,13 @@ void PlanificadorCortoPlazo()
 			list_remove_by_condition(EXECqueue, (void*)IsDummy);
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Dummy extraido de la cola de EXEC, lo dejare libre en la cola de BLOCKED");
 			AddToBlocked(dummyDTB);
-			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
+			AddPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 
 		}
 
 		//Tras aviso desde CPU de que lo desaloje; se da cuando el GDT requiere un Abrir, Flush, Crear o Borrar
 		//Debe recorrer la cola entera de toBeBlocked, por si hubiera varios acumulados que deban ser movidos
-		else if(PCPtask == PCP_TASK_BLOCK_DTB)
+		else if(currentTask == PCP_TASK_BLOCK_DTB)
 		{
 
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->PCP bajo la orden de pasar DTBs a BLOCKED");
@@ -639,6 +657,7 @@ void PlanificadorCortoPlazo()
 				//Le actualizo el PC, el quantum sobrante, y los archivos abiertos (por las dudas)
 				target->programCounter = nextToBlock->newProgramCounter;
 				target->quantumRemainder = nextToBlock->quantumRemainder;
+				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->El DTB bloqueado tiene el PC en % d y le sobraron %d del quantum", target->programCounter, target->quantumRemainder);
 				if(!nextToBlock->dummyComeback)
 				{
 					UpdateOpenedFiles(target, nextToBlock->openedFilesUpdate, false);
@@ -650,12 +669,12 @@ void PlanificadorCortoPlazo()
 			//No me olvido de este free! Ni de avisar al planificador que, tras bloquear todos, vuelva a planificar
 			free(nextToBlock);
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Bloqueados todos los DTBs pendientes. Volviendo a planificacion normal");
-			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
+			AddPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 
 		}
 
 		//Tras aviso desde DAM
-		else if(PCPtask == PCP_TASK_UNLOCK_DTB)
+		else if(currentTask == PCP_TASK_UNLOCK_DTB)
 		{
 
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->PCP bajo la orden de pasar DTBs a READY y desbloquearlos");
@@ -699,15 +718,15 @@ void PlanificadorCortoPlazo()
 				int sentencesRun;
 
 				//Le actualizo el program counter (se debe haber movido) y los archivos abiertos, y lo paso a READY
-				//Ojo, solo le altero el PC si el del nextToUnlock no es nulo (un Abrir exitoso lo pone en -1)
-				if(nextToUnlock->newProgramCounter != -1)
+				//Ojo, solo le altero el PC si UnlockableInfo me informa que debo hacerlo
+				if(nextToUnlock->overwritePC)
 				{
 					sentencesRun = (nextToUnlock->newProgramCounter) - (target->programCounter);
 					target->programCounter = nextToUnlock->newProgramCounter;
 				}
 				else
 				{
-					//Pero si volvia de IO y su PC era -1, es porque avanzo una sola sentencia (IOs son atomicas)
+					//Pero si volvia de IO, avanzo una sola sentencia (IOs son atomicas)
 					sentencesRun = 1;
 				}
 
@@ -734,14 +753,14 @@ void PlanificadorCortoPlazo()
 			//No me olvido de este free! Ni de avisar al planificador que, tras desbloquear todos, vuelva a planificar
 			free(nextToUnlock);
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Desbloqueados todos los DTBs pendientes. Volviendo a planificacion normal");
-			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
+			AddPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 
 		}
 
-		else if(PCPtask == PCP_TASK_END_DTB)
+		else if(currentTask == PCP_TASK_END_DTB)
 		{
 
-			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->PCP bajo la orden de pasar DTBs a EXIT y desbloquearlos");
+			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->PCP bajo la orden de pasar DTBs a EXIT y eliminarlos");
 			//Puntero a un uint32_t, que va a guardar el ID de cada DTB a abortar/finalizar de la cola
 			uint32_t* nextToEnd = (uint32_t*) malloc(sizeof(uint32_t));
 			pthread_mutex_lock(&mutexToBeEnded);
@@ -749,7 +768,7 @@ void PlanificadorCortoPlazo()
 			{
 
 				nextToEnd = (uint32_t*) queue_pop(toBeEnded);
-				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se intentara eliminar el DTB de id = %d", nextToEnd);
+				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se intentara eliminar el DTB de id = %d", *nextToEnd);
 
 				//Funcion anidada, para poder comparar cada DTB de las colas con el ultimo ID (local al while) hallado
 				bool IsDTBToBeEnded(void* aDTB)
@@ -766,7 +785,7 @@ void PlanificadorCortoPlazo()
 				}
 
 				//Busco el DTB en BLOCKED (aviso DAM,o finalizar), en READY (comando finalizar) y en EXEC (aviso CPU)
-				DTB* target = list_remove_by_condition(BLOCKEDqueue, IsDTBToBeEnded);
+				DTB* target = (DTB*) list_remove_by_condition(BLOCKEDqueue, IsDTBToBeEnded);
 				if(!target)
 				{
 					pthread_mutex_lock(&mutexREADY);
@@ -802,11 +821,11 @@ void PlanificadorCortoPlazo()
 			//Libero este puntero, y ademas le aviso al PCP que siga planificando normal
 			free(nextToEnd);
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Terminados todos los DTBs pendientes. Volviendo a planificacion normal");
-			SetPCPTask(PCP_TASK_NORMAL_SCHEDULE);
+			AddPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 
 		}
 
-		//Aplico retardo de planificacion; divido por mil, ya que son milisegundos
+		//Aplico retardo de planificacion; multiplico por mil, ya que son milisegundos y el usleep es con microsegundos
 		usleep((settings->retardo) * 1000);
 
 	}
@@ -886,6 +905,8 @@ bool NoReadyDTBs(char* algorithm)
 
 	//Asumo, de entrada, que las colas no estan vacias y si hay DTBs en READY
 	bool noneExist = false;
+	//Uso este mutex por las dudas, voy a revisar la cola READY y justo tal vez la tocan desde otro hilo
+	pthread_mutex_lock(&mutexREADY);
 
 	//Segun el algoritmo pasado por parametro, veo en que cola fijarme; si esta vacia, pongo la respuesta en true
 	if((strcmp(algorithm, "RR")) == 0)
@@ -912,10 +933,13 @@ bool NoReadyDTBs(char* algorithm)
 		}
 	}
 
+	pthread_mutex_unlock(&mutexREADY);
+
 	if(noneExist)
 	{
 		Logger_Log(LOG_DEBUG, "SAFA::PLANIF->No hay DTBs en READY, el PCP no tiene nada que planificar");
 	}
+
 
 	return noneExist;
 
@@ -977,9 +1001,9 @@ SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 			totalSize = 1;
 //	memcpy(result + offset - 1, ";", 1);					//Pongo el ; al final de la cadena
 
-	memcpy(result + offset, ";", 1);					//Pongo el ; al final de la cadena
-	SerializedPart sp = {.data = result,.size = totalSize};
-	return sp;											//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
+	memcpy(result + offset, ";", 1);						//Pongo el ; al final de la cadena
+	SerializedPart sp = {.data = result, .size = totalSize};
+	return sp;												//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
 
 }
 
@@ -1056,7 +1080,7 @@ SerializedPart* ScheduleRR(int quantum)
 	//Round Robin es un FIFO en el cual tengo en cuenta el quantum, no mucho mas que eso
 	DTB* chosenDTB = GetNextReadyDTB();
 	chosenDTB->quantumRemainder = quantum;
-	Logger_Log(LOG_DEBUG, "SAFA::PLANIF__RR->Confeccionando mensaje con DTB de path %s", chosenDTB->pathEscriptorio);
+	Logger_Log(LOG_DEBUG, "SAFA::PLANIF_RR->Confeccionando mensaje con DTB de path %s", chosenDTB->pathEscriptorio);
 	//Obtengo la cadena a enviarle al CPU asignado; detalle de la misma dentro de la funcion; el free es en otro lado
 	printf("\n\n\ndtb= %s\n\n\n",chosenDTB->pathEscriptorio);
 	SerializedPart* packet = GetMessageForCPU(chosenDTB);
@@ -1320,14 +1344,16 @@ void DeleteSemaphores()
 {
 
 	pthread_mutex_destroy(&mutexPLPtask);
-	pthread_mutex_destroy(&mutexPCPtask);
+	pthread_mutex_destroy(&mutexPCPtasksQueue);
 	pthread_mutex_destroy(&mutexREADY);
 	pthread_mutex_destroy(&mutexScriptsQueue);
 	pthread_mutex_destroy(&mutexToBeBlocked);
 	pthread_mutex_destroy(&mutexToBeUnlocked);
 	pthread_mutex_destroy(&mutexToBeEnded);
 	pthread_mutex_destroy(&mutexNEW);
+	pthread_mutex_destroy(&mutexBeingDummied);
 	sem_destroy(&workPLP);
+	sem_destroy(&workPCP);
 
 }
 
@@ -1386,6 +1412,7 @@ void DTBDestroyer(void* aDTB)
 void DeleteQueuesAndLists()
 {
 
+	queue_destroy_and_destroy_elements(PCPtasksQueue, free);
 	queue_destroy_and_destroy_elements(scriptsQueue, ScriptDestroyer);
 	queue_destroy_and_destroy_elements(NEWqueue, DTBDestroyer);
 	queue_destroy_and_destroy_elements(READYqueue_RR, DTBDestroyer);

@@ -39,8 +39,8 @@ void Comms_DAM_AbrirFinished(void* arriveData)
 	UnlockableInfo* nextToUnlock = (UnlockableInfo*) malloc(sizeof(UnlockableInfo));
 	nextToUnlock->id = *((uint32_t*)(params->parts[0]));
 	Logger_Log(LOG_DEBUG, "SAFA::COMMS->La operacion referia al DTB de id = %d", nextToUnlock->id);
-	//Lo pongo en -1 para que sepa que no debe copiarlo al mover el DTB de nuevo a READY
-	nextToUnlock->newProgramCounter = -1;
+	//Dejo indicado que no debe sobreescribirse el Program Counter, eso ya lo deberia haber avisado el CPU al pedir desalojo
+	nextToUnlock->overwritePC = false;
 	//Solo debe actualizar los archivos abiertos del DTB cuando se lo desbloquee, no pisarlos todos
 	nextToUnlock->appendOFs = true;
 	nextToUnlock->openedFilesUpdate = dictionary_create();
@@ -51,7 +51,7 @@ void Comms_DAM_AbrirFinished(void* arriveData)
 	queue_push(toBeUnlocked, nextToUnlock);
 	Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Agregado el DTB a desbloquear a la cola");
 	pthread_mutex_unlock(&mutexToBeUnlocked);
-	SetPCPTask(PCP_TASK_UNLOCK_DTB);
+	AddPCPTask(PCP_TASK_UNLOCK_DTB);
 
 	//Cleanup casero de la deserialization struct; no libero la memoria de parts[2], sino pierdo la address
 	//que sirve como value en el diccionario; mas adelante hare el free de ese diccionario, no hay drama
@@ -74,7 +74,8 @@ void Comms_DAM_CrearBorrarFlushFinished(void* arriveData)
 	UnlockableInfo* nextToUnlock = (UnlockableInfo*) malloc(sizeof(UnlockableInfo));
 	nextToUnlock->id = *dtbID;
 	Logger_Log(LOG_DEBUG, "SAFA::COMMS->La operacion referia al DTB de id = %d", nextToUnlock->id);
-	nextToUnlock->newProgramCounter = -1;
+	//Dejo indicado que no debe sobreescribirse el Program Counter, eso ya lo deberia haber avisado el CPU al pedir desalojo
+	nextToUnlock->overwritePC = false;
 	//Solo debe actualizar (sin nada) los archivos abiertos del DTB cuando se lo desbloquee, no pisarlos todos
 	nextToUnlock->appendOFs = true;
 	nextToUnlock->openedFilesUpdate = dictionary_create();
@@ -84,7 +85,7 @@ void Comms_DAM_CrearBorrarFlushFinished(void* arriveData)
 	queue_push(toBeUnlocked, nextToUnlock);
 	Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Agregado el DTB a desbloquear a la cola");
 	pthread_mutex_unlock(&mutexToBeUnlocked);
-	SetPCPTask(PCP_TASK_UNLOCK_DTB);
+	AddPCPTask(PCP_TASK_UNLOCK_DTB);
 
 	//No hago free de dtbID, sino borraria el valor de lo que tiene el nextToUnlock que acabo de guardar
 	free(data->receivedData);
@@ -103,9 +104,9 @@ void Comms_DAM_IOError(void* arriveData)
 	//Agrego ese ID a la cola de DTBs a terminar, ya que un error en la IO implica un aborto inmediato
 	pthread_mutex_lock(&mutexToBeEnded);
 	queue_push(toBeEnded, dtbID);
-	Logger_Log(LOG_DEBUG, "SAFA::COMMS->El DTB erroneo era el de id %d, ya se lo agrego a la cola de a finalizar", dtbID);
+	Logger_Log(LOG_DEBUG, "SAFA::COMMS->El DTB erroneo era el de id %d, ya se lo agrego a la cola de a finalizar", *dtbID);
 	pthread_mutex_unlock(&mutexToBeEnded);
-	SetPCPTask(PCP_TASK_END_DTB);
+	AddPCPTask(PCP_TASK_END_DTB);
 
 	//No hago free de dtbID, sino borraria el valor de lo que tiene el nextToUnlock que acabo de guardar
 	free(data->receivedData);
@@ -131,7 +132,7 @@ void Comms_CPU_ErrorOrEOF(void* arriveData)
 	queue_push(toBeEnded, dtbID);
 	Logger_Log(LOG_DEBUG, "SAFA::COMMS->El DTB a abortar era el de id %d, ya se lo agrego a la cola de a finalizar", dtbID);
 	pthread_mutex_unlock(&mutexToBeEnded);
-	SetPCPTask(PCP_TASK_END_DTB);
+	AddPCPTask(PCP_TASK_END_DTB);
 
 	//No hago free de dtbID, sino borraria el valor de lo que tiene el nextToUnlock que acabo de guardar
 	free(data->receivedData);
@@ -146,13 +147,13 @@ void Comms_CPU_DummyAtDAM(void* arriveData)
 	//Necesito solo el ID del CPU a desalojar; el DTB ya se que es el Dummy
 	int cpuSocket = data->calling_SocketID;
 
-	Logger_Log(LOG_DEBUG, "SAFA::COMMS->Llego un mensaje de Operacion Dummy inicializada desde el CPU de socket %d", cpuSocket);
+	Logger_Log(LOG_DEBUG, "SAFA::COMMS->Llego un mensaje de Operacion Dummy iniciada desde el CPU de socket %d", cpuSocket);
 
 	//Libero la CPU y la pongo como desocupada
 	FreeCPU(cpuSocket);
 
 	//Le aviso al PCP que debe liberar el Dummy (ponerlo de nuevo en BLOCKED para poder ser usado)
-	SetPCPTask(PCP_TASK_FREE_DUMMY);
+	AddPCPTask(PCP_TASK_FREE_DUMMY);
 	Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Ya se le aviso al PCP que debe liberar el Dummy");
 
 	free(data->receivedData);
@@ -202,7 +203,7 @@ void Comms_CPU_DTBAtDAM(void* arriveData)
 	nextToBlock->newProgramCounter = *((uint32_t*)(params->parts[1]));
 	printf("\n\n\n\n\nprogram counter recibido en safa=%d\n\n\n\n\n",nextToBlock->newProgramCounter);
 	nextToBlock->quantumRemainder = *((uint32_t*)(params->parts[2]));
-	nextToBlock->dummyComeback = false;
+	//nextToBlock->dummyComeback = false;
 	uint32_t ofa = *((uint32_t*)(params->parts[3]));
 	printf("\n\ncant archivos=%d\n\n",ofa);
 	nextToBlock->openedFilesUpdate = BuildDictionary(params->parts[4], ofa);
@@ -215,7 +216,7 @@ void Comms_CPU_DTBAtDAM(void* arriveData)
 	queue_push(toBeBlocked, nextToBlock);
 	Logger_Log(LOG_DEBUG, "SAFA::COMMS->El DTB a bloquear era el de id %d, con el PC en %d, ya se lo agrego a la cola", nextToBlock->id, nextToBlock->newProgramCounter);
 	pthread_mutex_unlock(&mutexToBeBlocked);
-	SetPCPTask(PCP_TASK_BLOCK_DTB);
+	AddPCPTask(PCP_TASK_BLOCK_DTB);
 
 	//Libero la memoria del DeserializedData entero, ya use lo que tenia y les hice copias fieles
 	//No hay problema con params->parts[4], ya que lo fui recorriendo para armar el diccionario
@@ -252,7 +253,7 @@ void Comms_CPU_OutOfQuantum(void* arriveData)
 	queue_push(toBeUnlocked, nextToUnlock);
 	Logger_Log(LOG_DEBUG, "SAFA::COMMS->El DTB a bloquear era el de id %d, con el PC en %d, ya se lo agrego a la cola", nextToUnlock->id, nextToUnlock->newProgramCounter);
 	pthread_mutex_unlock(&mutexToBeUnlocked);
-	SetPCPTask(PCP_TASK_UNLOCK_DTB);
+	AddPCPTask(PCP_TASK_UNLOCK_DTB);
 
 	//Libero la memoria del DeserializedData entero, ya use lo que tenia y les hice copias fieles
 	//No hay problema con params->parts[4], ya que lo fui recorriendo para armar el diccionario

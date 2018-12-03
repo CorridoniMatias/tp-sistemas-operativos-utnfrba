@@ -57,6 +57,7 @@ struct DTB_s
  * 	Estructura que va a ir a la cola toBeUnlocked, con la info necesaria y polimorfica para pasar DTBs a READY
  * 	CAMPOS:
  * 		id: ID del DTB que quiero mover a READY
+ * 		overwritePC: Booleano para saber si debe sobreescribirse el PC al mover de nuevo a READY o no (si informo el DAM)
  * 		newProgramCounter: Valor actualizado del program counter del DTB en su script
  * 		appendOFs: Booleano para saber si solo se deben añadir archivos (sin pisar el diccionario existente)
  * 				   Debe valer true si se busca desbloquear tras un signal recurso, o si fue una operacion Abrir exitosa
@@ -66,6 +67,7 @@ struct DTB_s
 struct UnlockableInfo_s
 {
 	uint32_t id;
+	bool overwritePC;
 	uint32_t newProgramCounter;
 	bool appendOFs;
 	t_dictionary* openedFilesUpdate;
@@ -153,7 +155,7 @@ extern int algorithmChange;						//Valor que registra de que a que algoritmo se 
 
 //--SEMAFOROS A EMPLEAR--//
 pthread_mutex_t mutexPLPtask;
-pthread_mutex_t mutexPCPtask;
+pthread_mutex_t mutexPCPtasksQueue;
 pthread_mutex_t mutexNEW;						//Mutex sobre la cola NEW, para cuando modifico sus elementos
 pthread_mutex_t mutexREADY;						//Garantiza mutua exclusion sobre las colas READY (la actual);
 												//extern en ConsoleHandler.h, ya que este lo usara al hacer metricas/status
@@ -162,15 +164,19 @@ pthread_mutex_t mutexScriptsQueue;				//Mutua exclusion sobre la cola de scripts
 pthread_mutex_t mutexToBeBlocked;				//Usado en Communication.h (extern)
 pthread_mutex_t mutexToBeUnlocked;				//Usado en Communication.h y ResourceManager.h (extern)
 pthread_mutex_t mutexToBeEnded;					//Usado en Communication.h y ConsoleHandler.h (extern)
+pthread_mutex_t mutexBeingDummied;				//Totalmente interno al modulo, para evitar concurrencia sobre lista de DTBs siendo dummizados
 
 extern pthread_mutex_t mutexCPUs;				//Proveniente de CPUsManager.h, para manejar de a uno la lista de CPUs
 
 sem_t workPLP;									//Semaforo binario, para indicar que es hora de que el PLP trabaje;
 												//no es extern ya que lo modifico con una funcion de aca (SetPLPTask)
+sem_t workPCP;									//Semaforo binario, para indicar que es hora de que el PCP trabaje;
+												//tampoco es extern, lo modifico con una funcion de aca (SetPCPTask)
 
 //--TAREAS A REALIZAR POR LOS PLANIFICADORES--//
+
 int PLPtask;
-int PCPtask;
+t_queue* PCPtasksQueue;							//Cola de ints (codigos de tarea del PCP) con las tareas a realizar por el PCP
 
 //--VARIABLES EMPLEADAS POR PROCESOS PROPIOS DEL MODULO--//
 uint32_t nextID;								//ID a asignarle al proximo DTB que se cree
@@ -246,11 +252,11 @@ void InitSchedulingGlobalVariables();
 void SetPLPTask(int taskCode);
 
 /*
- * 	ACCION: Setea la tarea a realizar por el PCP, garantizando mutua exclusion
+ * 	ACCION: Agrega una tarea a realizar por el PCP a la cola, sin concurrencia, y avisandole a este que debe trabajar
  * 	PARAMETROS:
  * 		taskCode: Codigo de la tarea a realizar; ver mas arriba
  */
-void SetPCPTask(int taskCode);
+void AddPCPTask(int taskCode);
 
 /*
  * 	ACCION: Crea un DTB nuevo con un cierto script asociado, sin estado y solo pre-malloceado; contadores e instante nulos

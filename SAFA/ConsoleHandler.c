@@ -68,12 +68,11 @@ void CommandEjecutar (int argC, char** args, char* callingLine, void* extraData)
 	pthread_mutex_lock(&mutexScriptsQueue);
 	char * path = string_duplicate(args[1]);
 	queue_push(scriptsQueue, path);
-	Logger_Log(LOG_DEBUG, "SAFA::CONSOLE Introducido el path %s", path);
+	Logger_Log(LOG_DEBUG, "SAFA::CONSOLE Introducido el path %s, agregado a la cola de scripts (%d scripts)", path, queue_size(scriptsQueue));
 	pthread_mutex_unlock(&mutexScriptsQueue);
 
 	//Le aviso al PLP que tiene trabajo para hacer, previamente seteando su tarea en crear un DTB con ese script
 	SetPLPTask(PLP_TASK_CREATE_DTB);
-	sem_post(&workPLP);
 
 	CommandInterpreter_FreeArguments(args);
 	return;
