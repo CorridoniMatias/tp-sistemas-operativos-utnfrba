@@ -167,7 +167,8 @@ void CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 			uint32_t logicDirToWrite = *((uint32_t*) dictionary_get(((Operation*) extraData)->dictionary, args[1]));
 			uint32_t lineToWrite = atoi(args[2]);
 			char* dataToWrite = args[3];
-			logicDirToWrite = ((Operation*) extraData)->programCounter + lineToWrite - 1;
+//			logicDirToWrite = ((Operation*) extraData)->programCounter + lineToWrite - 1;
+			logicDirToWrite += lineToWrite - 1;
 			declare_and_init(newLogicDir, int32_t, logicDirToWrite);
 
 			SerializedPart fieldForFM91 = { .size = sizeof(int32_t), .data = id };

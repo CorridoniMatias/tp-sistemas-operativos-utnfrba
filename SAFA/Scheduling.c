@@ -472,7 +472,7 @@ void PlanificadorLargoPlazo()
 			pthread_mutex_unlock(&mutexSettings);
 			//Vuelvo a poner la tarea del PLP en Planificacion Normal (1)
 			AddPCPTask(PCP_TASK_NORMAL_SCHEDULE);
-//			SetPLPTask(PLP_TASK_NORMAL_SCHEDULE);
+			SetPLPTask(PLP_TASK_NORMAL_SCHEDULE);
 		}
 
 	}
@@ -610,6 +610,7 @@ void PlanificadorCortoPlazo()
 			//El DAM, por su lado, me va a avisar cuando la carga del archivo termine => PLP_TASK_INITIALIZE_DTB
 			list_remove_by_condition(EXECqueue, (void*)IsDummy);
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Dummy extraido de la cola de EXEC, lo dejare libre en la cola de BLOCKED");
+			dummyDTB->id = 0;
 			AddToBlocked(dummyDTB);
 			AddPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 
@@ -728,11 +729,12 @@ void PlanificadorCortoPlazo()
 				{
 					//Pero si volvia de IO, avanzo una sola sentencia (IOs son atomicas)
 					sentencesRun = 1;
+					//Pelotudos del futuro no incrementen el program counter aca.
 				}
 
 				//Agrego las sentencias esperadas de los de NEW, y actualizo los archivos abiertos
 				AggregateSentencesWhileAtNEW(sentencesRun);
-				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se bloqueara el DTB de id %d, leyo %d sentencias", target->id, sentencesRun);
+				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se desbloqueara el DTB de id %d, leyo %d sentencias", target->id, sentencesRun);
 				UpdateOpenedFiles(target, nextToUnlock->openedFilesUpdate, nextToUnlock->appendOFs);
 				Logger_Log(LOG_DEBUG, "SAFA:PLANIF->Actualizados los archivos abiertos de dicho DTB");
 
@@ -762,7 +764,7 @@ void PlanificadorCortoPlazo()
 
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->PCP bajo la orden de pasar DTBs a EXIT y eliminarlos");
 			//Puntero a un uint32_t, que va a guardar el ID de cada DTB a abortar/finalizar de la cola
-			uint32_t* nextToEnd = (uint32_t*) malloc(sizeof(uint32_t));
+			uint32_t* nextToEnd;
 			pthread_mutex_lock(&mutexToBeEnded);
 			while(!queue_is_empty(toBeEnded))
 			{
@@ -802,7 +804,7 @@ void PlanificadorCortoPlazo()
 					target = list_remove_by_condition(EXECqueue, IsDTBToBeEnded);
 				}
 
-				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se bloqueara el DTB de id %d", target->id);
+				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se eliminará el DTB de id %d", target->id);
 
 				//Si no tiene marcado el instante de la primer respuesta (esta como 0),
 				//entonces debo marcarlo en este instante (es una respuesta del sistema)
@@ -961,11 +963,14 @@ void UpdateOpenedFiles(DTB* toBeUpdated, t_dictionary* currentOFs, bool dontOver
 	{
 		//Uso el putMAESTRO por las dudas, las commons se la comen
 		dictionary_putMAESTRO(toBeUpdated->openedFiles, path, address, LogicalAddressDestroyer);
+		toBeUpdated->openedFilesAmount++;
+		printf("\n\npath = %s--dir=%d\n\n",path,*((uint32_t*)address));
 	}
 
 	//Recorro el diccionario parametro (el actualizado) entero, y ejecuto la closure para que sobreescriba cada una
 	dictionary_iterator(currentOFs, UpdateSingleFile);
 
+	dictionary_destroy(currentOFs);
 }
 
 SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable)
@@ -1001,7 +1006,7 @@ SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 			totalSize = 1;
 //	memcpy(result + offset - 1, ";", 1);					//Pongo el ; al final de la cadena
 
-	memcpy(result + offset, ";", 1);						//Pongo el ; al final de la cadena
+	memcpy(result + totalSize - 1, ";", 1);						//Pongo el ; al final de la cadena
 	SerializedPart sp = {.data = result, .size = totalSize};
 	return sp;												//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
 
