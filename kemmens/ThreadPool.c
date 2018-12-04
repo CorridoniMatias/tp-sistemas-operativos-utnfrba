@@ -24,7 +24,7 @@ static void* ThreadPool_BasicOperation(void* ownerPool)
 		{
 			ThreadPoolRunnable* run = queue_pop(owner->jobs);
 			owner->free_threads--;
-			Logger_Log(LOG_DEBUG, "Thread %p working on job... Pool job queue count: %d. Free threads: %d", &this, queue_size(owner->jobs), owner->free_threads);
+			Logger_Log(LOG_DEBUG, "Thread %p orking on job... Pool job queue count: %d. Free threads: %d", &this, queue_size(owner->jobs), owner->free_threads);
 			pthread_mutex_unlock(&owner->lock);
 
 			run->runnable(run->data); //adentro de runnable se tiene que liberar la data! Responsabilidad del usuario!

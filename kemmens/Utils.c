@@ -1,5 +1,16 @@
 #include "kemmens/Utils.h"
 
+#ifdef ENABLE_MD5
+
+void md5(void* content, unsigned char* digest)
+{
+	MD5_CTX context;
+	MD5_Init(&context);
+	MD5_Update(&context, content, strlen(content) + 1);
+	MD5_Final(digest, &context);
+}
+
+#endif
 
 void dictionary_putMAESTRO(t_dictionary* dictionary, char* key, void* value, void (*elementDestroyer)(void*))
 {

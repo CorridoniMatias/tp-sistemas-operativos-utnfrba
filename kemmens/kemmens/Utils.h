@@ -1,17 +1,45 @@
 #ifndef KEMMENS_UTILS_H_
 #define KEMMENS_UTILS_H_
 
+//Descomentar la siguiente linea para activar el util de md5, requiere incluir la biblioteca -lcrypto en el proyecto donde se usen las kemmens
+//#define ENABLE_MD5
+
+#ifdef ENABLE_MD5
 #include <openssl/md5.h>
-#include <stdlib.h>
-#include <string.h>
+#endif
+
 #include <stdarg.h>
+#include <stdlib.h>
 #include "commons/collections/dictionary.h"
 #include "commons/collections/list.h"
 #include "commons/collections/queue.h"
+#include "StringUtils.h"
 
+//Define un puntero con el tipo de datos indicado y el valor inicial provisto. NO SIRVE PARA char*
 #define declare_and_init(pointer_name, data_type, init_value) 								\
 		data_type* pointer_name = (data_type*)malloc(sizeof(data_type)); 					\
 		*pointer_name = init_value;
+
+
+#ifdef ENABLE_MD5
+
+/**
+ * 		Crea un hash md5 para el void* provisto.
+ *
+ * 		Ejemplo:
+ *
+ * 		unsigned char digest[MD5_DIGEST_LENGTH];
+
+		md5("hola!", digest); //digest va a tener el hash
+
+		for(int x = 0; x < MD5_DIGEST_LENGTH; x++)
+		        printf("%02x", digest[x]); 	//imprime por pantalla el hash
+
+ *
+ */
+void md5(void* content, unsigned char* digest);
+
+#endif
 
 
 /*

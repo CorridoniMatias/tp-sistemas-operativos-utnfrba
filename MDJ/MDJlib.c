@@ -4,6 +4,7 @@
 #include "kemmens/SocketServer.h"
 #include "headers/MDJInterface.h"
 #include "kemmens/Utils.h"
+#include <openssl/md5.h>
 
 char* CONTEXT_CURRENT_PATH_LINUX;
 char* CONTEXT_CURRENT_PATH;
