@@ -52,6 +52,7 @@ void CreateDummy()
 	dummyDTB->pathLogicalAddress =0;
 	dummyDTB->openedFiles = dictionary_create();
 	dummyDTB->openedFilesAmount = 0 ;
+	dummyDTB->firstResponseTime = 0;
 	return;
 
 }
