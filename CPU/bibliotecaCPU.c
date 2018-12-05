@@ -188,7 +188,6 @@ void CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 //			if(*(int*)data->parts[0] == 1){
 			switch (responseFromFM9) {
 				case 1:
-					free(dataToWrite);
 					free(id);
 					free(newLogicDir);
 					((Operation*) extraData)->commandResult = 0;
@@ -200,7 +199,6 @@ void CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 	//			else {
 	//				if(*(int*)data->parts[0] == 2){
 				case 2:
-					free(dataToWrite);
 					Logger_Log(LOG_INFO, "Error fallo de segmento/memoria en FM9");
 //					int32_t idDtb = ((Operation*) extraData)->dtb;
 //					declare_and_init(id, int32_t, idDtb)
@@ -217,7 +215,6 @@ void CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 	//				}
 	//				else {
 				case 3:
-					free(dataToWrite);
 					Logger_Log(LOG_INFO, "Espacio insuficiente en FM9");
 //					int32_t idDtb = ((Operation*) extraData)->dtb;
 //					declare_and_init(id, int32_t, idDtb)
@@ -641,6 +638,7 @@ SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 	printf("\n\npor imprimir diciconario?\n\n");
 	void CopyPath(char* path, void* address)
 	{
+
 		printf("\n\npath=%s-address=%d\n\n",path,*((uint32_t*)address));
 		nextSize = strlen(path);							//Obtengo el largo del path
 		totalSize += (nextSize + 2 + sizeof(uint32_t));		//Sumo a totalSize, y sumo 2 mas por los : y la ,
@@ -657,12 +655,12 @@ SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 
 	dictionary_iterator(openFilesTable, CopyPath);			//Llamo al closure de arriba para hacerlo con todos los registros
 	if (totalSize == 0)
-		totalSize = 1;
+			totalSize = 1;
 //	memcpy(result + offset - 1, ";", 1);					//Pongo el ; al final de la cadena
 
-	memcpy(result + offset, ";", 1);					//Pongo el ; al final de la cadena
-	SerializedPart sp = {.data = result,.size = totalSize};
-	return sp;											//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
+	memcpy(result + totalSize - 1, ";", 1);						//Pongo el ; al final de la cadena
+	SerializedPart sp = {.data = result, .size = totalSize};
+	return sp;												//Queda : "arch1:d1,arch2:d2,...,archN:dN;"
 
 }
 void Start_commands(){

@@ -44,7 +44,8 @@ void Comms_DAM_AbrirFinished(void* arriveData)
 	//Solo debe actualizar los archivos abiertos del DTB cuando se lo desbloquee, no pisarlos todos
 	nextToUnlock->appendOFs = true;
 	nextToUnlock->openedFilesUpdate = dictionary_create();
-	dictionary_putMAESTRO(nextToUnlock->openedFilesUpdate, (char*)(params->parts[1]), (uint32_t*)(params->parts[2]), LogicalAddressDestroyer);
+	declare_and_init(logicalAddress,uint32_t,*((uint32_t*)params->parts[2]))
+	dictionary_putMAESTRO(nextToUnlock->openedFilesUpdate, (char*)(params->parts[1]), logicalAddress, LogicalAddressDestroyer);
 
 	//Meto ese struct a la cola de DTBs a desbloquear, cuidando la mutua exclusion; cambio la tarea de PCP
 	pthread_mutex_lock(&mutexToBeUnlocked);
@@ -55,7 +56,8 @@ void Comms_DAM_AbrirFinished(void* arriveData)
 
 	//Cleanup casero de la deserialization struct; no libero la memoria de parts[2], sino pierdo la address
 	//que sirve como value en el diccionario; mas adelante hare el free de ese diccionario, no hay drama
-	multiFree(4, params->parts[0], params->parts[1], params->parts, params);
+//	multiFree(4, params->parts[0], params->parts[1], params->parts, params);
+	Serialization_CleanupDeserializationStruct(params);
 	free(data->receivedData);
 	free(arriveData);
 
@@ -109,7 +111,7 @@ void Comms_DAM_IOError(void* arriveData)
 	AddPCPTask(PCP_TASK_END_DTB);
 
 	//No hago free de dtbID, sino borraria el valor de lo que tiene el nextToUnlock que acabo de guardar
-	free(data->receivedData);
+//	free(data->receivedData);
 	free(arriveData);
 
 }
@@ -135,7 +137,7 @@ void Comms_CPU_ErrorOrEOF(void* arriveData)
 	AddPCPTask(PCP_TASK_END_DTB);
 
 	//No hago free de dtbID, sino borraria el valor de lo que tiene el nextToUnlock que acabo de guardar
-	free(data->receivedData);
+//	free(data->receivedData);
 	free(arriveData);
 
 }
@@ -205,6 +207,7 @@ void Comms_CPU_DTBAtDAM(void* arriveData)
 	nextToBlock->quantumRemainder = *((uint32_t*)(params->parts[2]));
 	//nextToBlock->dummyComeback = false;
 	uint32_t ofa = *((uint32_t*)(params->parts[3]));
+	nextToBlock->dummyComeback=false;
 	printf("\n\ncant archivos=%d\n\n",ofa);
 	nextToBlock->openedFilesUpdate = BuildDictionary(params->parts[4], ofa);
 
