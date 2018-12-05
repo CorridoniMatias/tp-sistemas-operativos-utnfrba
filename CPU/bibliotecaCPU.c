@@ -598,18 +598,18 @@ t_dictionary* BuildDictionary(void* flattened, int amount)
 	t_dictionary* dict = dictionary_create();
 	int i = 1;
 	int offset = 0;
-	int* logicalAddress;
+	uint32_t* logicalAddress;
 	while(i <= amount)
 	{
 		char* path;
 		//OJO: NO VA EL FREE DE ESTE PUNTERO ACA, SINO PIERDO LA REFERENCIA DEL ULTIMO PUT
 		//EL FREE SE HACE SOLO CUANDO DESTRUYA EL DICCIONARIO Y SUS ELEMENTOS
-		logicalAddress = malloc(sizeof(int));
+		logicalAddress = malloc(sizeof(uint32_t));
 		path = strtok((char*)(flattened + offset), ":");
 		//No le sumo uno por los :, strlen me devuelve el largo + 1 por el \0 al final
-		offset += (strlen(path) + 1);
-		memcpy(logicalAddress, flattened + offset, sizeof(int));
-		offset += (sizeof(int) + 1);
+		offset += strlen(path) + 1;
+		memcpy(logicalAddress, flattened + offset, sizeof(uint32_t));
+		offset += sizeof(uint32_t) + 1;
 		dictionary_put(dict, path, logicalAddress);
 		i++;
 	}
