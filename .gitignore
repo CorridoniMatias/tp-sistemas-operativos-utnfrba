@@ -8,6 +8,9 @@
 /DAM/Debug/DAM
 /CPU/Debug/CPU
 
+#Tests
+/MDJ/Debug/fifa-checkpoint
+
 */.gitignore
 *.log
 

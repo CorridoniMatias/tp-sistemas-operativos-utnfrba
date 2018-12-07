@@ -52,6 +52,7 @@ void CreateDummy()
 	dummyDTB->pathLogicalAddress =0;
 	dummyDTB->openedFiles = dictionary_create();
 	dummyDTB->openedFilesAmount = 0 ;
+	dummyDTB->firstResponseTime = 0;
 	return;
 
 }
@@ -624,11 +625,12 @@ void PlanificadorCortoPlazo()
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->PCP bajo la orden de pasar DTBs a BLOCKED");
 			//Cuando el CPU me aviso que lo desaloje, deberia haberlo liberado con FreeCPU desde otro modulo
 			//Puntero a uint32_t, de ahi voy leyendo el ID del proximo DTB a bloquear (segun la cola)
-			BlockableInfo* nextToBlock = (BlockableInfo*) malloc(sizeof(BlockableInfo));
+			BlockableInfo* nextToBlock;
 			pthread_mutex_lock(&mutexToBeBlocked);
 			while(!queue_is_empty(toBeBlocked))
 			{
 				nextToBlock = (BlockableInfo*) queue_pop(toBeBlocked);
+				printf("\n\nbabyComeback=%d\n\n",nextToBlock->dummyComeback);
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se intentara bloquear el DTB de ID = %d", nextToBlock->id);
 
 				//Funcion anidada, para poder comparar cada DTB de EXEC con el ultimo ID (local al while) hallado
@@ -680,19 +682,19 @@ void PlanificadorCortoPlazo()
 
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->PCP bajo la orden de pasar DTBs a READY y desbloquearlos");
 			//Puntero al proximo DTB a desbloquear, segun vaya sacando de la cola
-			UnlockableInfo* nextToUnlock = (UnlockableInfo*) malloc(sizeof(UnlockableInfo));
+			UnlockableInfo* nextToUnlock;
 			pthread_mutex_lock(&mutexToBeUnlocked);
 			while(!queue_is_empty(toBeUnlocked))
 			{
 
 				nextToUnlock = (UnlockableInfo*) queue_pop(toBeUnlocked);
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se intentara desbloquear el DTB de id = %d", nextToUnlock->id);
-
+				printf("\n\nhere we go=%d\n\n",nextToUnlock->overwritePC);
 				//Closure anidada, para poder hallar de las colas el DTB con el mismo ID que el recien sacado de la cola
 				bool IsDTBToBeUnlocked(void* aDTB)
 				{
 					DTB* realDTB = (DTB*) aDTB;
-					if(realDTB->id == nextToUnlock->id)
+					if(realDTB->id == nextToUnlock->id && realDTB->initialized)
 					{
 						return true;
 					}
@@ -713,6 +715,11 @@ void PlanificadorCortoPlazo()
 				else
 				{
 					target = list_remove_by_condition(BLOCKEDqueue, IsDTBToBeUnlocked);
+				}
+				if(target==NULL)
+				{
+					Logger_Log(LOG_ERROR,"\n\nERROR CRÍTICO: No se encontro el DTB en ninguna cola\n\n");
+					exit(-1);
 				}
 
 				//Me fijo cuantas sentencias leyo, con una diferencia de PCs
@@ -737,7 +744,7 @@ void PlanificadorCortoPlazo()
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se desbloqueara el DTB de id %d, leyo %d sentencias", target->id, sentencesRun);
 				UpdateOpenedFiles(target, nextToUnlock->openedFilesUpdate, nextToUnlock->appendOFs);
 				Logger_Log(LOG_DEBUG, "SAFA:PLANIF->Actualizados los archivos abiertos de dicho DTB");
-
+				printf("\n\nfirst=%d\n\n",target->firstResponseTime);
 				//Si no tiene marcado el instante de la primer respuesta (esta como 0),
 				//entonces debo marcarlo en este instante (es una respuesta del sistema)
 				if(target->firstResponseTime == 0)
@@ -959,12 +966,13 @@ void UpdateOpenedFiles(DTB* toBeUpdated, t_dictionary* currentOFs, bool dontOver
 
 	//Haya vaciado el diccionario anterior o no, actualizo el diccionario, es el mismo codigo
 	//Closure anidada, para que haga el put en el diccionario del DTB pasado por parametro
+//	toBeUpdated->openedFilesAmount = 0;
 	void UpdateSingleFile(char* path, void* address)
 	{
 		//Uso el putMAESTRO por las dudas, las commons se la comen
 		dictionary_putMAESTRO(toBeUpdated->openedFiles, path, address, LogicalAddressDestroyer);
 		toBeUpdated->openedFilesAmount++;
-		printf("\n\npath = %s--dir=%d\n\n",path,*((uint32_t*)address));
+		printf("\n\ncant archivos abiertos=%d\n\n",toBeUpdated->openedFilesAmount);
 	}
 
 	//Recorro el diccionario parametro (el actualizado) entero, y ejecuto la closure para que sobreescriba cada una

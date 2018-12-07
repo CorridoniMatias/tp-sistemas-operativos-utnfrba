@@ -104,8 +104,8 @@ int main(int argc, char *argv[])
 
 				}
 			if (extraData.quantum == 0) {
-				declare_and_init(newQ, int32_t, extraData.quantum);
-				SerializedPart fieldForSAFA1 = { .size = sizeof(uint32_t),.data = newQ };
+				declare_and_init(id, int32_t, extraData.dtb);
+				SerializedPart fieldForSAFA1 = { .size = sizeof(uint32_t),.data = id };
 				declare_and_init(updatedProgramCounter,uint32_t,extraData.programCounter)
 				SerializedPart fieldForSAFA2 = { .size = sizeof(uint32_t), .data = updatedProgramCounter };
 				uint32_t numberOfFiles = dictionary_size(dictionary);
@@ -118,14 +118,12 @@ int main(int argc, char *argv[])
 				SerializedPart fieldForSAFA4 = FlattenPathsAndAddresses(
 						extraData.dictionary);
 
-				SerializedPart* packetToSAFA = Serialization_Serialize(4,
-						fieldForSAFA1, fieldForSAFA2, fieldForSAFA3,
-						fieldForSAFA4);
+				SerializedPart* packetToSAFA = Serialization_Serialize(4, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4);
 
-				SocketCommons_SendData(safa, MESSAGETYPE_CPU_EOQUANTUM,
-						packetToSAFA->data, packetToSAFA->size);
+				SocketCommons_SendData(safa, MESSAGETYPE_CPU_EOQUANTUM,	packetToSAFA->data, packetToSAFA->size);
 
-				free(newQ);
+				free(id);
+				free(updatedProgramCounter);
 				free(newNumberOfFiles);
 				Serialization_CleanupSerializedPacket(packetToSAFA);
 			}
