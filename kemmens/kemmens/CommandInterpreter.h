@@ -7,6 +7,9 @@
 #include "commons/string.h"
 #include "commons/collections/list.h"
 
+//Para deshabilitar el logueo interno de este modulo de las kemmens descomentar la siguiente linea:
+//#define COMMANDINTERPRETER_DISABLE_LOGGING
+
 /**
  * 		Estructura que almacena la informacion del interpretador de comandos y su ejecucion
  * 		PARAMETROS:
