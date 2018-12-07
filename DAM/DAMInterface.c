@@ -56,20 +56,23 @@ static void* DAM_ReadFileFromFM9(uint32_t dtbID, uint32_t logicalAddress, int so
 	void* buffer = malloc(1);
 
 	declare_and_init(id,uint32_t,dtbID)
-	printf("\n\nid=%d\n\n",id);
 	SerializedPart p_id = {.size = sizeof(uint32_t), .data = id};
+	printf("\n\nid=%d\n\n",*id);
+
 	declare_and_init(address, uint32_t, logicalAddress)
-	printf("\n\naddress=%d\n\n",logicalAddress);
 	SerializedPart p_address = {.size = sizeof(uint32_t), .data = address};
-	declare_and_init(psize, uint32_t, settings->transferSize)
-	printf("\n\ntransferSize=%d\n\n",settings->transferSize);
-	SerializedPart p_size = {.size = sizeof(uint32_t), .data = psize};
+	printf("\n\naddress=%d\n\n",*address);
+
+	declare_and_init(maxSize, uint32_t, settings->transferSize)
+	SerializedPart p_size = {.size = sizeof(uint32_t), .data = maxSize};
+	printf("\n\ntransferSize=%d\n\n",*maxSize);
+
 	SerializedPart* serializedContent = Serialization_Serialize(3, p_id, p_address,p_size);
 
 	SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_FLUSH, serializedContent->data, serializedContent->size);
 	free(id);
 	free(address);
-	free(psize);
+	free(maxSize);
 	Serialization_CleanupSerializedPacket(serializedContent);
 
 	while(1)
@@ -77,13 +80,17 @@ static void* DAM_ReadFileFromFM9(uint32_t dtbID, uint32_t logicalAddress, int so
 		int message_type, error_status, message_length;
 
 		void* recvData = SocketCommons_ReceiveData(socketFM9, &message_type, &message_length, &error_status);
+		printf("\n\n\npor dormir en el flush\n\n\n");
+
 
 		if(message_length == 0) //recvData es NULL por definicion de las kemmens, si llegamos a length 0 es porque no hay mas nada para recibir, tenemos el archivo completo.
 			break;
 
 		switch(message_type)
 		{
+			//TODO que carajos hacemos con el error, tengo sueño
 			case MESSAGETYPE_INT: //codigo de error.
+				return NULL;
 			break;
 			case MESSAGETYPE_STRING:
 			{
@@ -94,7 +101,7 @@ static void* DAM_ReadFileFromFM9(uint32_t dtbID, uint32_t logicalAddress, int so
 				break;
 			}
 		}
-
+		sleep(5);
 		SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_FLUSH, 0, 0);
 	}
 
@@ -150,6 +157,8 @@ static int DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 		offset += sizeToSend;
 
 		void* data = SocketCommons_ReceiveData(socketFM9, &msg_type, &length, &status);
+
+		sleep(1);
 
 		if(msg_type == MESSAGETYPE_INT)
 		{
@@ -349,7 +358,7 @@ void DAM_Flush(void* arriveData)
 
 	if(dest->count < 3) {
 		//no tenemos los datos necesarios para seguir adelante
-		Logger_Log(LOG_ERROR, "DAM::DAM_Borrar -> Recibido menos de 3 parametros.");
+		Logger_Log(LOG_ERROR, "DAM::DAM_Flush -> Recibido menos de 3 parametros.");
 		Serialization_CleanupDeserializationStruct(dest);
 		SocketServer_CleanOnArrivedData(data);
 		return;
@@ -357,7 +366,7 @@ void DAM_Flush(void* arriveData)
 
 	uint32_t dtbID = *((uint32_t*) dest->parts[0]);
 	uint32_t direccionLogica = *((int*) dest->parts[1]);
-	char* filePath = (char*) dest->parts[3];
+	char* filePath = (char*) dest->parts[2];
 
 
 	//Primero que nada tenemos que abrir una conexion con el FM9 y una conexion con el MDJ
@@ -372,7 +381,7 @@ void DAM_Flush(void* arriveData)
 	int socketFM9 = SocketClient_ConnectToServerIP(settings->ipFM9, settings->puertoFM9);
 
 	int len;
-
+	//TODO que hacemos si hay error desde FM9?
 	char* archivo = DAM_ReadFileFromFM9(dtbID, direccionLogica,socketFM9, &len);
 	//Usado para test:
 	//char* archivo = "MAKE c:/1/2/3.txt\nPULL d:/9/8/.bat\nULTIMA LINEA\nMAKE c:/1/2/3.txt\nPULL d:/9/8/.bat\nULTIMA LINEA";

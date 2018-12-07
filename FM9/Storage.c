@@ -48,8 +48,9 @@ int writeLine(void* data, int numLinea) {
 
 int readLine(void* target, int numLinea) {
 
+	char* linea = NULL;
 	verifyLineNumber(numLinea)
-	char* linea = calloc(1,tamanioLinea);
+	linea = calloc(1,tamanioLinea);
 	memcpy(linea, storage[numLinea], tamanioLinea);
 	linea = realloc(linea, tamanioLinea + 1);
 	memcpy(linea + tamanioLinea, "\0", 1);

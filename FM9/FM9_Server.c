@@ -40,7 +40,10 @@ void onPacketArrived(int socketID, int message_type, void* data, int message_len
 	arriveData->receivedData = data;
 	arriveData->receivedDataLength = message_length;
 
-	run->data = (void*) arriveData;
+	run->data = arriveData;
+	if (data == NULL) {
+			printf("\n\n\n\nPUEDE QUE ESTE LOCO JHONNY PERO DATA ES NULL\n\n\n\n");
+		}
 	void freeData(void * data){
 		OnArrivedData* onArriveData = data;
 		SocketServer_CleanOnArrivedData(onArriveData);
@@ -65,6 +68,7 @@ void onPacketArrived(int socketID, int message_type, void* data, int message_len
 			run->runnable = FM9_Flush;
 			break;
 		default:
+			printf("\n\nme llego un mensaje que no entiendo\n\n");
 			free(run);
 			free(arriveData);
 			free(data);
@@ -93,7 +97,7 @@ void ClientError(int socketID, int errorCode) {
 
 void StartServer() {
 	CommandInterpreter_Init();
-	threadPool = ThreadPool_CreatePool(10, false);
+	threadPool = ThreadPool_CreatePool(2, false);
 
 	SocketServer_Start("FM9", settings->puerto);
 	Logger_Log(LOG_INFO, "Escuchando en el puerto %d", settings->puerto);

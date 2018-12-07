@@ -32,11 +32,11 @@ Configuracion* settings;
 typedef struct{
 	void (*createStructures)();
 	void (*freeStructures)();
-	int (*virtualAddressTranslation)(int, int);
-	int (*writeData)(void*, int, int);
-	int (*readData)(void*, int, int);
-	int (*closeFile)(int,int);
-	int (*dump)(int);
+	int (*virtualAddressTranslation)(int logicalAddress, int dtdID);
+	int (*writeData)(void* data, int size, int dtdID);
+	int (*readData)(void* target, int logicalAddress, int dtdID);
+	int (*closeFile)(int dtdID,int logicalAddress);
+	int (*dump)(int dtdID);
 //	int (*size)(int,int);
 	//No es necesaria esta creo, con hacer la traduccion esta bien;
 //	int (*readLine)(void*,int,int);

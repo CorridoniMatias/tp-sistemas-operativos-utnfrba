@@ -409,7 +409,7 @@ void CommandFlush(int argC, char** args, char* callingLine, void* extraData){
 		declare_and_init(newQ,int32_t,quantum);
 		int32_t numberOfFiles = dictionary_size(((Operation*)extraData)->dictionary);
 		declare_and_init(newNumberOfFiles,int32_t,numberOfFiles);
-		uint32_t virtualAddress = *((int*)dictionary_get(((Operation*)extraData)->dictionary,path));
+		uint32_t virtualAddress = *((uint32_t*)dictionary_get(((Operation*)extraData)->dictionary,path));
 		declare_and_init(newVirtualAddress,uint32_t,virtualAddress)
 
 		SerializedPart fieldForDAM1 = {.size = sizeof(int32_t), .data =id};

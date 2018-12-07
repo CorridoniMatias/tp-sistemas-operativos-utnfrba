@@ -87,7 +87,7 @@ void SocketServer_ListenForConnection(SocketServer_ActionsListeners actions)
 	//ignoredSockets = list_create();
 	pthread_mutex_init(&connections_lock, NULL);
 
-	int connlistsize, currconn, connected_socket, sel, max_fd = sock; //el descriptor maximo empieza como sock (el master y unico que hay por ahora) pero puede ser mas grande a medida que lleguen sockets.
+	int connlistsize=0, currconn=0, connected_socket, sel, max_fd = sock; //el descriptor maximo empieza como sock (el master y unico que hay por ahora) pero puede ser mas grande a medida que lleguen sockets.
 	ServerClient* currclient;
 	//Si recibimos una funcion para manejar el procesamiento del input por linea se lo pasamos a readline.
 	if(actions.OnConsoleInputReceived != 0)
@@ -278,7 +278,6 @@ void SocketServer_ListenForConnection(SocketServer_ActionsListeners actions)
 				}
 
 			}
-
 			if((currconn == -1 || connlistsize == 0) && actions.OnConsoleInputReceived != NULL) //Input de teclado
 					rl_callback_read_char(); //Readline nos hace el favor de ir acumulando los chars hasta recibir <enter>, ahi le manda la linea a consoleInputHandle.
 		}

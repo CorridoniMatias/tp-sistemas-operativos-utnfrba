@@ -13,6 +13,8 @@ void FM9_AsignLine(void* data) {
 		int dtbID = *((int *) actualData->parts[0]);
 		int virtualAddress = *((int *) actualData->parts[1]);
 		void* data = actualData->parts[2];
+
+		printf("\nlinea = %s.\n", (char*)data);
 		int lineNumber = memoryFunctions->virtualAddressTranslation(
 				virtualAddress, dtbID);
 		if (lineNumber < 0) {
@@ -30,6 +32,7 @@ void FM9_AsignLine(void* data) {
 			else {
 				memcpy(buffer + size, data, sizeOfData);
 				buffer[tamanioLinea - 1] = '\n';
+				printf("\nlinea a ser escritaaaa = %s.\n", buffer);
 				result = writeLine(buffer, lineNumber);
 				if (result == INVALID_LINE_NUMBER) {
 					*status = 2;
@@ -142,6 +145,7 @@ void FM9_Close(void* data) {
 }
 //Recibir un pedazo por pedazo hace un wakemeupwhen y un if messagelength = 0 break;
 void FM9_Open(void* data) {
+	printf("\n\n\n\n\nEjecutando FM9 OPEN\n\n");
 	OnArrivedData* arriveData = data;
 	DeserializedData* actualData = Serialization_Deserialize(
 			arriveData->receivedData);
@@ -150,9 +154,12 @@ void FM9_Open(void* data) {
 
 	if (actualData->count == 3) {
 		int dtbID = *((uint32_t *) actualData->parts[0]);
+
+		printf("\niddd = %d\n", dtbID);
 		int size = 0, sizeReceived = 0;
 		void* buffer = malloc(1);
 		*response_code = 1;
+		printf("\nsocket = %d\n", socket);
 
 		while (1) {
 
@@ -163,14 +170,17 @@ void FM9_Open(void* data) {
 			memcpy(((void*)(buffer + size)), actualData->parts[2], sizeReceived);
 			size += sizeReceived;
 
-			SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT, response_code, sizeof(uint32_t));
-
 			SocketServer_CleanOnArrivedData(arriveData);
 			Serialization_CleanupDeserializationStruct(actualData);
 
+			SocketCommons_SendData(socket, MESSAGETYPE_INT, response_code, sizeof(uint32_t));
 			arriveData = SocketServer_WakeMeUpWhenDataIsAvailableOn(socket);
-			printf("size = %d\n", size);
-			printf("buffer= %s\n", (char*) buffer);
+			printf("\nsize = %d\n", size);
+			printf("\nbuffer= %s\n", (char*) buffer);
+
+
+			printf("\n\n\nwakemeuppppp\n\n\n");
+
 			if (arriveData->receivedDataLength == 0) //receivedDataLength es NULL por definicion de las kemmens, si llegamos a length 0 es porque no hay mas nada para recibir, tenemos el archivo completo.
 				break;
 
@@ -178,7 +188,7 @@ void FM9_Open(void* data) {
 
 		}
 		printf("\n\nsize final es = %d\n\n", size);
-		printf("\n\nbuffer final=%s\n\n",buffer);
+		printf("\n\nbuffer final=%s\n\n",(char*)buffer);
 		if (size == 0) {
 			printf("se va a liberar esta poronga");
 //			free(buffer);
@@ -221,19 +231,28 @@ void FM9_Open(void* data) {
 
 void FM9_Flush(void* data) {
 	OnArrivedData* arriveData = data;
-	DeserializedData* actualData = Serialization_Deserialize(arriveData->receivedData);
+	printf("\n\n\n\n\nEjecutando FM9 FLUSHHH\n\n");
+	DeserializedData* actualData;
+	int socket = arriveData->calling_SocketID;
+	if (arriveData->receivedData == NULL) {
+		printf("\n\n\n\nhay un null en el receivedData que onda?\n\n\n\n");
+		return;
+	}
+	actualData = Serialization_Deserialize(arriveData->receivedData);
 	if (actualData->count == 3) {
 		uint32_t id = *((int*) actualData->parts[0]);
 		uint32_t logicalAddress = *((int*) actualData->parts[1]);
 		uint32_t transferSize = *((int*) actualData->parts[2]);
+		printf("\n\nid=%d\n\n",id);
+		printf("\n\nlogicalAddress=%d\n\n",logicalAddress);
 		void* buffer = NULL;
-		int bufferSize = memoryFunctions->readData(buffer, id, logicalAddress);
+		int bufferSize = memoryFunctions->readData(buffer, logicalAddress, id);
 
 		if (bufferSize <= 0) {
 			free(buffer);
 			declare_and_init(response_code, uint32_t, 2)
-			SocketCommons_SendData(arriveData->calling_SocketID,
-			MESSAGETYPE_INT, response_code, sizeof(uint32_t));
+			printf("\n\npor enviar errorrrrrrrrrrrrrr\n\n\n\n\n\n\n");
+			SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT, response_code, sizeof(uint32_t));
 			free(response_code);
 			SocketServer_CleanOnArrivedData(arriveData);
 			Serialization_CleanupDeserializationStruct(actualData);
@@ -261,18 +280,16 @@ void FM9_Flush(void* data) {
 				size = realSize;
 			else
 				size = transferSize;
-			SocketCommons_SendData(arriveData->calling_SocketID,
-					MESSAGETYPE_STRING, buffer + offset, size);
+
+			SocketServer_CleanOnArrivedData(arriveData);
+			printf("\n\npor enviar ack\n\n");
+			SocketCommons_SendData(socket, MESSAGETYPE_STRING, buffer + offset, size);
+			arriveData = SocketServer_WakeMeUpWhenDataIsAvailableOn(socket);
+
 			if (size == 0)
 				break;
 			offset += size;
 			realSize -= size;
-			OnArrivedData* wakeData =
-					SocketServer_WakeMeUpWhenDataIsAvailableOn(
-							arriveData->calling_SocketID);
-			if (wakeData != NULL) {
-				SocketServer_CleanOnArrivedData(wakeData);
-			}
 
 		}
 	} else {
@@ -284,7 +301,6 @@ void FM9_Flush(void* data) {
 		Serialization_CleanupDeserializationStruct(actualData);
 		return;
 	}
-	SocketServer_CleanOnArrivedData(arriveData);
 	Serialization_CleanupDeserializationStruct(actualData);
 }
 
