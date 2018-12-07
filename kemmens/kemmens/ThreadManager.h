@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include "logger.h"
 
+//Para deshabilitar el logueo interno de este modulo de las kemmens descomentar la siguiente linea:
+//#define THREADMANAGER_DISABLE_LOGGING
+
 /*	Mallocea un pthread_t.
  *
  * OJO!! Despues de hacer un join al thread creado se DEBE hacer el free

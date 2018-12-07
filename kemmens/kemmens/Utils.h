@@ -4,6 +4,7 @@
 //Descomentar la siguiente linea para activar el util de md5, requiere incluir la biblioteca -lcrypto en el proyecto donde se usen las kemmens
 //#define ENABLE_MD5
 
+
 #ifdef ENABLE_MD5
 #include <openssl/md5.h>
 #endif
