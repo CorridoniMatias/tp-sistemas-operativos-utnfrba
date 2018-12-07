@@ -46,8 +46,7 @@ int writeData_SEG(void* data, int size, int dtbID) {
 		return INSUFFICIENT_SPACE;
 	}
 	for (int i = 0; i < lineasNecesarias; i++) {
-		if (writeLine(((char*) data) + i * tamanioLinea,
-				freeSegment->base + i) == INVALID_LINE_NUMBER) {
+		if (writeLine(((char*) data) + i * tamanioLinea, freeSegment->base + i) == INVALID_LINE_NUMBER) {
 			return INVALID_LINE_NUMBER;
 		}
 	}

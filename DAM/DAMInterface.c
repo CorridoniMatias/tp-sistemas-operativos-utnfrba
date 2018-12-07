@@ -56,10 +56,13 @@ static void* DAM_ReadFileFromFM9(uint32_t dtbID, uint32_t logicalAddress, int so
 	void* buffer = malloc(1);
 
 	declare_and_init(id,uint32_t,dtbID)
+	printf("\n\nid=%d\n\n",id);
 	SerializedPart p_id = {.size = sizeof(uint32_t), .data = id};
 	declare_and_init(address, uint32_t, logicalAddress)
+	printf("\n\naddress=%d\n\n",logicalAddress);
 	SerializedPart p_address = {.size = sizeof(uint32_t), .data = address};
-	declare_and_init(psize, uint32_t, settings->transferSize);
+	declare_and_init(psize, uint32_t, settings->transferSize)
+	printf("\n\ntransferSize=%d\n\n",settings->transferSize);
 	SerializedPart p_size = {.size = sizeof(uint32_t), .data = psize};
 	SerializedPart* serializedContent = Serialization_Serialize(3, p_id, p_address,p_size);
 
@@ -139,7 +142,7 @@ static int DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 		SerializedPart* serializedContent = Serialization_Serialize(3, p_iddtb, p_size, p_buffer);
 
 		SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_OPEN, serializedContent->data, serializedContent->size);
-
+		printf("\n\nbuffer=%s\n\n",(char*)buffer);
 		Serialization_CleanupSerializedPacket(serializedContent);
 		free(piddtb);
 		free(psize);

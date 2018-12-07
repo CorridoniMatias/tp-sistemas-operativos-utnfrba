@@ -962,11 +962,12 @@ void UpdateOpenedFiles(DTB* toBeUpdated, t_dictionary* currentOFs, bool dontOver
 	{
 		//Limpio el diccionario y borro todos sus elementos, tal vez cerro alguno y no quiero que quede de mas
 		dictionary_clean_and_destroy_elements(toBeUpdated->openedFiles, LogicalAddressDestroyer);
+		toBeUpdated->openedFilesAmount = 0;
 	}
 
 	//Haya vaciado el diccionario anterior o no, actualizo el diccionario, es el mismo codigo
 	//Closure anidada, para que haga el put en el diccionario del DTB pasado por parametro
-//	toBeUpdated->openedFilesAmount = 0;
+
 	void UpdateSingleFile(char* path, void* address)
 	{
 		//Uso el putMAESTRO por las dudas, las commons se la comen

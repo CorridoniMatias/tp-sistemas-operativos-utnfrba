@@ -71,7 +71,7 @@ void FM9_AskForLine(void* data) {
 				virtualAddress, dtbID);
 		printf("\n\n\nlineNumber = %d\n\n\n", lineNumber);
 		if (lineNumber >= 0) {
-			buffer = malloc(tamanioLinea);
+			buffer = calloc(1,tamanioLinea);
 			freeBuffer = true;
 			int result = readLine(buffer, lineNumber);
 			if (result == INVALID_LINE_NUMBER) {
@@ -149,22 +149,21 @@ void FM9_Open(void* data) {
 	int socket = arriveData->calling_SocketID;
 
 	if (actualData->count == 3) {
-		int dtbID = *((int *) actualData->parts[0]);
+		int dtbID = *((uint32_t *) actualData->parts[0]);
 		int size = 0, sizeReceived = 0;
 		void* buffer = malloc(1);
+		*response_code = 1;
 
 		while (1) {
 
-			sizeReceived = *((int *) actualData->parts[1]);
+			sizeReceived = *((uint32_t *) actualData->parts[1]);
 
 			buffer = realloc(buffer, size + sizeReceived);
 			printf("size received es = %d\n", sizeReceived);
-			memcpy(buffer + size, actualData->parts[2], sizeReceived);
+			memcpy(((void*)(buffer + size)), actualData->parts[2], sizeReceived);
 			size += sizeReceived;
-			*response_code = 1;
 
-			SocketCommons_SendData(arriveData->calling_SocketID,
-			MESSAGETYPE_INT, response_code, sizeof(uint32_t));
+			SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT, response_code, sizeof(uint32_t));
 
 			SocketServer_CleanOnArrivedData(arriveData);
 			Serialization_CleanupDeserializationStruct(actualData);
@@ -178,18 +177,18 @@ void FM9_Open(void* data) {
 			actualData = Serialization_Deserialize(arriveData->receivedData);
 
 		}
-		printf("size final es = %d\n", size);
+		printf("\n\nsize final es = %d\n\n", size);
+		printf("\n\nbuffer final=%s\n\n",buffer);
 		if (size == 0) {
 			printf("se va a liberar esta poronga");
 //			free(buffer);
 		}
-
-		printf("\npor hacer malloc\n");
 		//Aca se copia en un nuevo buffer los datos hasta el \n pero haciendo que ocupen una linea entera, habiendo datos basura.
 		void* realData = NULL;
 		int sizeLine = 0, realSize = 0, offset = 0;
 		printf("\npor acomodar el buffer\n");
 		while (offset < size) {
+			printf("\n\noffset=%d\n\n",offset);
 			sizeLine = sizeOfLine((char*) (buffer + offset)) + 1;
 			realData = realloc(realData, realSize + tamanioLinea);
 			memcpy(realData + realSize, buffer + offset, sizeLine);
@@ -197,8 +196,7 @@ void FM9_Open(void* data) {
 			offset += sizeLine;
 		}
 		free(buffer);
-		int logicalAddress = memoryFunctions->writeData(realData, realSize,
-				dtbID);
+		int logicalAddress = memoryFunctions->writeData(realData, realSize, dtbID);
 
 		if (logicalAddress == INSUFFICIENT_SPACE) {
 			*response_code = 2;
@@ -223,8 +221,7 @@ void FM9_Open(void* data) {
 
 void FM9_Flush(void* data) {
 	OnArrivedData* arriveData = data;
-	DeserializedData* actualData = Serialization_Deserialize(
-			arriveData->receivedData);
+	DeserializedData* actualData = Serialization_Deserialize(arriveData->receivedData);
 	if (actualData->count == 3) {
 		uint32_t id = *((int*) actualData->parts[0]);
 		uint32_t logicalAddress = *((int*) actualData->parts[1]);
@@ -307,7 +304,9 @@ void FM9_Dump(int argC, char** args, char* callingLine, void* extraData) {
 
 int sizeOfLine(char* line) {
 	int i = 0;
-	while (line[i] != '\n')
-		i++;
+	printf("\n\nanalizando linea=%s\n\n",line);
+	while (line[i] != '\n'){
+		printf("\ni=%d\n",i);
+		i++;}
 	return i;
 }
