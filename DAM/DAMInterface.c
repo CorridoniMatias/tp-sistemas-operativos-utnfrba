@@ -388,6 +388,8 @@ void DAM_Flush(void* arriveData)
 	int sizeToSend = 0;
 	int msg_type, length, status;
 
+	bool errorDetected = 0;
+
 	while(1)
 	{
 		if(len <= 0)
@@ -434,25 +436,28 @@ void DAM_Flush(void* arriveData)
 		{
 			switch(*((uint32_t*)data))
 			{
-				case 0: //OPERATION_SUCCESSFUL
-				{
-					//Avisamos al SAFA que el flush termino
-					SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_FLUSH, dest->parts[0], sizeof(uint32_t));
-					return;
+				case 0: //OPERATION_SUCCESSFUL -> parte leida correctamente
 				break;
-				}
+
 				case 12: //FILE_NOT_EXISTS
 				case 11: //METADATA_OPEN_ERROR
 				case 10: //INSUFFICIENT_SPACE
 				{
+					errorDetected = true;
 					Logger_Log(LOG_ERROR, "ERROR EN FLUSH POR PARTE DEL MDJ: %d", *((uint32_t*)data));
 					DAM_ErrorOperacion(dtbID);
 				break;
 				}
 			}
 		}
+
 		free(data);
+		if(errorDetected)
+			break;
 	}
+
+	if(!errorDetected)
+		SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_FLUSH, dest->parts[0], sizeof(uint32_t)); //Avisamos al SAFA que el flush termino
 
 	free(archivo);
 	close(socketFM9);

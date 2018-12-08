@@ -8,6 +8,10 @@
 /DAM/Debug/DAM
 /CPU/Debug/CPU
 
+#Eclipse
+**/language.settings.xml
+/RemoteSystemsTempFiles
+
 #Tests
 /MDJ/Debug/fifa-checkpoint
 
