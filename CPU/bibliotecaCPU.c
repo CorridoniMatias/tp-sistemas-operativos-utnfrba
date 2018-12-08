@@ -159,14 +159,19 @@ void CommandConcentrar(int argC, char** args, char* callingLine, void* extraData
 }
 
 void CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
-	if(argC == 4){
+	if(argC >= 3){
 		if (openFileVerificator(((Operation*) extraData)->dictionary, args[1])) {
 
 			int32_t idDtb = ((Operation*) extraData)->dtb;
 			declare_and_init(id, int32_t, idDtb);
 			uint32_t logicDirToWrite = *((uint32_t*) dictionary_get(((Operation*) extraData)->dictionary, args[1]));
 			uint32_t lineToWrite = atoi(args[2]);
-			char* dataToWrite = args[3];
+			char* dataToWrite = string_new();
+			string_append(&dataToWrite, args[3]);
+			for (int i = 4; i <= argC; i++) {
+				string_append(&dataToWrite, " ");
+				string_append(&dataToWrite, args[i]);
+			}
 //			logicDirToWrite = ((Operation*) extraData)->programCounter + lineToWrite - 1;
 			logicDirToWrite += lineToWrite - 1;
 			declare_and_init(newLogicDir, int32_t, logicDirToWrite);
@@ -176,6 +181,8 @@ void CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 			SerializedPart fieldForFM93 = { .size = strlen(dataToWrite) + 1, .data = dataToWrite };
 
 			SerializedPart* packetToFM9 = Serialization_Serialize(3, fieldForFM91, fieldForFM92, fieldForFM93);
+
+			free(dataToWrite);
 
 			SocketCommons_SendData(((Operation*) extraData)->socketFM9, MESSAGETYPE_FM9_ASIGN, packetToFM9->data, packetToFM9->size);
 

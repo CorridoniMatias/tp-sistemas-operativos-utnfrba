@@ -32,7 +32,7 @@ int writeLine(void* data, int numLinea) {
 	verifyLineNumber(numLinea);
 	memcpy(storage[numLinea], data, tamanioLinea);
 	char* linea = calloc(1,tamanioLinea);
-
+	memset(linea,0,tamanioLinea);
 	memcpy(linea, data, tamanioLinea);
 	linea = realloc(linea, tamanioLinea + 1);
 	memcpy(linea + tamanioLinea, "\0", 1);
@@ -51,13 +51,16 @@ int readLine(void* target, int numLinea) {
 	char* linea = NULL;
 	verifyLineNumber(numLinea)
 	linea = calloc(1,tamanioLinea);
+	memset(linea,0,tamanioLinea);
 	memcpy(linea, storage[numLinea], tamanioLinea);
 	linea = realloc(linea, tamanioLinea + 1);
 	memcpy(linea + tamanioLinea, "\0", 1);
 
 	Logger_Log(LOG_DEBUG, "Contenido de Storage = %s -- En linea = %d.", linea, numLinea);
-
+	target = memset(target,0,tamanioLinea);
 	memcpy(target, linea, tamanioLinea);
+
+	printf("\n\ntarget=\"%s\"\n\n",(char*)target);
 
 	free(linea);
 

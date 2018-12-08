@@ -80,8 +80,6 @@ static void* DAM_ReadFileFromFM9(uint32_t dtbID, uint32_t logicalAddress, int so
 		int message_type, error_status, message_length;
 
 		void* recvData = SocketCommons_ReceiveData(socketFM9, &message_type, &message_length, &error_status);
-		printf("\n\n\npor dormir en el flush\n\n\n");
-
 
 		if(message_length == 0) //recvData es NULL por definicion de las kemmens, si llegamos a length 0 es porque no hay mas nada para recibir, tenemos el archivo completo.
 			break;
@@ -101,7 +99,7 @@ static void* DAM_ReadFileFromFM9(uint32_t dtbID, uint32_t logicalAddress, int so
 				break;
 			}
 		}
-		sleep(5);
+//		sleep(5);
 		SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_FLUSH, 0, 0);
 	}
 
@@ -158,7 +156,7 @@ static int DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 
 		void* data = SocketCommons_ReceiveData(socketFM9, &msg_type, &length, &status);
 
-		sleep(1);
+//		sleep(1);
 
 		if(msg_type == MESSAGETYPE_INT)
 		{
@@ -440,6 +438,7 @@ void DAM_Flush(void* arriveData)
 				{
 					//Avisamos al SAFA que el flush termino
 					SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_FLUSH, dest->parts[0], sizeof(uint32_t));
+					return;
 				break;
 				}
 				case 12: //FILE_NOT_EXISTS

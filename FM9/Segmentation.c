@@ -86,7 +86,7 @@ int writeData_SEG(void* data, int size, int dtbID) {
 	return virtualAddress;
 }
 
-int readData_SEG(void* target, int logicalAddress, int dtbID) {
+int readData_SEG(void** target, int logicalAddress, int dtbID) {
 	int baseLine = addressTranslation_SEG(logicalAddress, dtbID);
 	if (baseLine == ITS_A_TRAP)
 		return ITS_A_TRAP;
@@ -105,12 +105,15 @@ int readData_SEG(void* target, int logicalAddress, int dtbID) {
 	free(segmentKey);
 	int sizeRead=0;
 	int linesRead=0;
-	target=malloc(1);
+	*target=malloc(1);
 	while(linesRead<segment->limit)
 	{
-		target = realloc(target, sizeRead + tamanioLinea);
-		if (readLine(target, baseLine+linesRead) == INVALID_LINE_NUMBER)
+		*target = realloc(*target, sizeRead + tamanioLinea);
+		memset(*target+sizeRead,0,tamanioLinea);
+		if (readLine(*target + sizeRead, baseLine+linesRead) == INVALID_LINE_NUMBER){
+			printf("\n\n\nnumero invalido de linea\n\n\n");
 			break;
+		}
 		sizeRead += tamanioLinea;
 		linesRead++;
 	}

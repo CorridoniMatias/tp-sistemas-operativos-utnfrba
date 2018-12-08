@@ -215,7 +215,9 @@ void SocketServer_ListenForConnection(SocketServer_ActionsListeners actions)
 						{
 							if(actions.OnClientDisconnect != NULL)
 									actions.OnClientDisconnect(currclient->socketID);
-
+							//Se hace el lock aca porque el hilo que se despierta (si hay alguno) puede ser que llame a WakeMeUpWhenDataIsAvailableOn
+							//y obtenga el lock de la lista e intente hacer algo con un cliente no valido.
+							pthread_mutex_lock(&connections_lock);
 							if(currclient->isWaitingForData)
 							{
 								currclient->arriveData = NULL;
@@ -223,8 +225,6 @@ void SocketServer_ListenForConnection(SocketServer_ActionsListeners actions)
 								sem_post(&currclient->waitForData);
 							}
 
-
-							pthread_mutex_lock(&connections_lock);
 							SocketServer_DestroyClient(list_remove(connections, i)); //Lo ultimo que hacemos es el free por si algun otro recurso hace referencia al espacio de memoria del int malloceado que representa al descriptor del socket.
 							pthread_mutex_unlock(&connections_lock);
 
@@ -410,4 +410,21 @@ OnArrivedData* SocketServer_WakeMeUpWhenDataIsAvailableOn(int socketToWatch)
 	}
 
 	return NULL;
+}
+
+bool SocketServer_ReserveSocket(int socketToWatch) {
+	ServerClient* client;
+	pthread_mutex_lock(&connections_lock);
+	bool socketFound(void* data) {
+		ServerClient* currclient = data;
+		return currclient->socketID == socketToWatch;
+	}
+	client = list_find(connections, socketFound);
+	pthread_mutex_unlock(&connections_lock);
+
+	if (client != NULL) {
+		client->isWaitingForData = true;
+		return true;
+	}
+	return false;
 }

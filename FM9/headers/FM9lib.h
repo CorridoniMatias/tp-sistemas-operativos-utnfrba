@@ -34,7 +34,7 @@ typedef struct{
 	void (*freeStructures)();
 	int (*virtualAddressTranslation)(int logicalAddress, int dtdID);
 	int (*writeData)(void* data, int size, int dtdID);
-	int (*readData)(void* target, int logicalAddress, int dtdID);
+	int (*readData)(void** target, int logicalAddress, int dtdID);
 	int (*closeFile)(int dtdID,int logicalAddress);
 	int (*dump)(int dtdID);
 //	int (*size)(int,int);

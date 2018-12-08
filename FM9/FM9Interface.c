@@ -12,27 +12,28 @@ void FM9_AsignLine(void* data) {
 	if (actualData->count == 3) {
 		int dtbID = *((int *) actualData->parts[0]);
 		int virtualAddress = *((int *) actualData->parts[1]);
-		void* data = actualData->parts[2];
+		char* line = actualData->parts[2];
 
-		printf("\nlinea = %s.\n", (char*)data);
+		printf("\nlinea recibida = %s.\n", line);
 		int lineNumber = memoryFunctions->virtualAddressTranslation(
 				virtualAddress, dtbID);
 		if (lineNumber < 0) {
 			*status = 2;
 		}
-		char* buffer = malloc(tamanioLinea);
+		char* buffer = calloc(1,tamanioLinea);
+		memset(buffer,0,tamanioLinea);
 		int result = readLine(buffer, lineNumber);
 		if (result == INVALID_LINE_NUMBER) {
 			*status = 2;
 		} else {
 			int size = sizeOfLine(buffer);
-			int sizeOfData = string_length((char*) data);
+			int sizeOfData = string_length(line);
 			if (size + sizeOfData >= tamanioLinea)
 				*status = 3;
 			else {
-				memcpy(buffer + size, data, sizeOfData);
-				buffer[tamanioLinea - 1] = '\n';
-				printf("\nlinea a ser escritaaaa = %s.\n", buffer);
+				memcpy(buffer + size, line, sizeOfData);
+				buffer[size + sizeOfData] = '\n';
+				printf("\nlinea a ser escritaaaa = \"%s\".\n", buffer);
 				result = writeLine(buffer, lineNumber);
 				if (result == INVALID_LINE_NUMBER) {
 					*status = 2;
@@ -61,9 +62,8 @@ void FM9_AskForLine(void* data) {
 			arriveData->receivedData);
 	uint32_t* status = malloc(sizeof(uint32_t));
 	bool error = false;
-	char* buffer;
-	bool freeBuffer = false;
-
+	char* buffer = calloc(1,tamanioLinea);
+	memset(buffer,0,tamanioLinea);
 	if (actualData->count == 2) {
 		int dtbID = *((int *) actualData->parts[0]);
 		int virtualAddress = *((int *) actualData->parts[1]);
@@ -74,8 +74,6 @@ void FM9_AskForLine(void* data) {
 				virtualAddress, dtbID);
 		printf("\n\n\nlineNumber = %d\n\n\n", lineNumber);
 		if (lineNumber >= 0) {
-			buffer = calloc(1,tamanioLinea);
-			freeBuffer = true;
 			int result = readLine(buffer, lineNumber);
 			if (result == INVALID_LINE_NUMBER) {
 				*status = 2;
@@ -93,18 +91,16 @@ void FM9_AskForLine(void* data) {
 	SerializedPart* packetToCPU;
 	SerializedPart code;
 	char* newLine = "\n";
-
-	printf("\n\n\nrompio antes de mandar mensaje\n\n\n");
 	code.size = sizeof(int32_t);
 	code.data = status;
 	if (!error) {
-
-		printf("\n\n\nSE METIO DONDE NO HAY ERROR\n\n\n");
-		char* line = strtok(buffer, newLine);
-		int sizeLine = strlen(line) + 1;
-
-
-		SerializedPart content = { .size = sizeLine, .data = line };
+		printf("\n\n\nnewLine=\"%s\"",newLine);
+		printf("\n\n\nbuffer=\"%s\"",buffer);
+//		char* line = strtok(buffer, newLine);
+//		int sizeLine = strlen(line) + 1;
+		int sizeLine = sizeOfLine(buffer) + 1;
+		buffer[sizeLine - 1] = 0;
+		SerializedPart content = { .size = sizeLine, .data = buffer};
 		packetToCPU = Serialization_Serialize(2, code, content);
 
 	} else {
@@ -112,10 +108,7 @@ void FM9_AskForLine(void* data) {
 	}
 	SocketCommons_SendData(arriveData->calling_SocketID,
 	MESSAGETYPE_CPU_RECEIVELINE, packetToCPU->data, packetToCPU->size);
-
-	printf("\n\n\nrompio despueeeeeeees de mandar mensaje\n\n\n");
-	if (freeBuffer)
-		free(buffer);
+	free(buffer);
 	SocketServer_CleanOnArrivedData(arriveData);
 	Serialization_CleanupDeserializationStruct(actualData);
 	free(status);
@@ -166,13 +159,19 @@ void FM9_Open(void* data) {
 			sizeReceived = *((uint32_t *) actualData->parts[1]);
 
 			buffer = realloc(buffer, size + sizeReceived);
+
+			memset(buffer+size,0,sizeReceived);
 			printf("size received es = %d\n", sizeReceived);
-			memcpy(((void*)(buffer + size)), actualData->parts[2], sizeReceived);
+			memcpy(buffer + size, actualData->parts[2], sizeReceived);
 			size += sizeReceived;
 
 			SocketServer_CleanOnArrivedData(arriveData);
 			Serialization_CleanupDeserializationStruct(actualData);
 
+			bool found = SocketServer_ReserveSocket(socket);
+			if (!found) {
+				return;
+			}
 			SocketCommons_SendData(socket, MESSAGETYPE_INT, response_code, sizeof(uint32_t));
 			arriveData = SocketServer_WakeMeUpWhenDataIsAvailableOn(socket);
 			printf("\nsize = %d\n", size);
@@ -246,7 +245,7 @@ void FM9_Flush(void* data) {
 		printf("\n\nid=%d\n\n",id);
 		printf("\n\nlogicalAddress=%d\n\n",logicalAddress);
 		void* buffer = NULL;
-		int bufferSize = memoryFunctions->readData(buffer, logicalAddress, id);
+		int bufferSize = memoryFunctions->readData(&buffer, logicalAddress, id);
 
 		if (bufferSize <= 0) {
 			free(buffer);
@@ -263,7 +262,12 @@ void FM9_Flush(void* data) {
 		void* realData = malloc(1);
 		int sizeLine, realSize = 0, offset = 0;
 		while (offset < bufferSize) {
-			sizeLine = sizeOfLine((char*) (buffer + offset)) + 1;
+			if(buffer==NULL){
+				printf("\n\n\n\nporque poronga buffer es null\n\n\n\n");
+				break;
+			}
+			printf("\n\nbuffer =\"%s\"\n\n",(char*)buffer);
+			sizeLine = sizeOfLine((char*)buffer + offset) + 1;
 			realData = realloc(realData, realSize + sizeLine);
 			memcpy(realData + realSize, buffer + offset, sizeLine);
 			realSize += sizeLine;
@@ -283,11 +287,14 @@ void FM9_Flush(void* data) {
 
 			SocketServer_CleanOnArrivedData(arriveData);
 			printf("\n\npor enviar ack\n\n");
-			SocketCommons_SendData(socket, MESSAGETYPE_STRING, buffer + offset, size);
-			arriveData = SocketServer_WakeMeUpWhenDataIsAvailableOn(socket);
-
+			bool found = SocketServer_ReserveSocket(socket);
+			if(!found){
+				return;
+			}
+			SocketCommons_SendData(socket, MESSAGETYPE_STRING, realData + offset, size);
 			if (size == 0)
 				break;
+			arriveData = SocketServer_WakeMeUpWhenDataIsAvailableOn(socket);
 			offset += size;
 			realSize -= size;
 
@@ -320,7 +327,7 @@ void FM9_Dump(int argC, char** args, char* callingLine, void* extraData) {
 
 int sizeOfLine(char* line) {
 	int i = 0;
-	printf("\n\nanalizando linea=%s\n\n",line);
+	printf("\n\nanalizando linea=\"%s\"\n\n",line);
 	while (line[i] != '\n'){
 		printf("\ni=%d\n",i);
 		i++;}

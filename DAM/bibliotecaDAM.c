@@ -181,7 +181,6 @@ void clienteConectado(int socket)
 {
 
 	Logger_Log(LOG_INFO, "Nuevo cliente conectado. Comunicacion a traves del socket %d", socket);
-	printf("Se conecto un cliente; hablen a traves del socket %d!", socket);
 	return;
 
 }
@@ -190,7 +189,6 @@ void clienteDesconectado(int unSocket)
 {
 
 	Logger_Log(LOG_INFO, "Desconexion con el cliente que estaba en el socket %d", unSocket);
-	printf("Se desconecto el cliente del socket %d :(", (int) unSocket);
 	return;
 
 }

@@ -57,7 +57,7 @@ int addressTranslation_SEG(int virtualAddress, int dtbID);
 
 int writeData_SEG(void* data, int size, int dtbID);
 
-int readData_SEG(void* target, int virtualAddress, int dtbID);
+int readData_SEG(void** target, int virtualAddress, int dtbID);
 
 int closeFile_SEG(int dtbID, int virtualAddress);
 
