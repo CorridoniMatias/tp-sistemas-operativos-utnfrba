@@ -15,6 +15,7 @@
 #Tests
 /MDJ/Debug/fifa-checkpoint
 /MDJ/Debug/fifa-entrega
+/fifa-examples
 
 */.gitignore
 *.log
