@@ -154,7 +154,7 @@ extern pthread_mutex_t mutexSettings;			//Para garantizar acceso unico a la conf
 extern int algorithmChange;						//Valor que registra de que a que algoritmo se paso, por si debo mover colas
 
 //--SEMAFOROS A EMPLEAR--//
-pthread_mutex_t mutexPLPtask;
+pthread_mutex_t mutexPLPtasksQueue;
 pthread_mutex_t mutexPCPtasksQueue;
 pthread_mutex_t mutexNEW;						//Mutex sobre la cola NEW, para cuando modifico sus elementos
 pthread_mutex_t mutexREADY;						//Garantiza mutua exclusion sobre las colas READY (la actual);
@@ -175,7 +175,7 @@ sem_t workPCP;									//Semaforo binario, para indicar que es hora de que el PC
 
 //--TAREAS A REALIZAR POR LOS PLANIFICADORES--//
 
-int PLPtask;
+t_queue* PLPtasksQueue;							//Cola de ints (codigos de tarea del PLP) con las tareas a realizar por el PLP
 t_queue* PCPtasksQueue;							//Cola de ints (codigos de tarea del PCP) con las tareas a realizar por el PCP
 
 //--VARIABLES EMPLEADAS POR PROCESOS PROPIOS DEL MODULO--//
@@ -245,11 +245,11 @@ void CreateDummy();
 void InitSchedulingGlobalVariables();
 
 /*
- * 	ACCION: Setea la tarea a realizar por el PLP, garantizando mutua exclusion, y le avisa al mismo que ha de trabajar
+ * 	ACCION: Agrega una tarea a realizar por el PLP a la cola, sin concurrencia, y avisandole a este que debe trabajar
  * 	PARAMETROS:
  * 		taskCode: Codigo de la tarea a realizar; ver mas arriba
  */
-void SetPLPTask(int taskCode);
+void AddPLPTask(int taskCode);
 
 /*
  * 	ACCION: Agrega una tarea a realizar por el PCP a la cola, sin concurrencia, y avisandole a este que debe trabajar

@@ -18,7 +18,7 @@ void Comms_DAM_DummyFinished(void* arriveData)
 	justDummied->logicalAddress = *((uint32_t*)(params->parts[2]));
 
 	//Seteo la tarea del PLP en inicializar el DTB (cargar datos tras operacion Dummy), y le aviso
-	SetPLPTask(PLP_TASK_INITIALIZE_DTB);
+	AddPLPTask(PLP_TASK_INITIALIZE_DTB);
 
 	//Libero la memoria del struct de deserializacion y los parametros de la funcion
 	Serialization_CleanupDeserializationStruct(params);

@@ -5,6 +5,7 @@
 void InitQueuesAndLists()
 {
 
+	PLPtasksQueue = queue_create();
 	PCPtasksQueue = queue_create();
 	scriptsQueue = queue_create();
 	NEWqueue = queue_create();
@@ -24,7 +25,7 @@ void InitQueuesAndLists()
 void InitSemaphores()
 {
 
-	pthread_mutex_init(&mutexPLPtask, NULL);
+	pthread_mutex_init(&mutexPLPtasksQueue, NULL);
 	pthread_mutex_init(&mutexPCPtasksQueue, NULL);
 	pthread_mutex_init(&mutexREADY, NULL);
 	pthread_mutex_init(&mutexScriptsQueue, NULL);
@@ -75,12 +76,13 @@ void InitSchedulingGlobalVariables()
 
 }
 
-void SetPLPTask(int taskCode)
+void AddPLPTask(int taskCode)
 {
 
-	pthread_mutex_lock(&mutexPLPtask);
-	PLPtask = taskCode;
-	pthread_mutex_unlock(&mutexPLPtask);
+	pthread_mutex_lock(&mutexPLPtasksQueue);
+	int* newTask = (int*) malloc(sizeof(int));
+	*newTask = taskCode;
+	pthread_mutex_unlock(&mutexPLPtasksQueue);
 	sem_post(&workPLP);
 
 }
@@ -91,7 +93,7 @@ void AddPCPTask(int taskCode)
 	pthread_mutex_lock(&mutexPCPtasksQueue);
 	int* newTask = (int*) malloc(sizeof(int));
 	*newTask = taskCode;
-	queue_push(PCPtasksQueue, newTask);
+	queue_push(PLPtasksQueue, newTask);
 	pthread_mutex_unlock(&mutexPCPtasksQueue);
 	sem_post(&workPCP);
 
@@ -360,17 +362,26 @@ void PlanificadorLargoPlazo()
 {
 
 	Logger_Log(LOG_INFO, "SAFA::PLANIF->Planificador de Largo Plazo ya operativo");
+	int currentTask;
+
 	while(1)
 	{
 
+		//Espero a que le indiquen al PLP que se ejecute
 		sem_wait(&workPLP);
 		Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Tarea del PLP en ejecucion");
+
+		//En cada iteracion, saco la primer tarea de la cola, y guardo su valor para luego compararla y saber que modulo realizar
+		pthread_mutex_lock(&mutexPLPtasksQueue);
+		currentTask = *((int*) queue_pop(PLPtasksQueue));
+		pthread_mutex_unlock(&mutexPLPtasksQueue);
+
 		//Me agarro el grado de multiprogramacion, antes que alguien lo cambie
 		pthread_mutex_lock(&mutexSettings);
 		int multiprogrammingDegree = settings->multiprogramacion;
 		pthread_mutex_unlock(&mutexSettings);
 
-		if(PLPtask == PLP_TASK_NORMAL_SCHEDULE)
+		if(currentTask == PLP_TASK_NORMAL_SCHEDULE)
 		{
 
 			//Si el grado de multiprogramacion no lo permite, o no hay procesos en NEW, voy a la proxima iteracion del while
@@ -414,12 +425,12 @@ void PlanificadorLargoPlazo()
 			{
 				sleep(3);
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Dummy ocupado, se intentara planificar con normalidad");
-				SetPLPTask(PLP_TASK_NORMAL_SCHEDULE);
+				AddPLPTask(PLP_TASK_NORMAL_SCHEDULE);
 			}
 
 		}
 
-		else if(PLPtask == PLP_TASK_CREATE_DTB)
+		else if(currentTask == PLP_TASK_CREATE_DTB)
 		{
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se registro un pedido de crear un DTB");
 			//Para que no se recorra la cola mientras se estan agregando scripts a ejecutar (por las dudas)
@@ -437,11 +448,11 @@ void PlanificadorLargoPlazo()
 			pthread_mutex_unlock(&mutexScriptsQueue);
 
 			//Vuelvo a poner la tarea del PLP en Planificacion Normal (1)
-			SetPLPTask(PLP_TASK_NORMAL_SCHEDULE);
+			AddPLPTask(PLP_TASK_NORMAL_SCHEDULE);
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Scripts pendientes ya creados, vuelvo a planificacion normal");
 		}
 
-		else if(PLPtask == PLP_TASK_INITIALIZE_DTB)
+		else if(currentTask == PLP_TASK_INITIALIZE_DTB)
 		{
 
 			//Closure para poder encontrar el DTB con los datos y el mismo ID que el que volvio del Dummy
@@ -473,7 +484,7 @@ void PlanificadorLargoPlazo()
 			pthread_mutex_unlock(&mutexSettings);
 			//Vuelvo a poner la tarea del PLP en Planificacion Normal (1)
 			AddPCPTask(PCP_TASK_NORMAL_SCHEDULE);
-			SetPLPTask(PLP_TASK_NORMAL_SCHEDULE);
+			AddPLPTask(PLP_TASK_NORMAL_SCHEDULE);
 		}
 
 	}
@@ -1357,7 +1368,7 @@ float Metrics_AverageResponseTime()
 void DeleteSemaphores()
 {
 
-	pthread_mutex_destroy(&mutexPLPtask);
+	pthread_mutex_destroy(&mutexPLPtasksQueue);
 	pthread_mutex_destroy(&mutexPCPtasksQueue);
 	pthread_mutex_destroy(&mutexREADY);
 	pthread_mutex_destroy(&mutexScriptsQueue);
@@ -1427,6 +1438,7 @@ void DeleteQueuesAndLists()
 {
 
 	queue_destroy_and_destroy_elements(PCPtasksQueue, free);
+	queue_destroy_and_destroy_elements(PLPtasksQueue, free);
 	queue_destroy_and_destroy_elements(scriptsQueue, ScriptDestroyer);
 	queue_destroy_and_destroy_elements(NEWqueue, DTBDestroyer);
 	queue_destroy_and_destroy_elements(READYqueue_RR, DTBDestroyer);

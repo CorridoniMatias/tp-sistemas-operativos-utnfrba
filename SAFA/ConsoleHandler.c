@@ -72,7 +72,7 @@ void CommandEjecutar (int argC, char** args, char* callingLine, void* extraData)
 	pthread_mutex_unlock(&mutexScriptsQueue);
 
 	//Le aviso al PLP que tiene trabajo para hacer, previamente seteando su tarea en crear un DTB con ese script
-	SetPLPTask(PLP_TASK_CREATE_DTB);
+	AddPLPTask(PLP_TASK_CREATE_DTB);
 
 	CommandInterpreter_FreeArguments(args);
 	return;
