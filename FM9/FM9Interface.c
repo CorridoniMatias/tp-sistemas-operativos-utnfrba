@@ -124,7 +124,7 @@ void FM9_Close(void* data) {
 		int dtbID = *((int *) actualData->parts[0]);
 		int virtualAddress = *((int *) actualData->parts[1]);
 		int result = memoryFunctions->closeFile(dtbID, virtualAddress);
-		if (result == -1)
+		if (result <= 0)
 			*status = 2;
 		else
 			*status = 1;
@@ -209,13 +209,14 @@ void FM9_Open(void* data) {
 
 		if (logicalAddress == INSUFFICIENT_SPACE) {
 			*response_code = 2;
-			SocketCommons_SendData(socket, MESSAGETYPE_INT, response_code,
-					sizeof(uint32_t));
+			SocketCommons_SendData(socket, MESSAGETYPE_INT, response_code, sizeof(uint32_t));
+		} else if (logicalAddress == ITS_A_TRAP) {
+			*response_code = 500;
+			SocketCommons_SendData(socket, MESSAGETYPE_INT, response_code, sizeof(uint32_t));
 		} else {
 			declare_and_init(address, uint32_t, logicalAddress)
 			printf("\n enviando direccion lógica =%d\n", logicalAddress);
-			SocketCommons_SendData(socket, MESSAGETYPE_ADDRESS, address,
-					sizeof(uint32_t));
+			SocketCommons_SendData(socket, MESSAGETYPE_ADDRESS, address, sizeof(uint32_t));
 			free(address);
 		}
 
@@ -312,17 +313,18 @@ void FM9_Flush(void* data) {
 }
 
 void FM9_Dump(int argC, char** args, char* callingLine, void* extraData) {
-//switch (argC) {
-//case 0:
-//Logger_Log(LOG_INFO, "Tiene que indicar el id de un DTB.");
-//break;
-//case 1:
-//Logger_Log(LOG_INFO, "DTBDID %s.",args[1]);
-//memoryFunctions->dump(atoi(args[1]));
-//break;
-//default:
-//Logger_Log(LOG_INFO, "Ingresó parámetros demas, solo debe ingresar el id del DTB");
-//}
+	switch (argC) {
+		case 0:
+			Logger_Log(LOG_INFO, "Tiene que indicar el id de un DTB.");
+			break;
+		case 1:
+			Logger_Log(LOG_INFO, "DTB ID %s.", args[1]);
+			memoryFunctions->dump(atoi(args[1]));
+			break;
+		default:
+			Logger_Log(LOG_INFO,
+					"Ingresó parámetros demas, solo debe ingresar el id del DTB");
+	}
 }
 
 int sizeOfLine(char* line) {

@@ -37,8 +37,10 @@ int addressTranslation_SPA(int logicalAddress, int dtbID) {
 	int pageNumber = segmentOffset / cantLineasPorFrame;
 	int frameOffset = segmentOffset % cantLineasPorFrame;
 	char * dtbKey = string_itoa(dtbID);
-	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey))
+	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey)){
+		free(dtbKey);
 		return ITS_A_TRAP;
+	}
 	t_segments_paged* segments = dictionary_get(segmentspagedPerDTBTable,
 			dtbKey);
 	free(dtbKey);
@@ -88,8 +90,8 @@ int writeData_SPA(void* data, int size, int dtbID) {
 	char* pageKey;
 	while (!list_is_empty(freeFrames)) {
 		int* frameNumber = list_get(freeFrames, 0);
-		if (writeFrame(data + offset, *frameNumber) == INVALID_LINE_NUMBER)
-			return INVALID_LINE_NUMBER;
+		if (writeFrame(data + offset, *frameNumber) <= 0)
+			return ITS_A_TRAP;
 		pageKey = string_itoa(segments->nextPageNumber++);
 		dictionary_put(segment->pages, pageKey, frameNumber);
 		offset += tamanioFrame;
@@ -113,11 +115,13 @@ int writeData_SPA(void* data, int size, int dtbID) {
  *
  */
 
-int readData_SPA(void* target, int logicalAddress, int dtbID) {
+int readData_SPA(void** target, int logicalAddress, int dtbID) {
 	int segmentNumber = getSegmentFromAddress(logicalAddress);
 	char* dtbKey = string_itoa(dtbID);
-	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey))
+	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey)){
+		free(dtbKey);
 		return ITS_A_TRAP;
+	}
 	t_segments_paged* segments = dictionary_get(segmentspagedPerDTBTable,
 			dtbKey);
 	free(dtbKey);
@@ -128,24 +132,28 @@ int readData_SPA(void* target, int logicalAddress, int dtbID) {
 	}
 	t_segment_paged* segment = dictionary_get(segments->segments, segmentKey);
 	free(segmentKey);
-	int sizeRead = 0;
-	target = malloc(1);
+	int result = 0, sizeRead = 0;
+	*target = malloc(1);
 	void pageIterator(char* pageKey, void* frameValue) {
-		int frameNumber = *((int*) frameValue);
-		target = realloc(target, sizeRead + tamanioFrame);
-		if (readFrame(target + sizeRead, frameNumber) == INVALID_LINE_NUMBER)
+		if (result == INVALID_LINE_NUMBER || result == INVALID_FRAME_NUMBER) {
 			return;
+		}
+		int frameNumber = *((int*) frameValue);
+		*target = realloc(*target, sizeRead + tamanioFrame);
+		result = readFrame(*target + sizeRead, frameNumber);
 		sizeRead += tamanioFrame;
 	}
 	dictionary_iterator(segment->pages, pageIterator);
-	return sizeRead;
+	return !result?sizeRead:ITS_A_TRAP;
 }
 
 int closeFile_SPA(int dtbID, int logicalAddress) {
 	char* dtbKey = string_itoa(dtbID);
 	int segmentNumber = getSegmentFromAddress(logicalAddress);
-	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey))
+	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey)){
+		free(dtbKey);
 		return ITS_A_TRAP;
+	}
 	t_segments_paged* segments = dictionary_get(segmentspagedPerDTBTable,
 			dtbKey);
 	free(dtbKey);

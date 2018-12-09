@@ -2,12 +2,6 @@
 
 static int useFrame(void* page, int numFrame,char* log, int (*operation)(void*,int));
 
-int verifyFrameNumber(int numFrame){
-	if(numFrame>=cantFrames)
-		return INVALID_FRAME_NUMBER;
-	return 1;
-}
-
 void createPagingStructures() {
 
 	Logger_Log(LOG_INFO, "FM9 -> Creando estructuras de paginado.");
@@ -92,7 +86,7 @@ t_list* getFreeFrames(int size){
 }
 
 static int useFrame(void* page, int numFrame,char* log, int (*operation)(void*,int)){
-	verifyFrameNumber(numFrame);
+	verifyFrameNumber(numFrame)
 
 	int lineaInicial = numFrame * cantLineasPorFrame;
 

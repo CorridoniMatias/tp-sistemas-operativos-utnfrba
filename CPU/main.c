@@ -13,11 +13,12 @@ int main(int argc, char *argv[])
 	int safa = conectarAProceso(settings->ipSAFA,settings->puertoSAFA,"SAFA");
 	int diego = conectarAProceso(settings->ipDIEGO,settings->puertoDIEGO,"DIEGO");
 	int fm9 = conectarAProceso(settings->ipFM9,settings->puertoFM9,"FM9");
+	bool finished;
 
 	while(1)
 	{
 
-
+		finished = false;
 		printf("\nesperando recibir datos\n");
 		int err,messageType,msglength;
 		void* msgFromSafa = SocketCommons_ReceiveData(safa,&messageType,&msglength,&err);
@@ -67,43 +68,38 @@ int main(int argc, char *argv[])
 						extraData.programCounter++;
 						extraData.quantum--;
 						bool res = CommandInterpreter_Do(line, " ",&extraData);
-						free(line);
-						if(res == 1 && extraData.commandResult == 0){
+						if(res && extraData.commandResult == 0){
+							free(line);
 							continue;
 						}
-
 						else if (extraData.commandResult == 2) {
+							free(line);
 							break;
 						}
-
+						else if (strcmp(line,"\n") != 0){
+							printf("\n\nse termino de ejecutar el script\n\n");
+							uint32_t idDtb = extraData.dtb;
+							declare_and_init(id, uint32_t,idDtb);
+							finished = true;
+							SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
+							free(line);
+							free(id);
+							break;
+						}
 					// Terminar el command interpretar siempre ejecutando linea por linea y actualizando el PC de SAFA,
-					}
-
-					else if (strcmp(line,"") != 0){
-						uint32_t idDtb = extraData.dtb;
-						declare_and_init(id, uint32_t,idDtb);
-
-						SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
-
-						free(line);
-						free(id);
-
-						break;
 					}
 					else{
 						uint32_t idDtb = extraData.dtb;
 						declare_and_init(id, int32_t,idDtb);
 
 						SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
-						free(line);
 						free(id);
-
 						break;
 					}
 
 
 				}
-			if (extraData.quantum == 0) {
+			if (extraData.quantum == 0 && !finished) {
 				declare_and_init(id, int32_t, extraData.dtb);
 				SerializedPart fieldForSAFA1 = { .size = sizeof(uint32_t),.data = id };
 				declare_and_init(updatedProgramCounter,uint32_t,extraData.programCounter)

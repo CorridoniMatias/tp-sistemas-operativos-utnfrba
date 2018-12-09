@@ -60,7 +60,7 @@ int addressTranslation_TPI(int logicalAddress, int dtbID);
 
 int writeData_TPI(void* data, int size, int dtbID);
 
-int readData_TPI(void* target, int logicalAddress, int dtbID);
+int readData_TPI(void** target, int logicalAddress, int dtbID);
 
 int closeFile_TPI(int dtbID, int logicalAddress) ;
 

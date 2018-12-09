@@ -47,7 +47,7 @@ int writeData_SEG(void* data, int size, int dtbID) {
 	}
 	for (int i = 0; i < lineasNecesarias; i++) {
 		if (writeLine(((char*) data) + i * tamanioLinea, freeSegment->base + i) == INVALID_LINE_NUMBER) {
-			return INVALID_LINE_NUMBER;
+			return ITS_A_TRAP;
 		}
 	}
 
@@ -91,8 +91,10 @@ int readData_SEG(void** target, int logicalAddress, int dtbID) {
 	if (baseLine == ITS_A_TRAP)
 		return ITS_A_TRAP;
 	char * dtbKey = string_itoa(dtbID);
-	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey))
+	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey)){
+		free(dtbKey);
 		return ITS_A_TRAP;
+	}
 	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
 	free(dtbKey);
 	int segmentNumber = getSegmentFromAddress(logicalAddress);
@@ -122,8 +124,10 @@ int readData_SEG(void** target, int logicalAddress, int dtbID) {
 
 int addressTranslation_SEG(int logicalAddress, int dtbID) {
 	char * dtbKey = string_itoa(dtbID);
-	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey))
+	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey)){
+		free(dtbKey);
 		return ITS_A_TRAP;
+	}
 	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
 	free(dtbKey);
 	int segmentNumber = getSegmentFromAddress(logicalAddress);

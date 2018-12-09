@@ -36,7 +36,7 @@ int addressTranslation_SPA(int logicalAddress, int dtbID);
 
 int writeData_SPA(void* data, int size, int dtbID);
 
-int readData_SPA(void* target, int logicalAddress, int dtbID);
+int readData_SPA(void** target, int logicalAddress, int dtbID);
 
 int closeFile_SPA(int dtbID, int logicalAddress) ;
 

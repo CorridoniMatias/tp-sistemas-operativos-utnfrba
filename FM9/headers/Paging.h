@@ -8,6 +8,11 @@
 #include "Storage.h"
 #include "FM9Errors.h"
 
+#define verifyFrameNumber(numFrame)		\
+	if(numFrame>=cantFrames)			\
+	{	return INVALID_FRAME_NUMBER;}
+
+
 int tamanioFrame;
 int cantLineasPorFrame;
 int cantFrames;

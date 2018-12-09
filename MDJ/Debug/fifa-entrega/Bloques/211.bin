@@ -1,0 +1,4 @@
+
+flush /resultados/superfinal.txt
+signal segundo_tiempo
+close /r

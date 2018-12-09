@@ -58,8 +58,8 @@ int writeData_TPI(void* data, int size, int dtbID) {
 	int offset = 0;
 	while (!list_is_empty(freeFrames)) {
 		int frameNumber = *((int*) list_remove(freeFrames, 0));
-		if (writeFrame(data + offset, frameNumber) == INVALID_LINE_NUMBER)
-			return INVALID_LINE_NUMBER;
+		if (writeFrame(data + offset, frameNumber) <= 0)
+			return ITS_A_TRAP;
 		offset += tamanioFrame;
 		pages->numberOfPages++;
 		updateIPTable(frameNumber, paginas->nextPageNumber++, dtbID);
@@ -70,25 +70,34 @@ int writeData_TPI(void* data, int size, int dtbID) {
 	return pages->firstPage * cantLineasPorFrame;
 }
 
-int readData_TPI(void* target, int logicalAddress, int dtbID) {
+int readData_TPI(void** target, int logicalAddress, int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
 	if (!dictionary_has_key(pagesPerDTBTable, dtbKey))
+	{	free(dtbKey);
 		return ITS_A_TRAP;
+	}
 	t_pages* paginas = dictionary_get(pagesPerDTBTable, dtbKey);
 	free(dtbKey);
 	int pageNumber = logicalAddress / cantLineasPorFrame;
 	char* pageKey = string_itoa(pageNumber);
 	if (!dictionary_has_key(paginas->pagesPerFiles, pageKey))
+	{
+		free(pageKey);
 		return ITS_A_TRAP;
+	}
 	t_pages_per_file* pages = dictionary_get(paginas->pagesPerFiles, pageKey);
 	free(pageKey);
 	int initialPage = pages->firstPage, frameNumber, offset = 0, sizeRead = 0;
-	target = malloc(1);
+	*target = malloc(1);
+	int result;
 	while (offset < pages->numberOfPages) {
 		frameNumber = getFrameOfPage(initialPage + offset, dtbID);
-		target = realloc(target, sizeRead + tamanioFrame);
-		if (readFrame(target + sizeRead, frameNumber) == INVALID_LINE_NUMBER)
-			break;
+		*target = realloc(*target, sizeRead + tamanioFrame);
+		result = readFrame(*target + sizeRead, frameNumber);
+		if(result== INVALID_LINE_NUMBER || result == INVALID_FRAME_NUMBER)
+		{
+			return ITS_A_TRAP;
+		}
 		sizeRead += tamanioFrame;
 		offset++;
 	}
@@ -97,14 +106,18 @@ int readData_TPI(void* target, int logicalAddress, int dtbID) {
 
 int closeFile_TPI(int dtbID, int logicalAddress) {
 	char* dtbKey = string_itoa(dtbID);
-	if (dictionary_has_key(pagesPerDTBTable, dtbKey))
+	if (dictionary_has_key(pagesPerDTBTable, dtbKey)) {
+		free(dtbKey);
 		return ITS_A_TRAP;
+	}
 	t_pages* paginas = dictionary_get(pagesPerDTBTable, dtbKey);
 	free(dtbKey);
 	int pageNumber = logicalAddress / cantLineasPorFrame;
 	char* pageKey = string_itoa(pageNumber);
-	if (!dictionary_has_key(paginas->pagesPerFiles, pageKey))
+	if (!dictionary_has_key(paginas->pagesPerFiles, pageKey)) {
+		free(pageKey);
 		return ITS_A_TRAP;
+	}
 	t_pages_per_file* pages = dictionary_get(paginas->pagesPerFiles, pageKey);
 	freeFrames(pages, dtbID);
 	dictionary_remove_and_destroy(paginas->pagesPerFiles, pageKey, free);
