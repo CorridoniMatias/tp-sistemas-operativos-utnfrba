@@ -14,10 +14,12 @@ void FM9_AsignLine(void* data) {
 		int virtualAddress = *((int *) actualData->parts[1]);
 		char* line = actualData->parts[2];
 
+		printf("\nnumero de linea recibida = %d.\n", virtualAddress);
 		printf("\nlinea recibida = %s.\n", line);
 		int lineNumber = memoryFunctions->virtualAddressTranslation(
 				virtualAddress, dtbID);
 		if (lineNumber < 0) {
+			printf("\n\n\nlinea invalida\n\n\n");
 			*status = 2;
 		}
 		char* buffer = calloc(1,tamanioLinea);

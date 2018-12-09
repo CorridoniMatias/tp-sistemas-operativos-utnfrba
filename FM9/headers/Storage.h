@@ -6,8 +6,8 @@
 #include "FM9lib.h"
 #include "FM9Errors.h"
 
-#define verifyLineNumber(numLinea)		\
-	if (numLinea >= cantLineas)			\
+#define verifyLineNumber(numLinea)					\
+	if (numLinea >= cantLineas || numLinea < 0)		\
 	{	return INVALID_LINE_NUMBER;}
 
 int tamanioLinea;

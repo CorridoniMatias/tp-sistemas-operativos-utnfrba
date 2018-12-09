@@ -85,6 +85,9 @@ void AddPLPTask(int taskCode)
 	queue_push(PLPtasksQueue, newTask);
 	pthread_mutex_unlock(&mutexPLPtasksQueue);
 	sem_post(&workPLP);
+	int semaforo;
+	sem_getvalue(&workPCP,&semaforo);
+	printf("\n\n\n\n\nel semaforo del plp vale %d\n\n\n\n\n\n",semaforo);
 
 }
 
@@ -402,7 +405,10 @@ void PlanificadorLargoPlazo()
 			//Si el Dummy esta en estado BLOCKED (no en la cola, sino esperando a ser asignado), agarro el primero de la cola
 			if(dummyDTB->status == DTB_STATUS_BLOCKED)
 			{
-
+				// Se pone el dummy en ready aca para que no se sobreescriba el path y se pierda un proceso a ejecutar.
+				dummyDTB->status = DTB_STATUS_READY;
+				//Removemos el dummy de la cola BLOCKED.
+				list_remove_by_condition(BLOCKEDqueue,IsDummy);
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->El Dummy esta desocupado, se intentara cargarlo");
 				//Saco el primero de la cola, y seteo su informacion en el Dummy; borro su referencia?
 				pthread_mutex_lock(&mutexNEW);
@@ -621,7 +627,7 @@ void PlanificadorCortoPlazo()
 			//Previo a ello, deberia haber liberado el CPU ni bien este me hablo
 			//Saco el Dummy de la lista de EXEC, y lo paso a la de BLOCKED (modifico su estado)
 			//El DAM, por su lado, me va a avisar cuando la carga del archivo termine => PLP_TASK_INITIALIZE_DTB
-			list_remove_by_condition(EXECqueue, (void*)IsDummy);
+			list_remove_by_condition(EXECqueue, IsDummy);
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Dummy extraido de la cola de EXEC, lo dejare libre en la cola de BLOCKED");
 			dummyDTB->id = 0;
 			AddToBlocked(dummyDTB);

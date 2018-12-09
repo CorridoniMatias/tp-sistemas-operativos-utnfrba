@@ -8,8 +8,8 @@
 #include "Storage.h"
 #include "FM9Errors.h"
 
-#define verifyFrameNumber(numFrame)		\
-	if(numFrame>=cantFrames)			\
+#define verifyFrameNumber(numFrame)					\
+	if(numFrame >= cantFrames || numFrame < 0)		\
 	{	return INVALID_FRAME_NUMBER;}
 
 

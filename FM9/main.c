@@ -10,6 +10,9 @@
 #include "headers/Tests.h"
 
 int main(int argc, char **argv) {
+//	printf("valor pow %d\n",(int)pow(10, 3));
+//	return 0;
+
 	Logger_CreateLog("./FM9.log", "FM9", true);
 	Logger_Log(LOG_INFO, "Proceso FM9 iniciado...");
 	configurar();

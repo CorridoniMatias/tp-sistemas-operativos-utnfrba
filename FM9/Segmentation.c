@@ -149,11 +149,11 @@ int addressTranslation_SEG(int logicalAddress, int dtbID) {
 }
 
 int getSegmentFromAddress(int logicalAddress) {
-	return logicalAddress / round(pow(10, offsetNumberOfDigits));
+	return logicalAddress / ceil(pow((float)10, (float)offsetNumberOfDigits));
 }
 
 int getOffsetFromAddress(int logicalAddress) {
-	return logicalAddress % ((int) round(pow(10, offsetNumberOfDigits)));
+	return logicalAddress % ((int) ceil(pow((float)10, (float)offsetNumberOfDigits)));
 }
 
 int getNewSegmentNumber(t_segments* segments) {
@@ -162,9 +162,10 @@ int getNewSegmentNumber(t_segments* segments) {
 
 int dump_SEG(int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
-	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey))
+	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey)) {
+		free(dtbKey);
 		return -1;
-
+	}
 	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
 	free(dtbKey);
 	Logger_Log(LOG_INFO, "G.DT %d", dtbID);

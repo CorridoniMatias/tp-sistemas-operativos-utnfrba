@@ -54,15 +54,28 @@ int writeData_TPI(void* data, int size, int dtbID) {
 	//Conseguir en que páginas empiezan los datos
 	t_pages_per_file* pages = malloc(sizeof(t_pages_per_file));
 	pages->firstPage = paginas->nextPageNumber;
-	pages->numberOfPages = 1;
+	pages->numberOfPages = 0;
 	int offset = 0;
 	while (!list_is_empty(freeFrames)) {
-		int frameNumber = *((int*) list_remove(freeFrames, 0));
-		if (writeFrame(data + offset, frameNumber) <= 0)
+		int* frameNumber = list_remove(freeFrames, 0);
+//		if (writeFrame(data + offset, *frameNumber) <= 0)
+//			return ITS_A_TRAP;
+		printf("\n\n\nnumero de frame %d\n\n\n",*frameNumber);
+		//Para solucionar la fragmentacion interna en la ultima pagina
+		char* buffer = calloc(1, tamanioFrame);
+		if(size - offset < tamanioFrame){
+			printf("\n\n\nhay fragmentacion interna\n\n\n");
+			memcpy(buffer,data+offset,size-offset);
+		}
+		else
+			memcpy(buffer,data+offset,tamanioFrame);
+		if (writeFrame(buffer, *frameNumber) <= 0)
 			return ITS_A_TRAP;
+		free(buffer);
 		offset += tamanioFrame;
 		pages->numberOfPages++;
-		updateIPTable(frameNumber, paginas->nextPageNumber++, dtbID);
+		updateIPTable(*frameNumber, paginas->nextPageNumber++, dtbID);
+		free(frameNumber);
 	}
 	char* pageKey = string_itoa(pages->firstPage);
 	dictionary_put(paginas->pagesPerFiles, pageKey, pages);
@@ -147,7 +160,7 @@ int dump_TPI(int dtbID) {
 		while (offset < pages->numberOfPages) {
 			frameNumber = getFrameOfPage(pages->firstPage + offset, dtbID);
 			Logger_Log(LOG_INFO, "Página número %d está en frame %d", pages->firstPage + offset, frameNumber);
-			Logger_Log(LOG_INFO, "Contenido Página %s", key);
+			Logger_Log(LOG_INFO, "Contenido Página %d",  pages->firstPage + offset);
 			readFrame(buffer, frameNumber);
 			offset++;
 		}
