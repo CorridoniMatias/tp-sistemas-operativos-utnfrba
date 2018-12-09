@@ -82,6 +82,7 @@ void AddPLPTask(int taskCode)
 	pthread_mutex_lock(&mutexPLPtasksQueue);
 	int* newTask = (int*) malloc(sizeof(int));
 	*newTask = taskCode;
+	queue_push(PLPtasksQueue, newTask);
 	pthread_mutex_unlock(&mutexPLPtasksQueue);
 	sem_post(&workPLP);
 
@@ -93,7 +94,7 @@ void AddPCPTask(int taskCode)
 	pthread_mutex_lock(&mutexPCPtasksQueue);
 	int* newTask = (int*) malloc(sizeof(int));
 	*newTask = taskCode;
-	queue_push(PLPtasksQueue, newTask);
+	queue_push(PCPtasksQueue, newTask);
 	pthread_mutex_unlock(&mutexPCPtasksQueue);
 	sem_post(&workPCP);
 
