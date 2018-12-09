@@ -13,7 +13,7 @@ fifa_examples:
 	- rm -rf fifa-examples && git clone https://github.com/sisoputnfrba/fifa-examples.git
 fs_checkpoint:
 	- rm -rf MDJ/Debug/fifa-checkpoint/ && cp -R fifa-examples/fifa-checkpoint/ MDJ/Debug/
-fs_final:
+fs_entrega:
 	- rm -rf MDJ/Debug/fifa-entrega/ && cp -R fifa-examples/fifa-entrega/ MDJ/Debug/
 test_checkpoint:
 	- cp --remove-destination configs/checkpoint/SAFA.config SAFA/Debug/Config/SAFA.config
