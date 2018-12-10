@@ -16,10 +16,10 @@
 //--VARIABLES DE OTROS MODULOS--//
 extern t_list* cpus;									//Lista de CPUs conectados; declarada en CPUsManager.h
 extern sem_t assignmentPending;							//Semaforo que indica que ya se asigno un DTB a un CPU
-CreatableGDT* justDummied;								//Estructuras, no llevan extern aca sino en modulo originario
-extern t_queue* toBeUnlocked;
+extern t_queue* toBeUnlocked;							//Estructuras, no llevan extern aca sino en modulo originario
 extern t_queue* toBeBlocked;
 extern t_queue* toBeEnded;
+extern t_queue* dummiedQueue;
 
 ///-------------FUNCIONES DEFINIDAS------------///
 

@@ -9,13 +9,20 @@ void Comms_DAM_DummyFinished(void* arriveData)
 	OnArrivedData* data = (OnArrivedData*)arriveData;
 	DeserializedData* params = Serialization_Deserialize(data->receivedData);
 
-	//Copio esos datos al justDummied, la estructura que usa Scheduling para saber como actualizar el DTB
+	//Creo un CreatableGDT, que es el que metere a la cola de dummiedQueue, con los datos que informo el DAM
+	CreatableGDT* justDummied = (CreatableGDT*) malloc(sizeof(CreatableGDT*));
 	justDummied->dtbID = *((uint32_t*)(params->parts[0]));
 	int pathLength = strlen((char*)(params->parts[1])) + 1;
-	justDummied->script = realloc(justDummied->script, pathLength);	//Importante reallocar!!
+	justDummied->script = (char*) malloc(pathLength);
 	strcpy(justDummied->script, (char*)(params->parts[1]));
 	Logger_Log(LOG_DEBUG, "SAFA::COMMS->La operacion Dummy fue sobre el script %s", justDummied->script);
 	justDummied->logicalAddress = *((uint32_t*)(params->parts[2]));
+
+	//Lo meto en la cola de DTBs ya dummiados, accediendo univocamente a ella
+	pthread_mutex_lock(&mutexDummiedQueue);
+	queue_push(dummiedQueue, justDummied);
+	pthread_mutex_unlock(&mutexDummiedQueue);
+	Logger_Log(LOG_DEBUG, "SAFA::COMMS->Se agrego un Dummy exitoso a dummiedQueue; hay %d elementos ahi", queue_size(dummiedQueue));
 
 	//Seteo la tarea del PLP en inicializar el DTB (cargar datos tras operacion Dummy), y le aviso
 	AddPLPTask(PLP_TASK_INITIALIZE_DTB);

@@ -165,6 +165,7 @@ pthread_mutex_t mutexToBeBlocked;				//Usado en Communication.h (extern)
 pthread_mutex_t mutexToBeUnlocked;				//Usado en Communication.h y ResourceManager.h (extern)
 pthread_mutex_t mutexToBeEnded;					//Usado en Communication.h y ConsoleHandler.h (extern)
 pthread_mutex_t mutexBeingDummied;				//Totalmente interno al modulo, para evitar concurrencia sobre lista de DTBs siendo dummizados
+pthread_mutex_t mutexDummiedQueue;				//Para tener mutua exclusion sobre la cola de Dummies satifsactorios (extern en Communication.h)
 
 extern pthread_mutex_t mutexCPUs;				//Proveniente de CPUsManager.h, para manejar de a uno la lista de CPUs
 
@@ -186,10 +187,11 @@ int algorithmChange;							//Codigo del cambio de algoritmo sufrido; constantes 
 
 //--VARIABLES DE ESTRUCTURAS DE PROCESOS PROPIOS--//
 DTB* dummyDTB;									//DTB que se usara como Dummy
-extern CreatableGDT* justDummied;				//Estructura con el path del script, la direccion logica y el id del DTB
-												//cuya carga Dummy acaba de terminar (segun informo el DAM); ext para Comm.h
 t_list* beingDummied;							//Lista de DTBs que estan haciendo el Dummy (deberia ser solo uno)
 												//Contiene info relevante de los mismos, para no perderla
+
+t_queue* dummiedQueue;							//Cola de CreatableGDTs con informacion de los procesos que ya realizaron la operacion Dummy
+												//extern en Communication.h, originaria de aca (para DummyFinished)
 
 //--COLAS DE PLANIFICACION GLOBALES--//
 t_queue* NEWqueue;								//Cola NEW, gestionada por PLP con FIFO; es lista para ser modificable
@@ -306,7 +308,7 @@ void AddToExit(DTB* myDTB);
  * 	PARAMETROS:
  * 		myDTB: DTB elemento de la lista, pasado automaticamente por parametro al aplicarle una funcion de orden superior
  */
-bool IsDummy(DTB* myDTB);
+bool IsDummy(void* myDTB);
 
 /*
  * 	ACCION: Closure para mostrar solo id y script asociado de un DTB; aplicar ante el comando status de consola
@@ -534,6 +536,13 @@ void EndableDestroyer(void* endableID);
  * 		aDTB: void*, como cualquier parametro de destroyer, automatico, para saber cual liberar
  */
 void DTBDestroyer(void* aDTB);
+
+/*
+ * 	ACCION: Closure para liberar la memoria de una estructura de carga Dummy satisfactoria (CreatableGDT) de la cola dummiedQueue
+ * 	PARAMETROS:
+ * 		aDummied: void*, formato defecto de los destroyer, automatico, para saber cual liberar
+ */
+void CreatableGDTDestroyer(void* aDummied);
 
 /*
  * 	ACCION: Eliminar todas las colas y listas, destruyendo y liberando su memoria

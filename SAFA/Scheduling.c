@@ -19,6 +19,7 @@ void InitQueuesAndLists()
 	toBeBlocked = queue_create();
 	toBeEnded = queue_create();
 	beingDummied = list_create();
+	dummiedQueue = queue_create();
 
 }
 
@@ -34,6 +35,7 @@ void InitSemaphores()
 	pthread_mutex_init(&mutexToBeEnded, NULL);
 	pthread_mutex_init(&mutexNEW, NULL);
 	pthread_mutex_init(&mutexBeingDummied, NULL);
+	pthread_mutex_init(&mutexDummiedQueue, NULL);
 	sem_init(&workPLP, 0, 0);
 	sem_init(&workPCP, 0, 0);
 
@@ -66,9 +68,6 @@ void InitSchedulingGlobalVariables()
 
 	InitSemaphores();
 	InitQueuesAndLists();
-
-	justDummied = (CreatableGDT*) malloc(sizeof(CreatableGDT));
-	justDummied->script = malloc(1);				//Medio paragua, para poder hacer reallocs
 
 	CreateDummy();									//Malloceo y creo el DummyDTB
 
@@ -203,10 +202,11 @@ void AddToExit(DTB* myDTB)
 
 }
 
-bool IsDummy(DTB* myDTB)
+bool IsDummy(void* myDTB)
 {
 
-	if(myDTB->initialized == 0)
+	DTB* realDTB = (DTB*) myDTB;
+	if(realDTB->initialized == 0)
 	{
 		return true;
 	}
@@ -408,7 +408,7 @@ void PlanificadorLargoPlazo()
 				// Se pone el dummy en ready aca para que no se sobreescriba el path y se pierda un proceso a ejecutar.
 				dummyDTB->status = DTB_STATUS_READY;
 				//Removemos el dummy de la cola BLOCKED.
-				list_remove_by_condition(BLOCKEDqueue,IsDummy);
+				list_remove_by_condition(BLOCKEDqueue, IsDummy);
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->El Dummy esta desocupado, se intentara cargarlo");
 				//Saco el primero de la cola, y seteo su informacion en el Dummy; borro su referencia?
 				pthread_mutex_lock(&mutexNEW);
@@ -462,36 +462,55 @@ void PlanificadorLargoPlazo()
 		else if(currentTask == PLP_TASK_INITIALIZE_DTB)
 		{
 
-			//Closure para poder encontrar el DTB con los datos y el mismo ID que el que volvio del Dummy
-			bool IsDTBBeingDummied(void* aDTB)
+			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->PLP Bajo la orden de inicializar DTBs cuya carga Dummy ya termino");
+
+			//Uso este mutex para acceder de a uno a la cola de DTBs ya dummiados (desbloqueo luego del while)
+			pthread_mutex_lock(&mutexDummiedQueue);
+
+			//Hasta vaciar la cola de DTBs ya cargados con el dummy, hago este algoritmo
+			while(!queue_is_empty(dummiedQueue))
 			{
-				DTB* castDTB = (DTB*) aDTB;
-				if(castDTB->id == justDummied->dtbID)
+				CreatableGDT* justDummied = queue_pop(dummiedQueue);
+
+				//Closure para poder encontrar el DTB con los datos y el mismo ID que el que volvio del Dummy y fue sacado de la cola
+				bool IsDTBBeingDummied(void* aDTB)
 				{
-					return true;
+					DTB* castDTB = (DTB*) aDTB;
+					if(castDTB->id == justDummied->dtbID)
+					{
+						return true;
+					}
+					else
+					{
+						return false;
+					}
 				}
-				else
-				{
-					return false;
-				}
+
+				//En base a lo que me mando el DAM (protocolo 220) y se encolo en dummiedQueue, busco el DTB expectante con el ID del Dummy
+				pthread_mutex_lock(&mutexBeingDummied);
+				DTB* toBeInitialized = list_remove_by_condition(beingDummied, IsDTBBeingDummied);
+				pthread_mutex_unlock(&mutexBeingDummied);
+				//Le guardo la direccion logica que proporciono la operacion Dummy, le pongo el flag en 1 y el PC en 0
+				toBeInitialized->pathLogicalAddress = justDummied->logicalAddress;
+				toBeInitialized->initialized = 1;
+				toBeInitialized->programCounter = 0;
+
+				Logger_Log(LOG_DEBUG, "Se quiere inicializar el DTB de id %d y path %s, con la dir %d", toBeInitialized->id, toBeInitialized->pathEscriptorio, toBeInitialized->pathLogicalAddress);
+
+				//Mutexeo las settings para tomar el algoritmo en ese momento y aislarme de un cambio en simultaneo
+				pthread_mutex_lock(&mutexSettings);
+				AddToReady(toBeInitialized, settings->algoritmo);
+				pthread_mutex_unlock(&mutexSettings);
+
 			}
 
-			//En base a lo que me mando el DAM (protocolo 220), busco el DTB expectante con el ID del Dummy
-			pthread_mutex_lock(&mutexBeingDummied);
-			DTB* toBeInitialized = list_remove_by_condition(beingDummied, IsDTBBeingDummied);
-			pthread_mutex_unlock(&mutexBeingDummied);
-			//Le guardo la direccion logica que proporciono la operacion Dummy, le pongo el flag en 1 y el PC en 0
-			toBeInitialized->pathLogicalAddress = justDummied->logicalAddress;
-			toBeInitialized->initialized = 1;
-			toBeInitialized->programCounter = 0;
+			//Ya vacie la cola de DTBs dummiados, la desbloqueo
+			pthread_mutex_unlock(&mutexDummiedQueue);
 
-			//Mutexeo las settings para tomar el algoritmo en ese momento y aislarme de un cambio en simultaneo
-			pthread_mutex_lock(&mutexSettings);
-			AddToReady(toBeInitialized, settings->algoritmo);
-			pthread_mutex_unlock(&mutexSettings);
 			//Vuelvo a poner la tarea del PLP en Planificacion Normal (1)
 			AddPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 			AddPLPTask(PLP_TASK_NORMAL_SCHEDULE);
+
 		}
 
 	}
@@ -1384,6 +1403,7 @@ void DeleteSemaphores()
 	pthread_mutex_destroy(&mutexToBeEnded);
 	pthread_mutex_destroy(&mutexNEW);
 	pthread_mutex_destroy(&mutexBeingDummied);
+	pthread_mutex_destroy(&mutexDummiedQueue);
 	sem_destroy(&workPLP);
 	sem_destroy(&workPCP);
 
@@ -1441,6 +1461,15 @@ void DTBDestroyer(void* aDTB)
 
 }
 
+void CreatableGDTDestroyer(void* aDummied)
+{
+
+	CreatableGDT* realDummied = (CreatableGDT*) aDummied;
+	free(realDummied->script);
+	free(realDummied);
+
+}
+
 void DeleteQueuesAndLists()
 {
 
@@ -1456,16 +1485,14 @@ void DeleteQueuesAndLists()
 	queue_destroy_and_destroy_elements(toBeBlocked, BlockableInfoDestroyer);
 	queue_destroy_and_destroy_elements(toBeEnded, EndableDestroyer);
 	list_destroy_and_destroy_elements(beingDummied, DTBDestroyer);
+	queue_destroy_and_destroy_elements(dummiedQueue, CreatableGDTDestroyer);
 
 }
 
 void DeleteSchedulingGlobalVariables()
 {
 
-	free(justDummied->script);
-	free(justDummied);
 	//El free del Dummy no se hace aca, sino al hacer el delete de Colas y Listas (estara en alguna)
-
 	DeleteSemaphores();
 	DeleteQueuesAndLists();
 
