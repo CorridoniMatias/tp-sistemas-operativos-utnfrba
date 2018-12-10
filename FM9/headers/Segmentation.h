@@ -77,5 +77,6 @@ void freeSegmentCompaction();
 
 int sizeOfSegment(int dtbID, int virtualAddress);
 
+int powi(int base, int power);
 
 #endif /* SEGMENTATION_H_ */

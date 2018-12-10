@@ -28,7 +28,7 @@ void FM9_AsignLine(void* data) {
 		if (result == INVALID_LINE_NUMBER) {
 			*status = 2;
 		} else {
-			int size = sizeOfLine(buffer);
+			int size = sizeOfLine(buffer, tamanioLinea);
 			int sizeOfData = string_length(line);
 			if (size + sizeOfData >= tamanioLinea)
 				*status = 3;
@@ -100,7 +100,7 @@ void FM9_AskForLine(void* data) {
 		printf("\n\n\nbuffer=\"%s\"",buffer);
 //		char* line = strtok(buffer, newLine);
 //		int sizeLine = strlen(line) + 1;
-		int sizeLine = sizeOfLine(buffer) + 1;
+		int sizeLine = sizeOfLine(buffer, tamanioLinea) + 1;
 		buffer[sizeLine - 1] = 0;
 		SerializedPart content = { .size = sizeLine, .data = buffer};
 		packetToCPU = Serialization_Serialize(2, code, content);
@@ -200,7 +200,7 @@ void FM9_Open(void* data) {
 		printf("\npor acomodar el buffer\n");
 		while (offset < size) {
 			printf("\n\noffset=%d\n\n",offset);
-			sizeLine = sizeOfLine((char*) (buffer + offset)) + 1;
+			sizeLine = sizeOfLine((char*) (buffer + offset), size-offset) + 1;
 			realData = realloc(realData, realSize + tamanioLinea);
 			memcpy(realData + realSize, buffer + offset, sizeLine);
 			realSize += tamanioLinea;
@@ -270,7 +270,8 @@ void FM9_Flush(void* data) {
 				break;
 			}
 			printf("\n\nbuffer =\"%s\"\n\n",(char*)buffer);
-			sizeLine = sizeOfLine((char*)buffer + offset) + 1;
+			printf("\n\nrealdata =\"%s\"\n\n",(char*)realData);
+			sizeLine = sizeOfLine((char*)buffer + offset, bufferSize - offset) + 1;
 			realData = realloc(realData, realSize + sizeLine);
 			memcpy(realData + realSize, buffer + offset, sizeLine);
 			realSize += sizeLine;
@@ -294,9 +295,18 @@ void FM9_Flush(void* data) {
 			if(!found){
 				return;
 			}
+			printf("\ntamaño = %d\n",size);
 			SocketCommons_SendData(socket, MESSAGETYPE_STRING, realData + offset, size);
 			if (size == 0)
 				break;
+			char* linea = NULL;
+			linea = calloc(1,size);
+			memcpy(linea, realData + offset, size);
+			linea = realloc(linea, size + 1);
+			memcpy(linea + size, "\0", 1);
+//			memcpy(linea + tamanioLinea, 0, 1);
+			printf("\ndatos enviados =\"%s\"\n",linea);
+			free(linea);
 			arriveData = SocketServer_WakeMeUpWhenDataIsAvailableOn(socket);
 			offset += size;
 			realSize -= size;
@@ -329,11 +339,14 @@ void FM9_Dump(int argC, char** args, char* callingLine, void* extraData) {
 	}
 }
 
-int sizeOfLine(char* line) {
+int sizeOfLine(char* line, int maxSize) {
 	int i = 0;
-	printf("\n\nanalizando linea=\"%s\"\n\n",line);
-	while (line[i] != '\n'){
-		printf("\ni=%d\n",i);
-		i++;}
+	printf("\n\nanalizando linea=\"%s\"\n\n", line);
+	while (line[i] != '\n') {
+		printf("\ni=%d\n", i);
+		i++;
+		if (i >= maxSize)
+			return 0;
+	}
 	return i;
 }

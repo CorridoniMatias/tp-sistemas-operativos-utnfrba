@@ -92,7 +92,6 @@ static int useFrame(void* page, int numFrame,char* log, int (*operation)(void*,i
 
 	for (int i = 0; i < cantLineasPorFrame; i++) {
 		printf("\n\n\nnumero de linea donde imprimir = %d",lineaInicial + i);
-		printf("\n\ntamaño linea %d\n\n",tamanioLinea);
 		if (operation(((char*) page) + i * tamanioLinea, lineaInicial + i) == INVALID_LINE_NUMBER)
 			return INVALID_LINE_NUMBER;
 	}

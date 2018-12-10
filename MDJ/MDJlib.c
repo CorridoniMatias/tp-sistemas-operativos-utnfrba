@@ -234,7 +234,7 @@ void md5(void* content, unsigned char* digest)
 {
 	MD5_CTX context;
 	MD5_Init(&context);
-	MD5_Update(&context, content, strlen(content) + 1);
+	MD5_Update(&context, content, strlen(content));
 	MD5_Final(digest, &context);
 }
 

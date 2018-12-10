@@ -10,16 +10,9 @@
 
 //La base y limit es el número de linea
 typedef struct{
-	t_dictionary* pages;
+	int* frameses;
 	int limit;
 }t_segment_paged;
-
-typedef struct{
-	t_dictionary * segments;
-	int nextSegmentNumber;
-	int nextPageNumber;
-}t_segments_paged;
-
 
 /*
  * Es un diccionario cuyo key es el id del dtb y el value es un t_segments_paged que tiene otro dictionary cuyas keys son

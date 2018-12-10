@@ -81,7 +81,7 @@ int writeData_SEG(void* data, int size, int dtbID) {
 		list_add(freeSegments, freeSegment);
 	}
 	//Ver como hacer para que el segment number sea parte de la direccion lógica
-	int virtualAddress = segmentNumber * round(pow(10, offsetNumberOfDigits));
+	int virtualAddress = segmentNumber * powi(10, offsetNumberOfDigits);
 	Logger_Log(LOG_INFO, "FM9 -> Dirección lógica = %d.", virtualAddress);
 	return virtualAddress;
 }
@@ -146,18 +146,6 @@ int addressTranslation_SEG(int logicalAddress, int dtbID) {
 	Logger_Log(LOG_INFO, "FM9 -> Dirección física = %d.", numLinea);
 
 	return numLinea;
-}
-
-int getSegmentFromAddress(int logicalAddress) {
-	return logicalAddress / ceil(pow((float)10, (float)offsetNumberOfDigits));
-}
-
-int getOffsetFromAddress(int logicalAddress) {
-	return logicalAddress % ((int) ceil(pow((float)10, (float)offsetNumberOfDigits)));
-}
-
-int getNewSegmentNumber(t_segments* segments) {
-	return segments->nextSegmentNumber;
 }
 
 int dump_SEG(int dtbID) {
@@ -232,4 +220,24 @@ void freeSegmentCompaction() {
 		else
 			index++;
 	}
+}
+
+int getSegmentFromAddress(int logicalAddress) {
+	return logicalAddress / powi(10, offsetNumberOfDigits);
+}
+
+int getOffsetFromAddress(int logicalAddress) {
+	return logicalAddress % powi(10, offsetNumberOfDigits);
+}
+
+int getNewSegmentNumber(t_segments* segments) {
+	return segments->nextSegmentNumber;
+}
+
+int powi(int base, int power){
+	int aux = base;
+	for(int i = 1; i < power; i++){
+		aux *= base;
+	}
+	return aux;
 }

@@ -378,7 +378,7 @@ void DAM_Flush(void* arriveData)
 	int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
 	int socketFM9 = SocketClient_ConnectToServerIP(settings->ipFM9, settings->puertoFM9);
 
-	int len;
+	int len = 0;
 	//TODO que hacemos si hay error desde FM9?
 	char* archivo = DAM_ReadFileFromFM9(dtbID, direccionLogica,socketFM9, &len);
 	//Usado para test:

@@ -97,13 +97,13 @@ void testLineLength(){
 
 	char* line = "01245\n0123456789\n";
 
-	int size = sizeOfLine(line);
+	int size = sizeOfLine(line,50);
 	char* firstPart = malloc(size + 1);
 	memcpy(firstPart, line, size);
 	firstPart[size] = '\0';
 	printf("primera parte %s\n",firstPart);
 	printf("tamaño primera parte %d\n",size);
-	int size1 = sizeOfLine(line+size+1);
+	int size1 = sizeOfLine(line+size+1,50);
 	char* secondPart = malloc(size1 + 1);
 	memcpy(secondPart, line+size+1, size1);
 	secondPart[size1] = '\0';
