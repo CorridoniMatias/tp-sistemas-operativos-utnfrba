@@ -42,6 +42,7 @@ void configurar() {
 			memoryFunctions->writeData = writeData_SEG;
 			memoryFunctions->readData = readData_SEG;
 			memoryFunctions->closeFile = closeFile_SEG;
+			memoryFunctions->closeDTBFiles = closeDTBFiles_SEG;
 			memoryFunctions->dump = dump_SEG;
 			break;
 		case SPA:
@@ -51,6 +52,7 @@ void configurar() {
 			memoryFunctions->writeData = writeData_SPA;
 			memoryFunctions->readData = readData_SPA;
 			memoryFunctions->closeFile = closeFile_SPA;
+			memoryFunctions->closeDTBFiles = closeDTBFiles_SPA;
 			memoryFunctions->dump = dump_SPA;
 			break;
 		case TPI:
@@ -60,6 +62,7 @@ void configurar() {
 			memoryFunctions->writeData = writeData_TPI;
 			memoryFunctions->readData = readData_TPI;
 			memoryFunctions->closeFile = closeFile_TPI;
+			memoryFunctions->closeDTBFiles = closeDTBFiles_TPI;
 			memoryFunctions->dump = dump_TPI;
 			break;
 	}

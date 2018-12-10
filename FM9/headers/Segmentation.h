@@ -61,6 +61,8 @@ int readData_SEG(void** target, int virtualAddress, int dtbID);
 
 int closeFile_SEG(int dtbID, int virtualAddress);
 
+int closeDTBFiles_SEG(int dtbID);
+
 int dump_SEG(int dtbID);
 
 int getSegmentFromAddress(int virtualAddress);

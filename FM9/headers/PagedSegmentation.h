@@ -31,7 +31,9 @@ int writeData_SPA(void* data, int size, int dtbID);
 
 int readData_SPA(void** target, int logicalAddress, int dtbID);
 
-int closeFile_SPA(int dtbID, int logicalAddress) ;
+int closeFile_SPA(int dtbID, int logicalAddress);
+
+int closeDTBFiles_SPA(int dtbID);
 
 int dump_SPA(int dtbID);
 

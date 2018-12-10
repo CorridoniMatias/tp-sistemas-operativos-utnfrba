@@ -187,7 +187,23 @@ int closeFile_SEG(int dtbID, int virtualAddress) {
 	}
 	t_segment* segment = dictionary_remove(segments->segments, segmentKey);
 	addFreeSegment(segment);
-	free(segment);
+//	free(segment);
+	return 1;
+}
+
+int closeDTBFiles_SEG(int dtbID) {
+	char* dtbKey = string_itoa(dtbID);
+	if (dictionary_has_key(segmentsPerDTBTable, dtbKey)) {
+		free(dtbKey);
+		return -1;
+	}
+	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
+	void dictionaryDestroyer(void* data){
+		t_segment* segment = data;
+		addFreeSegment(segment);
+	}
+	dictionary_destroy_and_destroy_elements(segments->segments);
+	free(segments);
 	return 1;
 }
 

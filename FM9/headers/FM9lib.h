@@ -36,6 +36,7 @@ typedef struct{
 	int (*writeData)(void* data, int size, int dtdID);
 	int (*readData)(void** target, int logicalAddress, int dtdID);
 	int (*closeFile)(int dtdID,int logicalAddress);
+	int (*closeDTBFiles)(int dtbID);
 	int (*dump)(int dtdID);
 //	int (*size)(int,int);
 	//No es necesaria esta creo, con hacer la traduccion esta bien;

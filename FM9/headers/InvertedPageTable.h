@@ -62,7 +62,9 @@ int writeData_TPI(void* data, int size, int dtbID);
 
 int readData_TPI(void** target, int logicalAddress, int dtbID);
 
-int closeFile_TPI(int dtbID, int logicalAddress) ;
+int closeFile_TPI(int dtbID, int logicalAddress);
+
+int closeDTBFiles_TPI(int dtbID);
 
 int dump_TPI(int dtbID);
 

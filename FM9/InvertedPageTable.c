@@ -138,6 +138,25 @@ int closeFile_TPI(int dtbID, int logicalAddress) {
 	return 1;
 }
 
+
+int closeDTBFiles_TPI(int dtbID) {
+	char* dtbKey = string_itoa(dtbID);
+	if (dictionary_has_key(pagesPerDTBTable, dtbKey)) {
+		free(dtbKey);
+		return ITS_A_TRAP;
+	}
+	t_pages* paginas = dictionary_get(pagesPerDTBTable, dtbKey);
+	free(dtbKey);
+	void dictionaryDestroyer(void* data){
+		t_pages_per_file* file = data;
+		freeFrames(file,dtbID);
+		free(file);
+	}
+	dictionary_destroy_and_destroy_elements(paginas->pagesPerFiles,dictionaryDestroyer);
+	free(paginas);
+	return 1;
+}
+
 int dump_TPI(int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
 	if (!dictionary_has_key(pagesPerDTBTable, dtbKey))

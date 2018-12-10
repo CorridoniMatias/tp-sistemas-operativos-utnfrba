@@ -196,6 +196,27 @@ int closeFile_SPA(int dtbID, int logicalAddress) {
 	return 1;
 }
 
+int closeDTBFiles_SPA(int dtbID) {
+	char* dtbKey = string_itoa(dtbID);
+	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey)) {
+		free(dtbKey);
+		return ITS_A_TRAP;
+	}
+	t_segments* segments = dictionary_get(segmentspagedPerDTBTable, dtbKey);
+	free(dtbKey);
+	void dictionaryDestroyer(void* data) {
+		t_segment_paged* segment = data;
+		for (int i = 0; i < segment->limit; i++) {
+			addFreeFrame(segment->frameses[i]);
+		}
+		free(segment->frameses);
+		free(segment);
+	}
+	dictionary_destroy_and_destroy_elements(segments->segments);
+	free(segments);
+	return 1;
+}
+
 int dump_SPA(int dtbID){
 	char* dtbKey = string_itoa(dtbID);
 	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey)) {
