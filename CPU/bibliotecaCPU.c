@@ -100,7 +100,7 @@ char* askLineToFM9(uint32_t idDtb, uint32_t logicDir, uint32_t pc, int fm9){
 		Serialization_CleanupSerializedPacket(packetToFM9);
 		char* line = string_duplicate((char*)data->parts[1]);
 		Serialization_CleanupDeserializationStruct(data);
-		printf("\nlinea recibida = %s\n",line);
+		printf("\nlinea recibida =\"%s\"\n",line);
 		return line;
 	}
 		free(id);
@@ -210,8 +210,8 @@ void CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 //					int32_t idDtb = ((Operation*) extraData)->dtb;
 //					declare_and_init(id, int32_t, idDtb)
 
-					SocketCommons_SendData(((Operation*) extraData)->socketSAFA,
-							MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
+					CPU_EndDTB(idDtb, ((Operation*) extraData)->socketSAFA, ((Operation*) extraData)->socketFM9);
+//					SocketCommons_SendData(((Operation*) extraData)->socketSAFA, MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
 					free(id);
 					free(newLogicDir);
 					StringUtils_FreeArray(args);
@@ -226,8 +226,8 @@ void CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 //					int32_t idDtb = ((Operation*) extraData)->dtb;
 //					declare_and_init(id, int32_t, idDtb)
 
-					SocketCommons_SendData(((Operation*) extraData)->socketSAFA,
-							MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
+					CPU_EndDTB(idDtb, ((Operation*) extraData)->socketSAFA, ((Operation*) extraData)->socketFM9);
+//					SocketCommons_SendData(((Operation*) extraData)->socketSAFA, MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
 
 					free(id);
 					free(newLogicDir);
@@ -246,7 +246,8 @@ void CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 			declare_and_init(id, int32_t,idDtb);
 
 
-			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT,id, sizeof(uint32_t));
+			CPU_EndDTB(idDtb, ((Operation*) extraData)->socketSAFA, ((Operation*) extraData)->socketFM9);
+//			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT,id, sizeof(uint32_t));
 			free(id);
 
 			((Operation*)extraData)->commandResult = 2; // hacer break
@@ -255,7 +256,9 @@ void CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 		}
 		int32_t idDtb = ((Operation*)extraData)->dtb;
 		declare_and_init(id, int32_t,idDtb);
-		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT,id, sizeof(uint32_t));
+
+		CPU_EndDTB(idDtb, ((Operation*) extraData)->socketSAFA, ((Operation*) extraData)->socketFM9);
+//		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT,id, sizeof(uint32_t));
 
 		StringUtils_FreeArray(args);
 		free(id);
@@ -266,7 +269,7 @@ void CommandAsignar(int argC, char** args, char* callingLine, void* extraData){
 
 void CommandWait(int argC, char** args, char* callingLine, void* extraData){
 
-	if(argC == 2){
+	if(argC == 1){
 		int32_t idDtb = ((Operation*)extraData)->dtb;
 		declare_and_init(id, int32_t,idDtb);
 		char* resource = args[1];
@@ -276,23 +279,27 @@ void CommandWait(int argC, char** args, char* callingLine, void* extraData){
 
 		SerializedPart* packetToSAFA = Serialization_Serialize(2, fieldForSAFA1, fieldForSAFA2);
 
+		printf("\n\n\n\n pidiendo el recurso\n\n\n");
 		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_WAIT, packetToSAFA->data, packetToSAFA->size);
 
 		int messageType,err,msglength;
 		void* msgFromSafa = SocketCommons_ReceiveData(((Operation*)extraData)->socketSAFA,&messageType,&msglength,&err);
-
-		DeserializedData* data = Serialization_Deserialize(msgFromSafa);
+		int code = *((uint32_t*)msgFromSafa);
+//		DeserializedData* data = Serialization_Deserialize(msgFromSafa);
 
 		//Siendo code = 1, pudo ser asignado y code = 0, no pudo ser asignado. Quedaria de la siguente forma
-		if(*(int*)data->parts[0] == 1 ){
+		if(code == 1 ){
+			printf("\n\n\n\nse pudo asignar el recurso\n\n\n");
 			StringUtils_FreeArray(args);
 			free(id);
-			Serialization_CleanupDeserializationStruct(data);
+//			Serialization_CleanupDeserializationStruct(data);
 			Serialization_CleanupSerializedPacket(packetToSAFA);
 			((Operation*)extraData)->commandResult = 0; // 0 SALIO to BIEN
 			return;
 		}
 		else {
+
+			printf("\n\n\n\nNOOOOOOO se pudo asignar el recurso\n\n\n");
 			int32_t idDtb = ((Operation*)extraData)->dtb;
 			declare_and_init(id, int32_t,idDtb);
 			int32_t pc = ((Operation*)extraData)->programCounter;
@@ -311,7 +318,7 @@ void CommandWait(int argC, char** args, char* callingLine, void* extraData){
 
 			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
 			StringUtils_FreeArray(args);
-			Serialization_CleanupDeserializationStruct(data);
+//			Serialization_CleanupDeserializationStruct(data);
 			Serialization_CleanupSerializedPacket(packetToSAFA);
 			Serialization_CleanupSerializedPacket(packetToSAFAToBlockGDT);
 			free(id);
@@ -356,8 +363,9 @@ void CommandWait(int argC, char** args, char* callingLine, void* extraData){
 void CommandSignal(int argC, char** args, char* callingLine, void* extraData){
 
 
-	if(argC == 2){
+	if(argC == 1){
 
+		printf("\n\n\n\n\nhaciendo SIGNALLLLL\n\n\n\n");
 		int32_t idDtb = ((Operation*)extraData)->dtb;
 		declare_and_init(id, int32_t,idDtb);
 		char* resource = args[1];
@@ -367,23 +375,20 @@ void CommandSignal(int argC, char** args, char* callingLine, void* extraData){
 
 		SerializedPart* packetToSAFA = Serialization_Serialize(2, fieldForSAFA1, fieldForSAFA2);
 
-		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_WAIT, packetToSAFA->data, packetToSAFA->size);
-
-
-		int messageType,err,msglength;
-		void* msgFromSafa = SocketCommons_ReceiveData(((Operation*)extraData)->socketSAFA,&messageType,&msglength,&err);
-		DeserializedData* data = Serialization_Deserialize(msgFromSafa);
-
-		if(*(int*)data->parts[0] == 1 ){
-			Serialization_CleanupDeserializationStruct(data);
-			Serialization_CleanupSerializedPacket(packetToSAFA);
-			StringUtils_FreeArray(args);
-			free(id);
-			((Operation*)extraData)->commandResult = 0;
-			return;
-		}
-
-
+		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_SIGNAL, packetToSAFA->data, packetToSAFA->size);
+//		EL SAFA NO MANDA CONFIRMACION DE LA OPERACION
+//		int messageType,err,msglength;
+//		void* msgFromSafa = SocketCommons_ReceiveData(((Operation*)extraData)->socketSAFA,&messageType,&msglength,&err);
+//		DeserializedData* data = Serialization_Deserialize(msgFromSafa);
+//
+//		if(*(int*)data->parts[0] == 1 ){
+//			Serialization_CleanupDeserializationStruct(data);
+//			Serialization_CleanupSerializedPacket(packetToSAFA);
+//			StringUtils_FreeArray(args);
+//			free(id);
+//			((Operation*)extraData)->commandResult = 0;
+//			return;
+//		}
 	}
 
 	StringUtils_FreeArray(args);
@@ -399,7 +404,8 @@ void CommandFlush(int argC, char** args, char* callingLine, void* extraData){
 		int32_t idDtb = ((Operation*)extraData)->dtb;
 		declare_and_init(id, int32_t,idDtb);
 
-		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT,id, sizeof(uint32_t));
+		CPU_EndDTB(idDtb, ((Operation*) extraData)->socketSAFA, ((Operation*) extraData)->socketFM9);
+//		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_EOFORABORT,id, sizeof(uint32_t));
 
 		((Operation*)extraData)->commandResult = 2;
 	    StringUtils_FreeArray(args);
@@ -449,11 +455,21 @@ return;
 }
 
 void CommandClose(int argC, char** args, char* callingLine, void* extraData){
-	if (argC == 2) {
-		if (openFileVerificator(((Operation*) extraData)->dictionary, args[1])) {
+	if (argC == 1) {
+		printf("\n\n\n\n\n\nhaciendo CLOSE\n\n\n");
+		printf("\n\n\n\n\n\npath = %s\n\n\n\n\n",args[1]);
+		if (dictionary_has_key(((Operation*) extraData)->dictionary, args[1])){
+
+			printf("\n\n\ntiene la key\n\n\n");
+		}
+		else
+			printf("\n\n\n MIERDAA NO LA TIENE la key\n\n\n");
+		if (dictionary_has_key(((Operation*) extraData)->dictionary, args[1])) {
+//			if (openFileVerificator(((Operation*) extraData)->dictionary, args[1])) {
+
 			int32_t idDtb = ((Operation*) extraData)->dtb;
 			declare_and_init(id, int32_t, idDtb);
-			uint32_t logicDirToClose = *((uint32_t*) dictionary_get(((Operation*) extraData)->dictionary, args[0]));
+			uint32_t logicDirToClose = *((uint32_t*) dictionary_get(((Operation*) extraData)->dictionary, args[1]));
 			declare_and_init(newLogicDirToClose, uint32_t, logicDirToClose);
 
 			SerializedPart fieldForFM91 ={ .size = sizeof(int32_t), .data = id };
@@ -474,42 +490,43 @@ void CommandClose(int argC, char** args, char* callingLine, void* extraData){
 	//				Serialization_CleanupDeserializationStruct(data);
 					Serialization_CleanupSerializedPacket(packetToFM9);
 					free(id);
-					((Operation*) extraData)->commandResult = 2; //SE DESALOJA SIEMPRE QUE HAYA CLOSE
+					((Operation*) extraData)->commandResult = 0; //SE DESALOJA SIEMPRE QUE HAYA CLOSE
 					return;
 
 	//				else {
 				case 2:
 					Logger_Log(LOG_INFO, "Error fallo de segmento/memoria en FM9");
 					int32_t idDtb = ((Operation*) extraData)->dtb;
-					declare_and_init(id, int32_t, idDtb)
+//					declare_and_init(id, int32_t, idDtb)
 
-					SocketCommons_SendData(((Operation*) extraData)->socketSAFA,
-					MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
+					CPU_EndDTB(idDtb, ((Operation*) extraData)->socketSAFA, ((Operation*) extraData)->socketFM9);
+//					SocketCommons_SendData(((Operation*) extraData)->socketSAFA, MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
 					StringUtils_FreeArray(args);
 	//				Serialization_CleanupDeserializationStruct(data);
 					Serialization_CleanupSerializedPacket(packetToFM9);
 
-					free(id);
+//					free(id);
 					return;
 			}
 
 		} else {
 			int32_t idDtb = ((Operation*) extraData)->dtb;
-			declare_and_init(id, int32_t, idDtb)
-			SocketCommons_SendData(((Operation*) extraData)->socketSAFA, MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
+			CPU_EndDTB(idDtb, ((Operation*) extraData)->socketSAFA, ((Operation*) extraData)->socketFM9);
+//			declare_and_init(id, int32_t, idDtb)
+//			SocketCommons_SendData(((Operation*) extraData)->socketSAFA, MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
 			((Operation*) extraData)->commandResult = 2; // 0 SALIO to MAL
-			free(id);
+//			free(id);
 			StringUtils_FreeArray(args);
 
 			return;
 
 		}
 		int32_t idDtb = ((Operation*) extraData)->dtb;
-		declare_and_init(id, int32_t, idDtb);
-		SocketCommons_SendData(((Operation*) extraData)->socketSAFA,
-				MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
+		CPU_EndDTB(idDtb, ((Operation*) extraData)->socketSAFA, ((Operation*) extraData)->socketFM9);
+//		declare_and_init(id, int32_t, idDtb);
+//		SocketCommons_SendData(((Operation*) extraData)->socketSAFA, MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
 		((Operation*) extraData)->commandResult = 2; // 0 SALIO to MAL
-		free(id);
+//		free(id);
 		StringUtils_FreeArray(args);
 
 		return;
@@ -598,6 +615,14 @@ void CommandBorrar(int argC, char** args, char* callingLine, void* extraData){
 return;
 }
 
+
+void CPU_EndDTB(uint32_t idDTB, int socketSAFA, int socketFM9) {
+	declare_and_init(id, uint32_t,idDTB);
+	SocketCommons_SendData(socketSAFA, MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
+	//Para que se libere la memoria que ocupa ese proceso
+	SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_CLOSEDTB, id, sizeof(uint32_t));
+	free(id);
+}
 
 t_dictionary* BuildDictionary(void* flattened, int amount)
 {

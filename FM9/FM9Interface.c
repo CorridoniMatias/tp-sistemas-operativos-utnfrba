@@ -119,17 +119,19 @@ void FM9_AskForLine(void* data) {
 
 void FM9_Close(void* data) {
 	OnArrivedData* arriveData = data;
-	DeserializedData* actualData = Serialization_Deserialize(
-			arriveData->receivedData);
+	DeserializedData* actualData = Serialization_Deserialize(arriveData->receivedData);
 	uint32_t* status = malloc(sizeof(uint32_t));
 	if (actualData->count == 2) {
-		int dtbID = *((int *) actualData->parts[0]);
-		int virtualAddress = *((int *) actualData->parts[1]);
+		uint32_t dtbID = *((uint32_t *) actualData->parts[0]);
+		uint32_t virtualAddress = *((uint32_t *) actualData->parts[1]);
+		Logger_Log(LOG_INFO, "Realizando close del archivo del G.DT de id %d con dirección lógica %d",dtbID, virtualAddress);
 		int result = memoryFunctions->closeFile(dtbID, virtualAddress);
-		if (result <= 0)
-			*status = 2;
-		else
-			*status = 1;
+		if (result <= 0){
+			Logger_Log(LOG_INFO, "No pudo cerrarse el archivo");
+			*status = 2;}
+		else{
+			Logger_Log(LOG_INFO, "Pudo cerrarse correctamente el archivo!");
+			*status = 1;}
 	} else
 		*status = 400;
 	SocketCommons_SendData(arriveData->calling_SocketID, MESSAGETYPE_INT,
@@ -337,6 +339,15 @@ void FM9_Dump(int argC, char** args, char* callingLine, void* extraData) {
 			Logger_Log(LOG_INFO,
 					"Ingresó parámetros demas, solo debe ingresar el id del DTB");
 	}
+}
+
+
+void FM9_CloseDTB(void* data){
+	OnArrivedData* arrivedData = data;
+	uint32_t dtbID = *((uint32_t*)arrivedData->receivedData);
+	Logger_Log(LOG_INFO, "Realizando close de los archivos del G.DT de id %d",dtbID);
+	int result = memoryFunctions->closeDTBFiles(dtbID);
+	SocketServer_CleanOnArrivedData(arrivedData);
 }
 
 int sizeOfLine(char* line, int maxSize) {

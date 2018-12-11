@@ -63,6 +63,8 @@ void CommandFlush(int argC, char** args, char* callingLine, void* extraData);
 void CommandClose(int argC, char** args, char* callingLine, void* extraData);
 void CommandCrear(int argC, char** args, char* callingLine, void* extraData);
 void CommandBorrar(int argC, char** args, char* callingLine, void* extraData);
+//Para avisarle al SAFA que termine un proceso y al FM9 que libere la memoria de ese proceso
+void CPU_EndDTB(uint32_t idDTB, int socketSAFA, int socketFM9);
 t_dictionary* BuildDictionary(void* flattened, int amount);
 bool openFileVerificator(t_dictionary* dictionary,char* path);
 SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable);

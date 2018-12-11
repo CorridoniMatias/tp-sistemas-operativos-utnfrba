@@ -58,5 +58,6 @@
 #define MESSAGETYPE_FM9_CLOSE 42 //Cerrar un un archivo
 #define MESSAGETYPE_FM9_OPEN 43 //Cargar un archivo a memoria desde el MDJ, se recibe desde el DAM
 #define MESSAGETYPE_FM9_FLUSH 44 //Flushear un archivo de memoria al MDJ, se envia al DAM
+#define MESSAGETYPE_FM9_CLOSEDTB 45 //Cerrar todos los archivos de un dtb liberando su memoria ocupada
 
 #endif /* KEMMENS_SOCKETMESSAGETYPES_H_ */

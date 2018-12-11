@@ -67,6 +67,9 @@ void onPacketArrived(int socketID, int message_type, void* data, int message_len
 		case MESSAGETYPE_FM9_FLUSH:
 			run->runnable = FM9_Flush;
 			break;
+		case MESSAGETYPE_FM9_CLOSEDTB:
+			run->runnable = FM9_CloseDTB;
+			break;
 		default:
 			printf("\n\nme llego un mensaje que no entiendo\n\n");
 			free(run);

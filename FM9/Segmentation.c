@@ -81,6 +81,7 @@ int writeData_SEG(void* data, int size, int dtbID) {
 		list_add(freeSegments, freeSegment);
 	}
 	//Ver como hacer para que el segment number sea parte de la direccion lógica
+	printf("\n\n\n\nnumero de segmento %d\n\n\n",segmentNumber);
 	int virtualAddress = segmentNumber * powi(10, offsetNumberOfDigits);
 	Logger_Log(LOG_INFO, "FM9 -> Dirección lógica = %d.", virtualAddress);
 	return virtualAddress;
@@ -175,12 +176,13 @@ int dump_SEG(int dtbID) {
 
 int closeFile_SEG(int dtbID, int virtualAddress) {
 	char* dtbKey = string_itoa(dtbID);
-	if (dictionary_has_key(segmentsPerDTBTable, dtbKey))
+	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey))
 		return -1;
 
 	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
 
 	int segmentNumber = getSegmentFromAddress(virtualAddress);
+	printf("\n\n\n\nnumero de segmento %d\n\n\n",segmentNumber);
 	char* segmentKey = string_itoa(segmentNumber);
 	if (!dictionary_has_key(segments->segments, segmentKey)) {
 		return -1;
@@ -202,7 +204,7 @@ int closeDTBFiles_SEG(int dtbID) {
 		t_segment* segment = data;
 		addFreeSegment(segment);
 	}
-	dictionary_destroy_and_destroy_elements(segments->segments);
+	dictionary_destroy_and_destroy_elements(segments->segments,dictionaryDestroyer);
 	free(segments);
 	return 1;
 }
@@ -226,7 +228,7 @@ void freeSegmentCompaction() {
 	t_segment* firstSegment;
 	t_segment* secondSegment;
 	int index = 0;
-	while (index < list_size(freeSegments)) {
+	while (index + 1 < list_size(freeSegments)) {
 		firstSegment = list_get(freeSegments, index);
 		secondSegment = list_get(freeSegments, index + 1);
 		if (firstSegment->base + firstSegment->limit == secondSegment->base) {

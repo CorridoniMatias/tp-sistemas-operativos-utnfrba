@@ -201,6 +201,12 @@ void DAM_ErrorOperacion(uint32_t idDTB)
 
 	Logger_Log(LOG_DEBUG, "Enviando error de operacion al SAFA para %d", idDTB);
 	SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_ERR, (void*)pointer_iddtb, sizeof(uint32_t));
+
+	Logger_Log(LOG_DEBUG, "Enviando aviso al FM9 para liberar memoria de %d", idDTB);
+
+	int socketFM9 = SocketClient_ConnectToServerIP(settings->ipFM9, settings->puertoFM9);
+	SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_CLOSEDTB, pointer_iddtb, sizeof(uint32_t));
+	close(socketFM9);
 	free(pointer_iddtb);
 }
 
@@ -333,7 +339,8 @@ printf("\ndireccion lógica tomada del fm9 =%d\n",logicAddr);
 					free(p_logic);
 				} else
 				{
-					SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_ERR, data->parts[0], sizeof(uint32_t));
+//					SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_ERR, data->parts[0], sizeof(uint32_t));
+					DAM_ErrorOperacion(idDTB);
 				}
 
 				close(socketFM9);
@@ -363,7 +370,7 @@ void DAM_Flush(void* arriveData)
 	}
 
 	uint32_t dtbID = *((uint32_t*) dest->parts[0]);
-	uint32_t direccionLogica = *((int*) dest->parts[1]);
+	uint32_t direccionLogica = *((uint32_t*) dest->parts[1]);
 	char* filePath = (char*) dest->parts[2];
 
 

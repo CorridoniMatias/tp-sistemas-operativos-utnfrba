@@ -23,6 +23,8 @@ void FM9_Flush(void* data);
 
 void FM9_Dump(int argC, char** args, char* callingLine, void* extraData);
 
+void FM9_CloseDTB(void* data);
+
 int sizeOfLine(char* line, int maxSize);
 
 #endif /* FM9_INTERFACE_H_ */

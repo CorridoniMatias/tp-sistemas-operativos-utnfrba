@@ -76,30 +76,31 @@ int main(int argc, char *argv[])
 							free(line);
 							break;
 						}
-						else if (strcmp(line,"\n") != 0){
+						else if (strcmp(line,"") == 0){
 							printf("\n\nse termino de ejecutar el script\n\n");
 							uint32_t idDtb = extraData.dtb;
-							declare_and_init(id, uint32_t,idDtb);
 							finished = true;
-							SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
+//							declare_and_init(id, uint32_t,idDtb);
+//							SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
+//							free(id);
+							CPU_EndDTB(idDtb, safa, fm9);
 							free(line);
-							free(id);
 							break;
 						}
 					// Terminar el command interpretar siempre ejecutando linea por linea y actualizando el PC de SAFA,
 					}
 					else{
 						uint32_t idDtb = extraData.dtb;
-						declare_and_init(id, int32_t,idDtb);
-
-						SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
-						free(id);
+//						declare_and_init(id, int32_t,idDtb);
+//						SocketCommons_SendData(safa,MESSAGETYPE_CPU_EOFORABORT, id, sizeof(uint32_t));
+//						free(id);
+						CPU_EndDTB(idDtb, safa, fm9);
 						break;
 					}
 
 
 				}
-			if (extraData.quantum == 0 && !finished) {
+			if (extraData.quantum == 0 && extraData.commandResult != 2 && !finished) {
 				declare_and_init(id, int32_t, extraData.dtb);
 				SerializedPart fieldForSAFA1 = { .size = sizeof(uint32_t),.data = id };
 				declare_and_init(updatedProgramCounter,uint32_t,extraData.programCounter)
@@ -151,5 +152,4 @@ int main(int argc, char *argv[])
 	exit_gracefully(0);
 
 }
-
 

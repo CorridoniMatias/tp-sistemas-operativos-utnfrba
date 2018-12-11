@@ -86,7 +86,7 @@ void Comms_DAM_CrearBorrarFlushFinished(void* arriveData)
 	//Dejo indicado que no debe sobreescribirse el Program Counter, eso ya lo deberia haber avisado el CPU al pedir desalojo
 	nextToUnlock->overwritePC = false;
 	//Solo debe actualizar (sin nada) los archivos abiertos del DTB cuando se lo desbloquee, no pisarlos todos
-	nextToUnlock->appendOFs = false;
+	nextToUnlock->appendOFs = true;
 	nextToUnlock->openedFilesUpdate = dictionary_create();
 
 	//Meto ese struct a la cola de DTBs a desbloquear, cuidando la mutua exclusion; cambio la tarea de PCP

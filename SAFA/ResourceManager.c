@@ -19,8 +19,8 @@ void AddNewResource(char* name)
 	rst->availables = 1;
 	//Creo la cola, vacia
 	rst->waiters = queue_create();
-	Logger_Log(LOG_INFO, "SAFA::RESOURCES->Creado el recurso %s. Recursos existentes: %d", name, dictionary_size(resources));
 	dictionary_putMAESTRO(resources, name, rst, ResourceDestroyer);
+	Logger_Log(LOG_INFO, "SAFA::RESOURCES->Creado el recurso %s. Recursos existentes: %d", name, dictionary_size(resources));
 
 }
 
@@ -35,7 +35,7 @@ void SignalForResource(char* name)
 		signaled->availables++;
 		Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->Se registro signal sobre recurso %s", name);
 		Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->Instancias libres: %d. Procesos esperando: %d", signaled->availables, queue_size(signaled->waiters));
-		dictionary_putMAESTRO(resources, name, signaled, ResourceDestroyer);
+//		dictionary_putMAESTRO(resources, name, signaled, ResourceDestroyer);
 	}
 	//Si no, creo uno nuevo
 	else
@@ -55,7 +55,7 @@ void SignalForResource(char* name)
 		//Me guardo el ID del primer DTB que lo estaba esperando
 		*requesterID = *((uint32_t*) queue_pop(involved->waiters));
 		//Actualizo los datos del recurso en el diccionario, hago un put sobre la misma key
-		dictionary_putMAESTRO(resources, name, involved, ResourceDestroyer);
+//		dictionary_putMAESTRO(resources, name, involved, ResourceDestroyer);
 
 		//Creo la estructura a meter en la cola; no modifica el PC del DTB (va en -1) ni debe registrar cambios en los archivos abiertos
 		UnlockableInfo* toBeAwakened = (UnlockableInfo*) malloc(sizeof(UnlockableInfo*));
@@ -98,15 +98,17 @@ bool WaitForResource(char* name, uint32_t requesterID)
 		queue_push(waited->waiters, newWaiter);
 		Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->El DTB de id %d esta esperando el recurso %s", *newWaiter, name);
 		//Actualizo mis registros de los recursos
-		dictionary_putMAESTRO(resources, name, waited, ResourceDestroyer);
-		//Respuesta positiva
-		return true;
+//		dictionary_putMAESTRO(resources, name, waited, ResourceDestroyer);
+		//Respuesta negativa
+		return false;
+//		return true;
 	}
 	//Si no es asi, puedo asignarlo sin problemas!
 	else
 	{
-		//Respuesta negativa
-		return false;
+		//Respuesta positiva
+		return true;
+//		return false;
 	}
 
 }

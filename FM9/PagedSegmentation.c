@@ -212,7 +212,7 @@ int closeDTBFiles_SPA(int dtbID) {
 		free(segment->frameses);
 		free(segment);
 	}
-	dictionary_destroy_and_destroy_elements(segments->segments);
+	dictionary_destroy_and_destroy_elements(segments->segments,dictionaryDestroyer);
 	free(segments);
 	return 1;
 }
