@@ -8,12 +8,12 @@ void FM9_AsignLine(void* data) {
 	DeserializedData* actualData = Serialization_Deserialize(
 			arriveData->receivedData);
 	uint32_t* status = malloc(sizeof(uint32_t));
-
 	if (actualData->count == 3) {
 		int dtbID = *((int *) actualData->parts[0]);
 		int virtualAddress = *((int *) actualData->parts[1]);
 		char* line = actualData->parts[2];
 
+		printf("\n\n\nasignar linea id dtb %d\n\n\n",dtbID);
 		printf("\nnumero de linea recibida = %d.\n", virtualAddress);
 		printf("\nlinea recibida = %s.\n", line);
 		int lineNumber = memoryFunctions->virtualAddressTranslation(
@@ -24,25 +24,28 @@ void FM9_AsignLine(void* data) {
 		}
 		char* buffer = calloc(1,tamanioLinea);
 		memset(buffer,0,tamanioLinea);
-		int result = readLine(buffer, lineNumber);
-		if (result == INVALID_LINE_NUMBER) {
-			*status = 2;
-		} else {
-			int size = sizeOfLine(buffer, tamanioLinea);
-			int sizeOfData = string_length(line);
-			if (size + sizeOfData >= tamanioLinea)
-				*status = 3;
-			else {
-				memcpy(buffer + size, line, sizeOfData);
-				buffer[size + sizeOfData] = '\n';
-				printf("\nlinea a ser escritaaaa = \"%s\".\n", buffer);
-				result = writeLine(buffer, lineNumber);
-				if (result == INVALID_LINE_NUMBER) {
-					*status = 2;
-				} else {
-					*status = 1;
-				}
+		int result;
+//		int result = readLine(buffer, lineNumber);
+//		if (result == INVALID_LINE_NUMBER) {
+//			*status = 2;
+//		} else {
+//		int size = sizeOfLine(buffer, tamanioLinea);
+		int sizeOfData = string_length(line);
+//		if (size + sizeOfData >= tamanioLinea)
+		if (sizeOfData >= tamanioLinea)
+			*status = 3;
+		else {
+			memcpy(buffer, line, sizeOfData);
+//			memcpy(buffer + size, line, sizeOfData);
+			buffer[sizeOfData] = '\n';
+			printf("\nlinea a ser escritaaaa = \"%s\".\n", buffer);
+			result = writeLine(buffer, lineNumber);
+			if (result == INVALID_LINE_NUMBER) {
+				*status = 2;
+			} else {
+				*status = 1;
 			}
+//			}
 		}
 		free(buffer);
 

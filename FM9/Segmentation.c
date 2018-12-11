@@ -195,7 +195,7 @@ int closeFile_SEG(int dtbID, int virtualAddress) {
 
 int closeDTBFiles_SEG(int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
-	if (dictionary_has_key(segmentsPerDTBTable, dtbKey)) {
+	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey)) {
 		free(dtbKey);
 		return -1;
 	}
