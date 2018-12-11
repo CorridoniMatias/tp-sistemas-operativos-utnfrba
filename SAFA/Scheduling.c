@@ -1158,6 +1158,19 @@ SerializedPart* ScheduleVRR(int maxQuantum)
 		}
 	}
 
+	//Closure transformadora para aplicar sobre la cola de READY y corregir cualquier quantum incoherente que haya quedado,
+	//ya sea porque se quedo sin quantum o porque se cambio el parametro de conexion en el medio
+	void HeunMethod(void* aDTB)
+	{
+		DTB* realDTB = (DTB*) aDTB;
+		if((realDTB->quantumRemainder == 0) || (realDTB->quantumRemainder > maxQuantum))
+		{
+			realDTB->quantumRemainder = maxQuantum;
+		}
+	}
+
+	list_map(READYqueue_VRR, (void*)HeunMethod);
+
 	//Tomo el primer DTB de la "cola de prioridad" (el primero que tenga quantum sobrante y no natural)
 	DTB* chosenDTB = list_remove_by_condition(READYqueue_VRR, AtPriorityQueue);
 
@@ -1165,13 +1178,6 @@ SerializedPart* ScheduleVRR(int maxQuantum)
 	if(!chosenDTB)
 	{
 		chosenDTB = list_remove(READYqueue_VRR, 0);
-	}
-
-	//Si le quedara 0 de quantum (se quedo sin) o tuviera mas del maximo (por haber sido
-	//planificado con otro algoritmo antes), le actualizo el maximo quantum a ejecutar
-	if((chosenDTB->quantumRemainder == 0) || (chosenDTB->quantumRemainder > maxQuantum))
-	{
-		chosenDTB->quantumRemainder = maxQuantum;
 	}
 
 	Logger_Log(LOG_DEBUG, "SAFA::PLANIF_VRR->Confeccionando mensaje con DTB de path %s, con un quantum de %d", chosenDTB->pathEscriptorio, chosenDTB->quantumRemainder);
