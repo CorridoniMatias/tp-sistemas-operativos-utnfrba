@@ -486,6 +486,7 @@ void CommandClose(int argC, char** args, char* callingLine, void* extraData){
 //				if(*(int*)data->parts[0] == 1){
 			switch (responseFromFM9) {
 				case 1:
+					dictionary_remove_and_destroy(((Operation*) extraData)->dictionary, args[1], free);
 					StringUtils_FreeArray(args);
 	//				Serialization_CleanupDeserializationStruct(data);
 					Serialization_CleanupSerializedPacket(packetToFM9);

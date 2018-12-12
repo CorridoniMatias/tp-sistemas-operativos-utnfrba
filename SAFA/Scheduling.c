@@ -792,12 +792,13 @@ void PlanificadorCortoPlazo()
 
 				//Muevo este DTB a la cola de READY
 				AddToReady(target, schedulingRules.name);
+				free(nextToUnlock);
 
 			}
 			pthread_mutex_unlock(&mutexToBeUnlocked);
 
 			//No me olvido de este free! Ni de avisar al planificador que, tras desbloquear todos, vuelva a planificar
-			free(nextToUnlock);
+
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Desbloqueados todos los DTBs pendientes. Volviendo a planificacion normal");
 			AddPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 
@@ -883,7 +884,7 @@ bool DescendantPriority(void* dtbOne, void* dtbTwo)
 
 	DTB* firstDTB = (DTB*) dtbOne;
 	DTB* secondDTB = (DTB*) dtbTwo;
-	if(firstDTB->ioOperations >= secondDTB->ioOperations)
+	if(firstDTB->ioOperations > secondDTB->ioOperations)
 	{
 		return true;
 	}

@@ -215,12 +215,15 @@ void FM9_Open(void* data) {
 		int logicalAddress = memoryFunctions->writeData(realData, realSize, dtbID);
 
 		if (logicalAddress == INSUFFICIENT_SPACE) {
+			Logger_Log(LOG_INFO, "Espacio insuficiente en FM9! No se pudo abrir el archivo para el G.DT de id %d",dtbID);
 			*response_code = 2;
 			SocketCommons_SendData(socket, MESSAGETYPE_INT, response_code, sizeof(uint32_t));
 		} else if (logicalAddress == ITS_A_TRAP) {
+			Logger_Log(LOG_INFO, "Hubo un error en FM9! No se pudo abrir el archivo para el G.DT de id %d",dtbID);
 			*response_code = 500;
 			SocketCommons_SendData(socket, MESSAGETYPE_INT, response_code, sizeof(uint32_t));
 		} else {
+			Logger_Log(LOG_INFO, "Se abrio de manera exitosa el archivo para el G.DT de id %d en la dirección lógica %d",dtbID, logicalAddress);
 			declare_and_init(address, uint32_t, logicalAddress)
 			printf("\n enviando direccion lógica =%d\n", logicalAddress);
 			SocketCommons_SendData(socket, MESSAGETYPE_ADDRESS, address, sizeof(uint32_t));
@@ -357,7 +360,7 @@ int sizeOfLine(char* line, int maxSize) {
 	int i = 0;
 	printf("\n\nanalizando linea=\"%s\"\n\n", line);
 	while (line[i] != '\n') {
-		printf("\ni=%d\n", i);
+		printf(" i=%d ", i);
 		i++;
 		if (i >= maxSize)
 			return 0;

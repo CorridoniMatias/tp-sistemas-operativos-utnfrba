@@ -10,7 +10,7 @@ void Comms_DAM_DummyFinished(void* arriveData)
 	DeserializedData* params = Serialization_Deserialize(data->receivedData);
 
 	//Creo un CreatableGDT, que es el que metere a la cola de dummiedQueue, con los datos que informo el DAM
-	CreatableGDT* justDummied = (CreatableGDT*) malloc(sizeof(CreatableGDT*));
+	CreatableGDT* justDummied = (CreatableGDT*) malloc(sizeof(CreatableGDT));
 	justDummied->dtbID = *((uint32_t*)(params->parts[0]));
 	int pathLength = strlen((char*)(params->parts[1])) + 1;
 	justDummied->script = (char*) malloc(pathLength);
@@ -139,7 +139,7 @@ void Comms_CPU_ErrorOrEOF(void* arriveData)
 	//Agrego ese ID a la cola de DTBs a terminar, ya que bien no puedo leer mas o hubo un error con el FM9
 	pthread_mutex_lock(&mutexToBeEnded);
 	queue_push(toBeEnded, dtbID);
-	Logger_Log(LOG_DEBUG, "SAFA::COMMS->El DTB a abortar era el de id %d, ya se lo agrego a la cola de a finalizar", dtbID);
+	Logger_Log(LOG_DEBUG, "SAFA::COMMS->El DTB a abortar era el de id %d, ya se lo agrego a la cola de a finalizar", *dtbID);
 	pthread_mutex_unlock(&mutexToBeEnded);
 	AddPCPTask(PCP_TASK_END_DTB);
 

@@ -47,6 +47,7 @@ int writeData_SEG(void* data, int size, int dtbID) {
 	}
 	for (int i = 0; i < lineasNecesarias; i++) {
 		if (writeLine(((char*) data) + i * tamanioLinea, freeSegment->base + i) == INVALID_LINE_NUMBER) {
+			printf("\n\n\nnumero de linea %d\n\n\n",freeSegment->base + i);
 			return ITS_A_TRAP;
 		}
 	}
@@ -204,13 +205,14 @@ int closeDTBFiles_SEG(int dtbID) {
 		t_segment* segment = data;
 		addFreeSegment(segment);
 	}
+	free(dtbKey);
 	dictionary_destroy_and_destroy_elements(segments->segments,dictionaryDestroyer);
 	free(segments);
 	return 1;
 }
 
 void addFreeSegment(t_segment* segment) {
-	list_add(freeSegments, freeSegments);
+	list_add(freeSegments, segment);
 	sortFreeSegments();
 	freeSegmentCompaction();
 }
