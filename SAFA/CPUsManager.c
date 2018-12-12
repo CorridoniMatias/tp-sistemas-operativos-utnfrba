@@ -25,11 +25,7 @@ void FreeCPU(int socketID)
 
 	CPU* counter;
 //	CPU* toModify;
-
-	printf("\n\ncaca\n\n");
 	pthread_mutex_lock(&mutexCPUs);
-
-	printf("\n\npis\n\n");
 	int size = CPUsCount();
 
 	printf("\n\nsize=%d\n\n",size);

@@ -81,7 +81,7 @@ void InitSchedulingGlobalVariables()
 
 void AddPLPTask(int taskCode)
 {
-
+	Logger_Log(LOG_ERROR,"\n\nagregando PLP task %d\n\n",taskCode);
 	pthread_mutex_lock(&mutexPLPtasksQueue);
 	int* newTask = (int*) malloc(sizeof(int));
 	*newTask = taskCode;
@@ -90,13 +90,14 @@ void AddPLPTask(int taskCode)
 	sem_post(&workPLP);
 	int semaforo;
 	sem_getvalue(&workPCP,&semaforo);
-	printf("\n\n\n\n\nel semaforo del plp vale %d\n\n\n\n\n\n",semaforo);
+	Logger_Log(LOG_ERROR,"\n\semaforo PLP %d \n\n",semaforo);
 
 }
 
 void AddPCPTask(int taskCode)
 {
 
+	Logger_Log(LOG_ERROR,"\n\nagregando PCP task %d\n\n",taskCode);
 	pthread_mutex_lock(&mutexPCPtasksQueue);
 	int* newTask = (int*) malloc(sizeof(int));
 	*newTask = taskCode;
@@ -172,6 +173,7 @@ void AddToReady(DTB* myDTB, char* currentAlgorithm)
 	else if((strcmp(currentAlgorithm, "PROPIO")) == 0)
 	{
 		list_add(READYqueue_Own, myDTB);
+		printf("\n\n\n\ntamaño ready queue %d\n\n\n", list_size(READYqueue_Own));
 		//Ni bien agrego un DTB nuevo, ordeno la lista asi se "inserta ordenado"
 		list_sort(READYqueue_Own, DescendantPriority);
 		Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Agregado el DTB de ID %d a READY. Hay %d DTBs ahi", myDTB->id, list_size(READYqueue_VRR));
@@ -213,6 +215,21 @@ void AddToExit(DTB* myDTB)
 
 	//Libero la memoria de la lista de recursos, libero los recursos y hago un signal de todos (desde el modulo de ResourceManager.h)
 	list_destroy_and_destroy_elements(myDTB->resourcesKept, FreeInstancesAndDestroy);
+
+	bool isDTB(void* data){
+		uint32_t id = *((uint32_t*)data);
+		return id == myDTB->id;
+	}
+
+	void removeWaiter(char* key, void * data){
+		ResourceStatus* resource = data;
+		list_remove_and_destroy_by_condition(resource->waiters->elements,isDTB, free);
+	}
+
+	pthread_mutex_lock(&tableMutex);
+	dictionary_iterator(resources, removeWaiter);
+	pthread_mutex_unlock(&tableMutex);
+
 	//Actualizo el status y lo muevo a la cola de EXIT
 	myDTB->status = DTB_STATUS_EXIT;
 	list_add(EXITqueue, myDTB);
@@ -420,7 +437,7 @@ void PlanificadorLargoPlazo()
 			{
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->El PLP no puede planificar");
 				pthread_mutex_unlock(&mutexNEW);
-				sleep(3);							//Retardo ficticio, para debuggear; puede servir, para esperar
+//				sleep(3);							//Retardo ficticio, para debuggear; puede servir, para esperar
 				continue;
 			}
 			else
@@ -456,9 +473,10 @@ void PlanificadorLargoPlazo()
 			//Si el Dummy esta en READY o en EXEC, esta ocupado; espero un poco mas y reactivo el semaforo
 			else if(dummyDTB -> status == DTB_STATUS_READY || dummyDTB -> status == DTB_STATUS_EXEC)
 			{
-				sleep(3);
+//				sleep(1);
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Dummy ocupado, se intentara planificar con normalidad");
-				AddPLPTask(PLP_TASK_NORMAL_SCHEDULE);
+//				AddPLPTask(PLP_TASK_NORMAL_SCHEDULE);
+				continue;
 			}
 
 		}
@@ -679,6 +697,8 @@ void PlanificadorCortoPlazo()
 			dummyDTB->id = 0;
 			AddToBlocked(dummyDTB);
 			AddPCPTask(PCP_TASK_NORMAL_SCHEDULE);
+			if(list_size(NEWqueue->elements)>0)
+				AddPLPTask(PLP_TASK_NORMAL_SCHEDULE);
 
 		}
 
@@ -894,12 +914,12 @@ void PlanificadorCortoPlazo()
 
 				//Lo muevo a la "cola" de EXIT, actualizando su estado
 				AddToExit(target);
-
+				free(nextToEnd);
 			}
 			pthread_mutex_unlock(&mutexToBeEnded);
 
 			//Libero este puntero, y ademas le aviso al PCP que siga planificando normal
-			free(nextToEnd);
+
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Terminados todos los DTBs pendientes. Volviendo a planificacion normal");
 			AddPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 
@@ -917,12 +937,14 @@ bool DescendantPriority(void* dtbOne, void* dtbTwo)
 
 	DTB* firstDTB = (DTB*) dtbOne;
 	DTB* secondDTB = (DTB*) dtbTwo;
+	printf("\n\nprimer dtb io = %d \t segundo dtb io = %d\n\n",firstDTB->ioOperations, secondDTB->ioOperations);
 	if(firstDTB->ioOperations > secondDTB->ioOperations)
 	{
 		return true;
 	}
 	else if(firstDTB->ioOperations == secondDTB->ioOperations)
 	{
+		printf("\n\nprimer dtb sec = %ld \t segundo dtb sec = %ld\n\n",firstDTB->arrivalAtREADYtime.tv_sec, secondDTB->arrivalAtREADYtime.tv_sec);
 		//Si tienen la misma cantidad de operaciones IO, el que haya llegado antes a READY va primero
 		if(firstDTB->arrivalAtREADYtime.tv_sec < secondDTB->arrivalAtREADYtime.tv_sec)
 		{
@@ -931,6 +953,7 @@ bool DescendantPriority(void* dtbOne, void* dtbTwo)
 		//Si llegaron en el mismo segundo (muy probable) comparo los nanosegundos
 		else if(firstDTB->arrivalAtREADYtime.tv_sec == secondDTB->arrivalAtREADYtime.tv_sec)
 		{
+			printf("\n\nprimer dtb nano = %ld \t segundo dtb nano = %ld\n\n",firstDTB->arrivalAtREADYtime.tv_nsec, secondDTB->arrivalAtREADYtime.tv_nsec);
 			//Si el nanosegundo del primero es anterior, es porque estan bien ordenados
 			if(firstDTB->arrivalAtREADYtime.tv_nsec < secondDTB->arrivalAtREADYtime.tv_nsec)
 			{

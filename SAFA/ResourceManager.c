@@ -19,14 +19,16 @@ void AddNewResource(char* name)
 	rst->availables = 1;
 	//Creo la cola, vacia
 	rst->waiters = queue_create();
+	pthread_mutex_lock(&tableMutex);
 	dictionary_putMAESTRO(resources, name, rst, ResourceDestroyer);
+	pthread_mutex_unlock(&tableMutex);
 	Logger_Log(LOG_INFO, "SAFA::RESOURCES->Creado el recurso %s. Recursos existentes: %d", name, dictionary_size(resources));
 
 }
 
 void SignalForResource(char* name, uint32_t requesterID)
 {
-
+	printf("\n\nse entro al signal\n\n");
 	//Closure para encontrar el DTB que solicita el recurso entre los DTBs de EXEC
 	bool IsRequesterDTB(void* aDTB)
 	{
@@ -56,10 +58,13 @@ void SignalForResource(char* name, uint32_t requesterID)
 	}
 
 	//Si el recurso ya existe, aumento en uno sus instancias disponibles; obtengo sus datos y actualizo
+	pthread_mutex_lock(&tableMutex);
+	printf("\n\nname =\"%s\"",name);
 	if(dictionary_has_key(resources, name))
 	{
 		//Puntero a los datos del recurso al que se le hizo signal
 		ResourceStatus* signaled = (ResourceStatus*) dictionary_get(resources, name);
+		pthread_mutex_unlock(&tableMutex);
 		signaled->availables++;
 		Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->Se registro signal sobre recurso %s", name);
 		Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->Instancias libres: %d. Procesos esperando: %d", signaled->availables, queue_size(signaled->waiters));
@@ -68,6 +73,7 @@ void SignalForResource(char* name, uint32_t requesterID)
 	//Si no, creo uno nuevo
 	else
 	{
+		pthread_mutex_unlock(&tableMutex);
 		AddNewResource(name);
 	}
 
@@ -86,9 +92,10 @@ void SignalForResource(char* name, uint32_t requesterID)
 		pthread_mutex_unlock(&mutexEXEC);
 	}
 
+	pthread_mutex_lock(&tableMutex);
 	//Otro puntero, apunta a los datos del recurso al que se le hizo signal
 	ResourceStatus* involved = (ResourceStatus*) dictionary_get(resources, name);
-
+	pthread_mutex_unlock(&tableMutex);
 	//Si el recurso tenia DTBs esperando a que se libere, debo desbloquear el primero y darle la instancia
 	if(!queue_is_empty(involved->waiters))
 	{
@@ -101,12 +108,34 @@ void SignalForResource(char* name, uint32_t requesterID)
 //		dictionary_putMAESTRO(resources, name, involved, ResourceDestroyer);
 
 		//Creo la estructura a meter en la cola; no modifica el PC del DTB (va en -1) ni debe registrar cambios en los archivos abiertos
-		UnlockableInfo* toBeAwakened = (UnlockableInfo*) malloc(sizeof(UnlockableInfo*));
+		UnlockableInfo* toBeAwakened = (UnlockableInfo*) malloc(sizeof(UnlockableInfo));
 		toBeAwakened->id = *firstWaiter;
 		toBeAwakened->newProgramCounter = -1;
 		toBeAwakened->openedFilesUpdate = dictionary_create();
 		toBeAwakened->appendOFs = true;
+		bool toUnlockDTB(void* data){
+			DTB* dtb = data;
+			return dtb->id == toBeAwakened->id;
+		}
 
+		printf("\n\n id a buscar=%d",toBeAwakened->id);
+		DTB* blockedDTB = list_find(BLOCKEDqueue,toUnlockDTB);
+//		if(!blockedDTB){
+//			printf("\n\nno estaba en blocked\n\n");
+//			blockedDTB = list_get(EXECqueue,toUnlockDTB);
+//		}
+//		if(!blockedDTB){
+//			printf("\n\nno estaba en exec\n\n");
+//			blockedDTB = list_get(READYqueue_Own,toUnlockDTB);
+//		}
+//		if (!blockedDTB) {
+//			printf("\n\nno estaba en en ready\n\n");
+//			blockedDTB = list_get(READYqueue_Own, toUnlockDTB);
+//		}
+		printf("\n\nname =\"%s\"\n\n",name);
+		printf("\n\nblocked id =%d",blockedDTB->id);
+		char* resource = string_duplicate(name);
+		list_add(blockedDTB->resourcesKept, resource);
 		//Agrego el DTB a desbloquear a la cola de DTBs a mover (mutex mediante) de nuevo a READY; y le aviso al PCP
 		pthread_mutex_lock(&mutexToBeUnlocked);
 		queue_push(toBeUnlocked, toBeAwakened);
@@ -135,14 +164,27 @@ bool WaitForResource(char* name, uint32_t requesterID)
 		}
 	}
 
+	printf("\n\nse entro al waitforResource\n\n");
+	pthread_mutex_lock(&tableMutex);
+
+	printf("\n\nlock tablemutex adquirido\n\n");
 	//Si el recurso no existe, lo creo y le pongo una instancia (la cual luego asignare)
 	if(!dictionary_has_key(resources, name))
 	{
+		pthread_mutex_unlock(&tableMutex);
+		printf("\n\nlock tablemutex liberado\n\n");
 		AddNewResource(name);
 	}
+	else
+		pthread_mutex_unlock(&tableMutex);
 
+	printf("\n\n pasado por addnewResourse\n\n");
+
+	pthread_mutex_lock(&tableMutex);
+	printf("\n\nlock tablemutex adquirido nuevamente\n\n");
 	//Obtengo los datos de ese recurso, y disminuyo en uno sus instancias libres
 	ResourceStatus* waited = (ResourceStatus*) dictionary_get(resources, name);
+	pthread_mutex_unlock(&tableMutex);
 	waited->availables--;
 	Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->Se registro wait sobre recurso %s", name);
 	Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->Instancias libres: %d. Procesos esperando: %d", waited->availables, queue_size(waited->waiters));

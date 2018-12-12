@@ -148,7 +148,7 @@ void CommandFinalizar (int argC, char** args, char* callingLine, void* extraData
 	pthread_mutex_lock(&mutexToBeEnded);
 	queue_push(toBeEnded, paramID);
 	pthread_mutex_unlock(&mutexToBeEnded);
-
+	AddPCPTask(PCP_TASK_END_DTB);
 	//No hace falta free del paramID, cuando se haga un pop o destroy de ese elemento, se hara solo
 	CommandInterpreter_FreeArguments(args);
 
