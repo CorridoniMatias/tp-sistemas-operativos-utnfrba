@@ -5,7 +5,7 @@
 #define RUTA_METADATA "/Metadata/Metadata.bin"
 #define RUTA_BITMAP "/Metadata/Bitmap.bin"
 #define RUTA_BLOQUES "/Bloques/"
-#define RUTA_ARCHIVOS "/Archivos"
+#define RUTA_ARCHIVOS "/Archivos/"
 #define MAXPATHLENGTH 50				//se cuenta el /0
 
 struct Configuracion_s

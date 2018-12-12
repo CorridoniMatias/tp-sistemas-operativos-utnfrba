@@ -286,7 +286,10 @@ void DAM_Abrir(void* arriveData)
 	}
 
 	uint32_t idDTB = *((uint32_t*)data->parts[0]);
+
 	char* filePath = (char*)data->parts[1];
+
+	Logger_Log(LOG_INFO, "Ehhh, voy a buscar '%s' para pid: %d", filePath, idDTB);
 
 	//abrimos conexion con el MDJ
 	int socketMDJ = SocketClient_ConnectToServerIP(settings->ipMDJ, settings->puertoMDJ);
