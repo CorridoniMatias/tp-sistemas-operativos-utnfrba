@@ -16,6 +16,7 @@
 //------BIBLIOTECAS PROPIAS------//
 #include "../headerFiles/CPUsManager.h"
 #include "../headerFiles/Settings.h"
+#include "../headerFiles/ResourceManager.h"
 
 ///-------------ESTRUCTURAS DEFINIDAS-------------///
 
@@ -34,7 +35,8 @@
  * 		ioOperations: Cantidad de operaciones de entrada/salida (MDJ) realizadas por el DTB; para el algoritmo Propio (IOBF)
  * 		sentencesWhileAtNEW: Cantidad de sentencias que se ejecutaron en el sistema mientras estaba en NEW; para la metrica 1
  * 		spawnTime: Instante en el cual ingreso al sistema (en el cual ingreso a la cola NEW)
- * 		firstResponseTime: Instante en el cual recibe la primera respuesta del sistema (primera respuesta de IO?)
+ * 		firstResponseTime: Instante en el cual recibe la primera respuesta del sistema (primera respuesta de IO)
+ * 		arrivalAtREADYtime: Instante (con nanosegundos) en el cual es movido a la cola READY
  */
 struct DTB_s
 {
@@ -51,6 +53,8 @@ struct DTB_s
 	int sentencesWhileAtNEW;
 	time_t spawnTime;
 	time_t firstResponseTime;
+	struct timespec arrivalAtREADYtime;
+	t_list* resourcesKept;
 } typedef DTB;
 
 /*
@@ -166,6 +170,7 @@ pthread_mutex_t mutexToBeUnlocked;				//Usado en Communication.h y ResourceManag
 pthread_mutex_t mutexToBeEnded;					//Usado en Communication.h y ConsoleHandler.h (extern)
 pthread_mutex_t mutexBeingDummied;				//Totalmente interno al modulo, para evitar concurrencia sobre lista de DTBs siendo dummizados
 pthread_mutex_t mutexDummiedQueue;				//Para tener mutua exclusion sobre la cola de Dummies satifsactorios (extern en Communication.h)
+pthread_mutex_t mutexEXEC;						//Para tener mutua exclusion sobre EXEC (extern en ResourceManager.h)
 
 extern pthread_mutex_t mutexCPUs;				//Proveniente de CPUsManager.h, para manejar de a uno la lista de CPUs
 
@@ -373,8 +378,9 @@ void PlanificadorCortoPlazo();
 
 /*
  * 	ACCION: Closure para poder ordenar una lista por prioridad de DTBs, de manera descendiente (algoritmo IOBF, propio)
+ * 			Desempata por el instante de llegada a READY
  * 	PARAMETROS:
- * 		dtbOne, dtbTwo: DTBs a comparar por su cantidad de operaciones de E/S, son elementos de la lista
+ * 		dtbOne, dtbTwo: DTBs a comparar por su cantidad de operaciones de E/S y su llega a READY, son elementos de la lista
  */
 bool DescendantPriority(void* dtbOne, void* dtbTwo);
 

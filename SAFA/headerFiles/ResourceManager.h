@@ -25,6 +25,8 @@ t_dictionary* resources;						//Tabla de recursos; las keys son los nombres, los
 
 pthread_mutex_t tableMutex;						//Mutex para evitar concurrencia sobre la tabla de recursos
 
+extern pthread_mutex_t mutexEXEC;				//Mutex para evitar concurrencia sobre la cola de EXEC
+
 ///-------------FUNCIONES DEFINIDAS------------///
 
 /*
@@ -44,8 +46,9 @@ void AddNewResource(char* name);
  * 			libres del mismo (o lo crea si no existe), y mueve al primer bloqueado a READY
  * 	PARAMETROS:
  * 		name: Nombre del recurso a liberar, es la key en la tabla
+ * 		requesterID: Id del DTB que solicita hacer la operacion
  */
-void SignalForResource(char* name);
+void SignalForResource(char* name, uint32_t requesterID);
 
 /*
  * 	ACCION: Registra la accion de una operacion wait sobre un recurso; disminuye en uno la cantidad de instancias libres
@@ -53,6 +56,7 @@ void SignalForResource(char* name);
  * 			al solicitante; devuelve true si puede asignar, false si no
  * 	PARAMETROS:
  * 		name: Nombre del recurso a retener, es la key en la tabla
+ * 		requesterID: Id del DTB que solicita hacer la operacion
  */
 bool WaitForResource(char* name, uint32_t requesterID);
 

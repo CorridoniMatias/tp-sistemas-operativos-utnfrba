@@ -117,8 +117,7 @@ void Comms_DAM_IOError(void* arriveData)
 	pthread_mutex_unlock(&mutexToBeEnded);
 	AddPCPTask(PCP_TASK_END_DTB);
 
-	//No hago free de dtbID, sino borraria el valor de lo que tiene el nextToUnlock que acabo de guardar
-//	free(data->receivedData);
+	//Borro arriveData, ya que tiene toda informacion que ya no necesito; nada mas necesito el data->receivedData que tiene el ID a la cola
 	free(arriveData);
 
 }
@@ -318,7 +317,7 @@ void Comms_CPU_SignalResource(void* arriveData)
 
 	//Solo necesito el nombre del recurso; el ResourceManager prueba hacer el signal
 	//No hace falta responderle nada al CPU, el seguira con su ejecucion
-	SignalForResource((char*)(params->parts[1]));
+	SignalForResource((char*)(params->parts[1]), *((uint32_t*)(params->parts[0])));
 
 	//No libero el DeserializedData entero, necesito conservar el nombre del recurso por el Dictionary
 	multiFree(3, params->parts[0], params->parts, params);

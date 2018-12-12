@@ -36,6 +36,7 @@ void InitSemaphores()
 	pthread_mutex_init(&mutexNEW, NULL);
 	pthread_mutex_init(&mutexBeingDummied, NULL);
 	pthread_mutex_init(&mutexDummiedQueue, NULL);
+	pthread_mutex_init(&mutexEXEC, NULL);
 	sem_init(&workPLP, 0, 0);
 	sem_init(&workPCP, 0, 0);
 
@@ -56,6 +57,9 @@ void CreateDummy()
 	dummyDTB->openedFiles = dictionary_create();
 	dummyDTB->openedFilesAmount = 0 ;
 	dummyDTB->firstResponseTime = 0;
+	dummyDTB->arrivalAtREADYtime.tv_sec = 0;
+	dummyDTB->arrivalAtREADYtime.tv_nsec = 0;
+	dummyDTB->resourcesKept = list_create();
 	return;
 
 }
@@ -125,6 +129,9 @@ DTB* CreateDTB(char* script)
 	newDTB->ioOperations = 0;									//Al arrancar no tiene ninguna
 	newDTB->sentencesWhileAtNEW = 0;							//Todavia no esta en NEW ni pasaron sentencias con el ahi
 	newDTB->firstResponseTime = 0;								//Valor por defecto, para verificar si hace falta
+	newDTB->arrivalAtREADYtime.tv_sec = 0;						//Valor por defecto, para inicializar
+	newDTB->arrivalAtREADYtime.tv_nsec = 0;
+	newDTB->resourcesKept = list_create();
 
 	return newDTB;
 
@@ -148,6 +155,7 @@ void AddToReady(DTB* myDTB, char* currentAlgorithm)
 {
 
 	myDTB->status = DTB_STATUS_READY;
+	clock_gettime(CLOCK_REALTIME, &(myDTB->arrivalAtREADYtime));
 	//Uso mutexes para no concurrir a la cola READY ni hacer esto durante un cambio de algoritmo
 	pthread_mutex_lock(&mutexREADY);
 	//Me fijo el algoritmo actual (parametro) y asi se a cual de todas las colas agregarlo
@@ -185,16 +193,30 @@ void AddToExec(DTB* myDTB)
 {
 
 	myDTB->status = DTB_STATUS_EXEC;
+	pthread_mutex_lock(&mutexEXEC);
 	list_add(EXECqueue, myDTB);
 	Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Agregado el DTB de ID %d a EXEC. Hay %d DTBs ahi", myDTB->id, list_size(EXECqueue));
+	pthread_mutex_unlock(&mutexEXEC);
 
 }
 
 void AddToExit(DTB* myDTB)
 {
 
+	void FreeInstancesAndDestroy(void* res)
+	{
+		char* realRes = (char*) res;
+		//Le paso 0 para que el modulo ResourceManager.h no intente tocar su DTB y sacar las instancias
+		SignalForResource(realRes, 0);
+		free(res);
+	}
+
+	//Libero la memoria de la lista de recursos, libero los recursos y hago un signal de todos (desde el modulo de ResourceManager.h)
+	list_destroy_and_destroy_elements(myDTB->resourcesKept, FreeInstancesAndDestroy);
+	//Actualizo el status y lo muevo a la cola de EXIT
 	myDTB->status = DTB_STATUS_EXIT;
 	list_add(EXITqueue, myDTB);
+
 	Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Agregado el DTB de ID %d a EXIT. Hay %d DTBs ahi", myDTB->id, list_size(EXITqueue));
 	//No me olvido de disminuir la cantidad de procesos en memoria del sistema
 	inMemoryAmount--;
@@ -269,6 +291,7 @@ DTB* GetDTBbyID(uint32_t desiredID, char* algorithm)
 	DTB* wanted = list_find(NEWqueue->elements, IsDesiredDTB);
 	pthread_mutex_unlock(&mutexNEW);
 
+	pthread_mutex_lock(&mutexREADY);
 	if(!wanted)
 	{
 		if((strcmp(algorithm, "RR")))
@@ -284,11 +307,14 @@ DTB* GetDTBbyID(uint32_t desiredID, char* algorithm)
 			wanted = list_find(READYqueue_Own, IsDesiredDTB);
 		}
 	}
+	pthread_mutex_unlock(&mutexREADY);
 
+	pthread_mutex_lock(&mutexEXEC);
 	if(!wanted)
 	{
 		wanted = list_find(EXECqueue, IsDesiredDTB);
 	}
+	pthread_mutex_unlock(&mutexEXEC);
 
 	if(!wanted)
 	{
@@ -646,7 +672,9 @@ void PlanificadorCortoPlazo()
 			//Previo a ello, deberia haber liberado el CPU ni bien este me hablo
 			//Saco el Dummy de la lista de EXEC, y lo paso a la de BLOCKED (modifico su estado)
 			//El DAM, por su lado, me va a avisar cuando la carga del archivo termine => PLP_TASK_INITIALIZE_DTB
+			pthread_mutex_lock(&mutexEXEC);
 			list_remove_by_condition(EXECqueue, IsDummy);
+			pthread_mutex_unlock(&mutexEXEC);
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Dummy extraido de la cola de EXEC, lo dejare libre en la cola de BLOCKED");
 			dummyDTB->id = 0;
 			AddToBlocked(dummyDTB);
@@ -685,8 +713,9 @@ void PlanificadorCortoPlazo()
 				}
 
 				//Saco de EXEC el DTB que tenia la misma ID que el que acaba de salir de la cola de aBloquear
+				pthread_mutex_lock(&mutexEXEC);
 				DTB* target = list_remove_by_condition(EXECqueue, (void*)IsDTBToBeBlocked);
-
+				pthread_mutex_unlock(&mutexEXEC);
 				//Me fijo cuantas sentencias ejecuto (sacando una diferencia con el PC anterior)
 				int sentencesRun;
 				sentencesRun = (nextToBlock->newProgramCounter) - (target->programCounter);
@@ -742,7 +771,9 @@ void PlanificadorCortoPlazo()
 				}
 
 				//Busco el DTB en EXEC (por si es fin de quantum) que tiene dicho ID; si no esta ahi, lo busco en BLOCKED
+				pthread_mutex_lock(&mutexEXEC);
 				DTB* target = list_remove_by_condition(EXECqueue, IsDTBToBeUnlocked);
+				pthread_mutex_unlock(&mutexEXEC);
 				if(target)
 				{
 					//Si y solo si lo encontre en EXEC, le pongo el sobrante en 0 (porque se termino su quantum
@@ -846,7 +877,9 @@ void PlanificadorCortoPlazo()
 				}
 				if(!target)
 				{
+					pthread_mutex_lock(&mutexEXEC);
 					target = list_remove_by_condition(EXECqueue, IsDTBToBeEnded);
+					pthread_mutex_unlock(&mutexEXEC);
 				}
 
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se eliminará el DTB de id %d", target->id);
@@ -888,6 +921,34 @@ bool DescendantPriority(void* dtbOne, void* dtbTwo)
 	{
 		return true;
 	}
+	else if(firstDTB->ioOperations == secondDTB->ioOperations)
+	{
+		//Si tienen la misma cantidad de operaciones IO, el que haya llegado antes a READY va primero
+		if(firstDTB->arrivalAtREADYtime.tv_sec < secondDTB->arrivalAtREADYtime.tv_sec)
+		{
+			return true;
+		}
+		//Si llegaron en el mismo segundo (muy probable) comparo los nanosegundos
+		else if(firstDTB->arrivalAtREADYtime.tv_sec == secondDTB->arrivalAtREADYtime.tv_sec)
+		{
+			//Si el nanosegundo del primero es anterior, es porque estan bien ordenados
+			if(firstDTB->arrivalAtREADYtime.tv_nsec < secondDTB->arrivalAtREADYtime.tv_nsec)
+			{
+				return true;
+			}
+			//Si no, no respetan el orden; retorno false para que el sort lo ordene
+			else
+			{
+				return false;
+			}
+		}
+		//Si el primero llego en un segundo posterior al segundo, estan desordenados
+		else
+		{
+			return false;
+		}
+	}
+	//Caso en el que el segundo tiene mas operaciones de IO
 	else
 	{
 		return false;
@@ -1411,6 +1472,7 @@ void DeleteSemaphores()
 	pthread_mutex_destroy(&mutexNEW);
 	pthread_mutex_destroy(&mutexBeingDummied);
 	pthread_mutex_destroy(&mutexDummiedQueue);
+	pthread_mutex_destroy(&mutexEXEC);
 	sem_destroy(&workPLP);
 	sem_destroy(&workPCP);
 
