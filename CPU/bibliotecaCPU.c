@@ -314,7 +314,8 @@ void CommandWait(int argC, char** args, char* callingLine, void* extraData){
 			SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
 			SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
 			SerializedPart dictionary = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary);
-		    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,dictionary);
+			SerializedPart fieldForSAFA5 = {.size = strlen(args[1]) + 1 , .data = resource};
+		    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(6, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,dictionary, fieldForSAFA5);
 
 			SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
 			StringUtils_FreeArray(args);

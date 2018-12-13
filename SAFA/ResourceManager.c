@@ -59,7 +59,7 @@ void SignalForResource(char* name, uint32_t requesterID)
 
 	//Si el recurso ya existe, aumento en uno sus instancias disponibles; obtengo sus datos y actualizo
 	pthread_mutex_lock(&tableMutex);
-	printf("\n\nname =\"%s\"",name);
+	printf("\n\nname =\"%s\"\n",name);
 	if(dictionary_has_key(resources, name))
 	{
 		//Puntero a los datos del recurso al que se le hizo signal
@@ -68,6 +68,7 @@ void SignalForResource(char* name, uint32_t requesterID)
 		signaled->availables++;
 		Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->Se registro signal sobre recurso %s", name);
 		Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->Instancias libres: %d. Procesos esperando: %d", signaled->availables, queue_size(signaled->waiters));
+		printf("\n\nvalor actual del contador %d\n\n\n", signaled->availables);
 //		dictionary_putMAESTRO(resources, name, signaled, ResourceDestroyer);
 	}
 	//Si no, creo uno nuevo
@@ -101,7 +102,7 @@ void SignalForResource(char* name, uint32_t requesterID)
 	{
 		uint32_t* firstWaiter = malloc(sizeof(uint32_t));
 		//Bajo la cantidad de instancias disponibles, ya que recien ahora habria podido hacer el wait
-		involved->availables--;
+//		involved->availables--;
 		//Me guardo el ID del primer DTB que lo estaba esperando
 		*firstWaiter = *((uint32_t*) queue_pop(involved->waiters));
 		//Actualizo los datos del recurso en el diccionario, hago un put sobre la misma key
@@ -192,10 +193,7 @@ bool WaitForResource(char* name, uint32_t requesterID)
 	//Si la cantidad disponible quedo negativa, es porque no habia instancias libres; lo agrego a la cola de bloqueados
 	if(waited->availables < 0)
 	{
-		uint32_t* newWaiter = (uint32_t*) malloc(sizeof(uint32_t));
-		*newWaiter = requesterID;
-		queue_push(waited->waiters, newWaiter);
-		Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->El DTB de id %d esta esperando el recurso %s", *newWaiter, name);
+
 		//Respuesta negativa
 		return false;
 	}

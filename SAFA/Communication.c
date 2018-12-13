@@ -219,7 +219,22 @@ void Comms_CPU_DTBAtDAM(void* arriveData)
 
 	//Libero la CPU que me aviso y la pongo como desocupada
 	FreeCPU(cpuSocket);
-
+	if(params->count == 6){
+		pthread_mutex_lock(&tableMutex);
+		printf("\n\nlock tablemutex adquirido nuevamente\n\n");
+		//Obtengo los datos de ese recurso, y disminuyo en uno sus instancias libres
+		ResourceStatus* waited = dictionary_get(resources, (char*)params->parts[5]);
+		if (!waited) {
+			pthread_mutex_unlock(&tableMutex);
+			Logger_Log(LOG_ERROR, "SAFA::COMMS->El DTB a bloquear pidio un recurso que después no se encontro");
+			return;
+		}
+		pthread_mutex_unlock(&tableMutex);
+		uint32_t* newWaiter = (uint32_t*) malloc(sizeof(uint32_t));
+		*newWaiter = nextToBlock->id;
+		queue_push(waited->waiters, newWaiter);
+		Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->El DTB de id %d esta esperando el recurso %s", *newWaiter, (char*)params->parts[5]);
+	}
 	//Meto ese struct a la cola de DTBs a desbloquear, cuidando la mutua exclusion; cambio la tarea de PCP
 	pthread_mutex_lock(&mutexToBeBlocked);
 	queue_push(toBeBlocked, nextToBlock);

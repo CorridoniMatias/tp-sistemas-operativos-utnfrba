@@ -221,9 +221,15 @@ void AddToExit(DTB* myDTB)
 		return id == myDTB->id;
 	}
 
-	void removeWaiter(char* key, void * data){
+	void removeWaiter(char* key, void * data) {
 		ResourceStatus* resource = data;
-		list_remove_and_destroy_by_condition(resource->waiters->elements,isDTB, free);
+		if (list_any_satisfy(resource->waiters->elements, isDTB)){
+			printf("\n\nse encontro en waiters y se va a aumentar el contador\n\n\n");
+			resource->availables++;
+
+			printf("\n\nvalor actual del contador %s %d\n\n\n", key, resource->availables);
+		}
+		list_remove_and_destroy_by_condition(resource->waiters->elements, isDTB, free);
 	}
 
 	pthread_mutex_lock(&tableMutex);
