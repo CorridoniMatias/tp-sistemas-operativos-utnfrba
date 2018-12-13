@@ -23,35 +23,31 @@ fs_checkpoint:
 fs_entrega:
 	- rm -rf MDJ/Debug/fifa-entrega/ && cp -R fifa-examples/fifa-entrega/ MDJ/Debug/
 
+ips:
+	- cd configs && cat ips.txt | tee -a prod/minima/DAM.config prod/minima/CPU.config prod/filesystem/DAM.config prod/filesystem/CPU.config prod/completa/DAM.config prod/completa/CPU.config prod/checkpoint/DAM.config prod/checkpoint/CPU.config prod/algoritmos/DAM.config prod/algoritmos/CPU.config
+
 include ./env.txt
 
-test_checkpoint:
-	- cp --remove-destination configs/$(TPENV)/checkpoint/SAFA.config SAFA/Debug/Config/SAFA.config
-	- cp --remove-destination configs/$(TPENV)/checkpoint/mdj.config MDJ/Debug/mdj.config
-	- cp --remove-destination configs/$(TPENV)/checkpoint/FM9.config FM9/Debug/FM9.config
-	- cp --remove-destination configs/$(TPENV)/checkpoint/DAM.config DAM/Debug/DAM.config
-	- cp --remove-destination configs/$(TPENV)/checkpoint/CPU.config CPU/Debug/CPU.config
-test_minima:
-	- cp --remove-destination configs/$(TPENV)/minima/SAFA.config SAFA/Debug/Config/SAFA.config
-	- cp --remove-destination configs/$(TPENV)/minima/mdj.config MDJ/Debug/mdj.config
-	- cp --remove-destination configs/$(TPENV)/minima/FM9.config FM9/Debug/FM9.config
-	- cp --remove-destination configs/$(TPENV)/minima/DAM.config DAM/Debug/DAM.config
-	- cp --remove-destination configs/$(TPENV)/minima/CPU.config CPU/Debug/CPU.config
-test_algoritmos:
-	- cp --remove-destination configs/$(TPENV)/algoritmos/SAFA.config SAFA/Debug/Config/SAFA.config
-	- cp --remove-destination configs/$(TPENV)/algoritmos/mdj.config MDJ/Debug/mdj.config
-	- cp --remove-destination configs/$(TPENV)/algoritmos/FM9.config FM9/Debug/FM9.config
-	- cp --remove-destination configs/$(TPENV)/algoritmos/DAM.config DAM/Debug/DAM.config
-	- cp --remove-destination configs/$(TPENV)/algoritmos/CPU.config CPU/Debug/CPU.config
-test_filesystem:
-	- cp --remove-destination configs/$(TPENV)/filesystem/SAFA.config SAFA/Debug/Config/SAFA.config
-	- cp --remove-destination configs/$(TPENV)/filesystem/mdj.config MDJ/Debug/mdj.config
-	- cp --remove-destination configs/$(TPENV)/filesystem/FM9.config FM9/Debug/FM9.config
-	- cp --remove-destination configs/$(TPENV)/filesystem/DAM.config DAM/Debug/DAM.config
-	- cp --remove-destination configs/$(TPENV)/filesystem/CPU.config CPU/Debug/CPU.config
-test_completa:
-	- cp --remove-destination configs/$(TPENV)/completa/SAFA.config SAFA/Debug/Config/SAFA.config
-	- cp --remove-destination configs/$(TPENV)/completa/mdj.config MDJ/Debug/mdj.config
-	- cp --remove-destination configs/$(TPENV)/completa/FM9.config FM9/Debug/FM9.config
-	- cp --remove-destination configs/$(TPENV)/completa/DAM.config DAM/Debug/DAM.config
-	- cp --remove-destination configs/$(TPENV)/completa/CPU.config CPU/Debug/CPU.config
+TESTNAME=checkpoint
+
+copy_config:
+	- cp --remove-destination configs/$(TPENV)/$(TESTNAME)/SAFA.config SAFA/Debug/Config/SAFA.config
+	- cp --remove-destination configs/$(TPENV)/$(TESTNAME)/mdj.config MDJ/Debug/mdj.config
+	- cp --remove-destination configs/$(TPENV)/$(TESTNAME)/FM9.config FM9/Debug/FM9.config
+	- cp --remove-destination configs/$(TPENV)/$(TESTNAME)/DAM.config DAM/Debug/DAM.config
+	- cp --remove-destination configs/$(TPENV)/$(TESTNAME)/CPU.config CPU/Debug/CPU.config
+
+test_completa: TESTNAME=completa
+test_completa: copy_config
+
+test_minima: TESTNAME=minima
+test_minima: copy_config
+
+test_algoritmos: TESTNAME=algoritmos
+test_algoritmos: copy_config
+
+test_filesystem: TESTNAME=filesystem
+test_filesystem: copy_config
+
+test_checkpoint: TESTNAME=checkpoint
+test_checkpoint: copy_config
