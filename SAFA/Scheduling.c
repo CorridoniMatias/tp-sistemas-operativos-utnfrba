@@ -734,8 +734,8 @@ void PlanificadorCortoPlazo()
 			//Puntero a uint32_t, de ahi voy leyendo el ID del proximo DTB a bloquear (segun la cola)
 			BlockableInfo* nextToBlock;
 			pthread_mutex_lock(&mutexToBeBlocked);
-			while(!queue_is_empty(toBeBlocked))
-			{
+			//while(!queue_is_empty(toBeBlocked))
+			//{
 				nextToBlock = queue_pop(toBeBlocked);
 				printf("\n\nbabyComeback=%d\n\n",nextToBlock->dummyComeback);
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se intentara bloquear el DTB de ID = %d", nextToBlock->id);
@@ -775,7 +775,7 @@ void PlanificadorCortoPlazo()
 				}
 				AddToBlocked(target);
 				BlockableInfoDestroyer(nextToBlock, false);
-			}
+			//}
 			pthread_mutex_unlock(&mutexToBeBlocked);
 
 			//No me olvido de este free! Ni de avisar al planificador que, tras bloquear todos, vuelva a planificar
