@@ -792,8 +792,8 @@ void PlanificadorCortoPlazo()
 			//Puntero al proximo DTB a desbloquear, segun vaya sacando de la cola
 			UnlockableInfo* nextToUnlock;
 			pthread_mutex_lock(&mutexToBeUnlocked);
-			while(!queue_is_empty(toBeUnlocked))
-			{
+			//while(!queue_is_empty(toBeUnlocked))
+			//{
 
 				nextToUnlock = queue_pop(toBeUnlocked);
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se intentara desbloquear el DTB de id = %d", nextToUnlock->id);
@@ -867,7 +867,7 @@ void PlanificadorCortoPlazo()
 				AddToReady(target, schedulingRules.name);
 				UnlockableInfoDestroyer(nextToUnlock, false);
 
-			}
+			//}
 			pthread_mutex_unlock(&mutexToBeUnlocked);
 
 			//No me olvido de este free! Ni de avisar al planificador que, tras desbloquear todos, vuelva a planificar
