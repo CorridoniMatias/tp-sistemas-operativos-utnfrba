@@ -91,7 +91,7 @@ void AddPLPTask(int taskCode)
 	sem_post(&workPLP);
 	int semaforo;
 	sem_getvalue(&workPCP,&semaforo);
-	Logger_Log(LOG_ERROR,"\n\semaforo PLP %d \n\n",semaforo);
+	Logger_Log(LOG_ERROR,"\nsemaforo PLP %d \n\n",semaforo);
 
 }
 
@@ -854,7 +854,7 @@ void PlanificadorCortoPlazo()
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se desbloqueara el DTB de id %d, leyo %d sentencias", target->id, sentencesRun);
 				UpdateOpenedFiles(target, nextToUnlock->openedFilesUpdate, nextToUnlock->appendOFs);
 				Logger_Log(LOG_DEBUG, "SAFA:PLANIF->Actualizados los archivos abiertos de dicho DTB");
-				printf("\n\nfirst=%d\n\n",target->firstResponseTime);
+				printf("\n\nfirst=%d\n\n", (int)target->firstResponseTime);
 				//Si no tiene marcado el instante de la primer respuesta (esta como 0),
 				//entonces debo marcarlo en este instante (es una respuesta del sistema)
 				if(target->firstResponseTime == 0)
