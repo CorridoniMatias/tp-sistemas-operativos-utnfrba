@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include "kemmens/Utils.h"
+#include <pthread.h>
 
 //La base y limit es el número de linea
 typedef struct{
