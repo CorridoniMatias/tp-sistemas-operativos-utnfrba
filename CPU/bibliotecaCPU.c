@@ -129,20 +129,20 @@ void CommandAbrir(int argC, char** args, char* callingLine, void* extraData){
 
 		SerializedPart fieldForDAM1 = {.size = sizeof(int32_t), .data =id};
 		SerializedPart fieldForDAM2 = {.size = strlen(path)+1, .data = path};
-
+		
 		SerializedPart* packetToDAM = Serialization_Serialize(2, fieldForDAM1, fieldForDAM2);
-
-		SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_ABRIR, packetToDAM->data, packetToDAM->size);
 
 		SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
 		SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
 		SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
 		SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
 		SerializedPart dictionary = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary);
+		
 	    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,dictionary);
 
 		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
 	    StringUtils_FreeArray(args);
+		SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_ABRIR, packetToDAM->data, packetToDAM->size);
 		Serialization_CleanupSerializedPacket(packetToDAM);
 		Serialization_CleanupSerializedPacket(packetToSAFAToBlockGDT);
 		free(id);
