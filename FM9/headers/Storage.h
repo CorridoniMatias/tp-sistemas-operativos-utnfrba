@@ -13,6 +13,7 @@
 int tamanioLinea;
 int cantLineas;
 char** storage;
+pthread_mutex_t storageLock;
 
 //Requerimiento: Inicializa Storage/Memoria Real
 /*

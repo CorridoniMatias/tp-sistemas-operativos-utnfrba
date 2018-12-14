@@ -27,6 +27,8 @@ typedef struct{
 //Esto es un diccionario que cada key es el id del DTB y el value es un t_segments,
 //cuyas keys del diccionario son los numeros de segmentos y el value seria un segment.
 t_dictionary* segmentsPerDTBTable;
+pthread_mutex_t freeSegmentsLock;
+pthread_mutex_t segmentsLock;
 
 
 //Requerimiento: Inicializa las estructuras de la paginación, que son el tamanio del frame, la cantidad de frames y los frames libres.

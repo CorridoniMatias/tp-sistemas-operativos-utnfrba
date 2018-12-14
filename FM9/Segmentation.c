@@ -15,19 +15,26 @@ void createSegmentationStructures() {
 		aux = aux / 10;
 		offsetNumberOfDigits++;
 	}
+	pthread_mutex_init(&freeSegmentsLock, NULL);
+	pthread_mutex_init(&segmentsLock, NULL);
 	Logger_Log(LOG_INFO, "FM9 -> Estructuras de segmentación creadas.");
 	Logger_Log(LOG_INFO, "FM9 -> Cantidad de dígitos de la dirección lógica empleados para el offset de segmento %d.", offsetNumberOfDigits);
 }
 
 void freeSegmentationStructures() {
+	pthread_mutex_lock(&freeSegmentsLock);
 	list_destroy_and_destroy_elements(freeSegments, free);
+	pthread_mutex_unlock(&freeSegmentsLock);
 	void dictionaryDestroyer(void* data) {
 		t_segments* segments = data;
 		dictionary_destroy_and_destroy_elements(segments->segments, free);
 		free(segments);
 	}
+	pthread_mutex_lock(&segmentsLock);
 	dictionary_destroy_and_destroy_elements(segmentsPerDTBTable, dictionaryDestroyer);
-
+	pthread_mutex_unlock(&segmentsLock);
+	pthread_mutex_destroy(&freeSegmentsLock);
+	pthread_mutex_destroy(&segmentsLock);
 	Logger_Log(LOG_INFO, "FM9 -> Estructuras de segmentación liberadas.");
 }
 
@@ -42,8 +49,9 @@ int writeData_SEG(void* data, int size, int dtbID) {
 		return segment->limit >= lineasNecesarias;
 	}
 
-	t_segment* freeSegment = list_remove_by_condition(freeSegments,
-			enoughSpaceSegment);
+	pthread_mutex_lock(&freeSegmentsLock);
+	t_segment* freeSegment = list_remove_by_condition(freeSegments, enoughSpaceSegment);
+	pthread_mutex_unlock(&freeSegmentsLock);
 
 	if(freeSegment==NULL){
 		return INSUFFICIENT_SPACE;
@@ -61,6 +69,7 @@ int writeData_SEG(void* data, int size, int dtbID) {
 
 	char* key = string_itoa(dtbID);
 	t_segments* segments;
+	pthread_mutex_lock(&segmentsLock);
 	if (dictionary_has_key(segmentsPerDTBTable, key)) {
 		segments = dictionary_get(segmentsPerDTBTable, key);
 	} else {
@@ -69,6 +78,7 @@ int writeData_SEG(void* data, int size, int dtbID) {
 		segments->nextSegmentNumber = 0;
 		dictionary_put(segmentsPerDTBTable, key, segments);
 	}
+	pthread_mutex_unlock(&segmentsLock);
 	free(key);
 	int segmentNumber = getNewSegmentNumber(segments);
 	//IMPLEMENTAR ALGUNA LOGICA PARA PONER NUMERO DE SEGMENTO QUE NO SE REPITA
@@ -76,13 +86,12 @@ int writeData_SEG(void* data, int size, int dtbID) {
 	dictionary_putMAESTRO(segments->segments,segmentKey, newSegment, free);
 	free(segmentKey);
 	segments->nextSegmentNumber++;
-
 	if (freeSegment->limit == lineasNecesarias) {
 		free(freeSegment);
 	} else {
 		freeSegment->base += lineasNecesarias;
 		freeSegment->limit += lineasNecesarias;
-		list_add(freeSegments, freeSegment);
+		addFreeSegment(freeSegments, freeSegment);
 	}
 	//Ver como hacer para que el segment number sea parte de la direccion lógica
 //	printf("\n\n\n\nnumero de segmento %d\n\n\n",segmentNumber);
@@ -96,11 +105,14 @@ int readData_SEG(void** target, int logicalAddress, int dtbID) {
 	if (baseLine == ITS_A_TRAP)
 		return ITS_A_TRAP;
 	char * dtbKey = string_itoa(dtbID);
+	pthread_mutex_lock(&segmentsLock);
 	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey)){
+		pthread_mutex_unlock(&segmentsLock);
 		free(dtbKey);
 		return ITS_A_TRAP;
 	}
 	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
+	pthread_mutex_unlock(&segmentsLock);
 	free(dtbKey);
 	int segmentNumber = getSegmentFromAddress(logicalAddress);
 	char* segmentKey = string_itoa(segmentNumber);
@@ -129,11 +141,14 @@ int readData_SEG(void** target, int logicalAddress, int dtbID) {
 
 int addressTranslation_SEG(int logicalAddress, int dtbID) {
 	char * dtbKey = string_itoa(dtbID);
+	pthread_mutex_lock(&segmentsLock);
 	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey)){
+		pthread_mutex_unlock(&segmentsLock);
 		free(dtbKey);
 		return ITS_A_TRAP;
 	}
 	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
+	pthread_mutex_unlock(&segmentsLock);
 	free(dtbKey);
 	int segmentNumber = getSegmentFromAddress(logicalAddress);
 	char* segmentKey = string_itoa(segmentNumber);
@@ -155,11 +170,14 @@ int addressTranslation_SEG(int logicalAddress, int dtbID) {
 
 int dump_SEG(int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
+	pthread_mutex_lock(&segmentsLock);
 	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey)) {
+		pthread_mutex_unlock(&segmentsLock);
 		free(dtbKey);
 		return ITS_A_TRAP;
 	}
 	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
+	pthread_mutex_unlock(&segmentsLock);
 	free(dtbKey);
 //	Logger_Log(LOG_INFO, "G.DT %d", dtbID);
 	Logger_Log(LOG_INFO, "Número próximo segmento %d", segments->nextSegmentNumber);
@@ -184,10 +202,12 @@ int dump_SEG(int dtbID) {
 
 int closeFile_SEG(int dtbID, int virtualAddress) {
 	char* dtbKey = string_itoa(dtbID);
+	pthread_mutex_lock(&segmentsLock);
 	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey)){
+		pthread_mutex_unlock(&segmentsLock);
 		free(dtbKey);
 		return ITS_A_TRAP;}
-
+	pthread_mutex_unlock(&segmentsLock);
 	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
 	free(dtbKey);
 	int segmentNumber = getSegmentFromAddress(virtualAddress);
@@ -207,10 +227,13 @@ int closeFile_SEG(int dtbID, int virtualAddress) {
 
 int closeDTBFiles_SEG(int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
+	pthread_mutex_lock(&segmentsLock);
 	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey)) {
+		pthread_mutex_unlock(&segmentsLock);
 		free(dtbKey);
 		return ITS_A_TRAP;
 	}
+	pthread_mutex_unlock(&segmentsLock);
 	t_segments* segments = dictionary_remove(segmentsPerDTBTable, dtbKey);
 	void dictionaryDestroyer(void* data){
 		t_segment* segment = data;
@@ -223,9 +246,11 @@ int closeDTBFiles_SEG(int dtbID) {
 }
 
 void addFreeSegment(t_segment* segment) {
+	pthread_mutex_lock(&freeSegmentsLock);
 	list_add(freeSegments, segment);
 	sortFreeSegments();
 	freeSegmentCompaction();
+	pthread_mutex_unlock(&freeSegmentsLock);
 }
 
 void sortFreeSegments() {

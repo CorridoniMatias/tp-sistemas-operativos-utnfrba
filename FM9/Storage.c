@@ -13,6 +13,7 @@ void createStorage() {
 		*(storage + i) = calloc(tamanioLinea, sizeof(char));
 //		Logger_Log(LOG_DEBUG, "FM9 -> Linea %d creada.", i);
 	}
+	pthread_mutex_init(&storageLock, NULL);
 	Logger_Log(LOG_INFO, "FM9 -> Storage creado.");
 	Logger_Log(LOG_INFO, "FM9 -> Tamaño storage = %d - Tamaño linea = %d - Cantidad de lineas = %d", settings->tamanio, tamanioLinea, cantLineas);
 }
@@ -25,13 +26,16 @@ void freeStorage() {
 	}
 
 	free(storage);
+	pthread_mutex_destroy(&storageLock);
 	Logger_Log(LOG_INFO, "FM9 -> Storage liberado.");
 }
 
 int writeLine(void* data, int numLinea) {
 
 	verifyLineNumber(numLinea);
+	pthread_mutex_lock(&storageLock);
 	memcpy(storage[numLinea], data, tamanioLinea);
+	pthread_mutex_unlock(&storageLock);
 //	char* linea = calloc(1,tamanioLinea);
 //	memset(linea,0,tamanioLinea);
 //	memcpy(linea, data, tamanioLinea);
@@ -53,7 +57,9 @@ int readLine(void* target, int numLinea) {
 	verifyLineNumber(numLinea)
 //	linea = calloc(1,tamanioLinea);
 //	memset(linea,0,tamanioLinea);
+	pthread_mutex_lock(&storageLock);
 	memcpy(target, storage[numLinea], tamanioLinea);
+	pthread_mutex_unlock(&storageLock);
 //	linea = realloc(linea, tamanioLinea + 1);
 //	memcpy(linea + tamanioLinea, "\0", 1);
 

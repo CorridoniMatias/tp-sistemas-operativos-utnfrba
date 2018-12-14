@@ -17,6 +17,7 @@ int tamanioFrame;
 int cantLineasPorFrame;
 int cantFrames;
 t_list* framesLibres;
+pthread_mutex_t freeFramesLock;
 
 //Requerimiento: Inicializa las estructuras de la paginación, que son el tamanio del frame, la cantidad de frames y los frames libres.
 /*
