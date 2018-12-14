@@ -141,8 +141,8 @@ void CommandAbrir(int argC, char** args, char* callingLine, void* extraData){
 	    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,dictionary);
 
 		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
-	    StringUtils_FreeArray(args);
 		SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_ABRIR, packetToDAM->data, packetToDAM->size);
+		 StringUtils_FreeArray(args);
 		Serialization_CleanupSerializedPacket(packetToDAM);
 		Serialization_CleanupSerializedPacket(packetToSAFAToBlockGDT);
 		free(id);
@@ -432,16 +432,17 @@ void CommandFlush(int argC, char** args, char* callingLine, void* extraData){
 
 		SerializedPart* packetToDAM = Serialization_Serialize(3, fieldForDAM1, fieldForDAM2, fieldForDAM3);
 
-		SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_FLUSH, packetToDAM->data, packetToDAM->size);
-
 		SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
 		SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
 		SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
 		SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
 		SerializedPart dictionary = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary);
+		
 	    SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,dictionary);
 		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
-	    StringUtils_FreeArray(args);
+	   SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_FLUSH, packetToDAM->data, packetToDAM->size);
+
+		StringUtils_FreeArray(args);
 		Serialization_CleanupSerializedPacket(packetToSAFAToBlockGDT);
 		Serialization_CleanupSerializedPacket(packetToDAM);
 		free(id);
@@ -556,8 +557,6 @@ void CommandCrear(int argC, char** args, char* callingLine, void* extraData){
 
 	SerializedPart* packetToDAM = Serialization_Serialize(3, fieldForDAM1, fieldForDAM2, fieldForDAM3);
 
-	SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_CREAR, packetToDAM->data, packetToDAM->size);
-
 	printf("\n\nprogram counter crear = %d\n\n",pc);
 	SerializedPart fieldForSAFA1 = {.size = sizeof(uint32_t), .data =id};
 	SerializedPart fieldForSAFA2 = {.size = sizeof(uint32_t), .data = newPc};
@@ -565,8 +564,10 @@ void CommandCrear(int argC, char** args, char* callingLine, void* extraData){
 	SerializedPart fieldForSAFA4 = {.size = sizeof(uint32_t), .data = newNumberOfFiles};
 	SerializedPart dictionary = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary);
     SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,dictionary);
+	
 	SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
-    StringUtils_FreeArray(args);
+   	SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_CREAR, packetToDAM->data, packetToDAM->size);
+	StringUtils_FreeArray(args);
     free(id);
     free(newPc);
     free(newQ);
@@ -595,16 +596,17 @@ void CommandBorrar(int argC, char** args, char* callingLine, void* extraData){
 
 	SerializedPart* packetToDAM = Serialization_Serialize(2, fieldForDAM1, fieldForDAM2);
 
-	SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_BORRAR, packetToDAM->data, packetToDAM->size);
-
 	SerializedPart fieldForSAFA1 = {.size = sizeof(int32_t), .data =id};
 	SerializedPart fieldForSAFA2 = {.size = sizeof(int32_t), .data = newPc};
 	SerializedPart fieldForSAFA3 = {.size = sizeof(int32_t), .data = newQ};
 	SerializedPart fieldForSAFA4 = {.size = sizeof(int32_t), .data = newNumberOfFiles};
 	SerializedPart dictionary = FlattenPathsAndAddresses(((Operation*)extraData)->dictionary);
+	
     SerializedPart* packetToSAFAToBlockGDT = Serialization_Serialize(5, fieldForSAFA1, fieldForSAFA2, fieldForSAFA3, fieldForSAFA4,dictionary);
 	SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_BLOCKDTB,packetToSAFAToBlockGDT->data, packetToSAFAToBlockGDT->size);
-    StringUtils_FreeArray(args);
+   	SocketCommons_SendData(((Operation*)extraData)->socketDIEGO,MESSAGETYPE_CPU_BORRAR, packetToDAM->data, packetToDAM->size);
+
+	StringUtils_FreeArray(args);
 	Serialization_CleanupSerializedPacket(packetToSAFAToBlockGDT);
 	Serialization_CleanupSerializedPacket(packetToDAM);
 	free(id);
