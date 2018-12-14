@@ -216,5 +216,7 @@ void CommandMetricas (int argC, char** args, char* callingLine, void* extraData)
 void CommandQuit (int argC, char** args, char* callingLine, void* extraData)
 {
 	SocketServer_Stop();
+	AddPCPTask(P_EXIT);
+	AddPLPTask(P_EXIT);
 	CommandInterpreter_FreeArguments(args);
 }

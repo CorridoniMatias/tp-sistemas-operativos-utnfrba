@@ -127,6 +127,8 @@ struct AlgorithmStatus_s
 } typedef AlgorithmStatus;
 
 ///-------------CONSTANTES DEFINIDAS-------------///
+//Codigo para que el PLP y PCP terminen su ejecución
+#define P_EXIT -12
 
 //Codigos de tareas del PLP
 #define PLP_TASK_NORMAL_SCHEDULE 11 			//Planificar de NEW a READY, si se puede
@@ -519,15 +521,17 @@ void LogicalAddressDestroyer(void* addressPtr);
  * 	ACCION: Closure para poder liberar a memoria de cada BlockableInfo de la cola de DTBs a bloquear
  * 	PARAMETROS:
  * 		BI: Estructura de info a bloquear (debe castearse), parametro automatico en el destroy
+ * 		destroyElements: Booleano que indicar si hay que liberar los elementos del diccionario.
  */
-void BlockableInfoDestroyer(void* BI);
+void BlockableInfoDestroyer(void* BI,  bool destroyElements);
 
 /*
  * 	ACCION: Closure para poder liberar a memoria de cada UnlockableInfo de la cola de DTBs a desbloquear
  * 	PARAMETROS:
  * 		UI: Estructura de info a desbloquear (debe castearse), parametro automatico en el destroy
+ * 		destroyElements: Booleano que indicar si hay que liberar los elementos del diccionario.
  */
-void UnlockableInfoDestroyer(void* UI);
+void UnlockableInfoDestroyer(void* UI,  bool destroyElements);
 
 /*
  * 	ACCION: Closure para poder liberar a memoria de la cola de IDs de procesos a enviar a EXIT

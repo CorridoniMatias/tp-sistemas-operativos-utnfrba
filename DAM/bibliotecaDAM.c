@@ -157,6 +157,7 @@ void levantarServidor()
 	CommandInterpreter_RegisterCommand("quit", CommandQuit);
 
 	acciones.OnConsoleInputReceived = ProcessLineInput;						//El Diego no tiene consola, no es necesaria (creo)
+//	acciones.OnConsoleInputReceived = NULL;
 	acciones.OnPacketArrived = (void*)llegoUnPaquete;
 	acciones.OnClientConnected = (void*)clienteConectado;
 	acciones.OnClientDisconnect = (void*)clienteDesconectado;

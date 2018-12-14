@@ -29,9 +29,9 @@ int main(int argc, char *argv[])
 		}
 		Logger_Log(LOG_DEBUG,"Se recibio orden de ejecucion: %d",messageType);
 		DeserializedData* data = Serialization_Deserialize(msgFromSafa);
-		uint32_t flagg = *((uint32_t*)data->parts[1]);
-		printf("\nflag=%d\n",flagg);
-		if (flagg == 0)
+		uint32_t flag = *((uint32_t*)data->parts[1]);
+		printf("\nflag=%d\n",flag);
+		if (flag == 0)
 			{
 
 			printf("\nholis\n");

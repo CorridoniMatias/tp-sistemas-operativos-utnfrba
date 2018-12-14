@@ -215,11 +215,11 @@ void StartServer()
 	//Registro de comandos funcionales y de comunicacion
 	CommandInterpreter_RegisterCommand("iam", (void*)CommandIAm);
 	//Registro de comandos de consola del SAFA
-	CommandInterpreter_RegisterCommand("ejecutar", (void*)CommandEjecutar);
-	CommandInterpreter_RegisterCommand("status", (void*)CommandStatus);
-	CommandInterpreter_RegisterCommand("finalizar", (void*)CommandFinalizar);
-	CommandInterpreter_RegisterCommand("metricas", (void*)CommandMetricas);
-	CommandInterpreter_RegisterCommand("quit", (void*)CommandQuit);
+	CommandInterpreter_RegisterCommand("ejecutar", CommandEjecutar);
+	CommandInterpreter_RegisterCommand("status", CommandStatus);
+	CommandInterpreter_RegisterCommand("finalizar", CommandFinalizar);
+	CommandInterpreter_RegisterCommand("metricas", CommandMetricas);
+	CommandInterpreter_RegisterCommand("quit", CommandQuit);
 
 	SocketServer_Start("SAFA", settings->puerto);
 	SocketServer_ActionsListeners actions = INIT_ACTION_LISTENER;
@@ -277,7 +277,7 @@ void initialize()
 	ThreadPoolRunnable* watcherJob = ThreadPool_CreateRunnable();
 	watcherJob->data = NULL;
 	watcherJob->free_data = NULL;
-	watcherJob->runnable = (void*)MonitorConfigFile;
+	watcherJob->runnable = MonitorConfigFile;
 	ThreadPool_AddJob(threadPool, watcherJob);
 	Logger_Log(LOG_INFO, "Ya se esta monitoreando el archivo de configuracion");
 

@@ -25,29 +25,26 @@ void freePagedSegmentationStructures() {
 	}
 	void destroyMasterTable(void* segments) {
 		t_segments* segmentos = segments;
-		dictionary_clean_and_destroy_elements(segmentos->segments,
-				destroySegments);
+		dictionary_destroy_and_destroy_elements(segmentos->segments, destroySegments);
 		free(segmentos);
 	}
-	dictionary_clean_and_destroy_elements(segmentsPerDTBTable,
-			destroyMasterTable);
+	dictionary_destroy_and_destroy_elements(segmentspagedPerDTBTable, destroyMasterTable);
 	Logger_Log(LOG_INFO, "FM9 -> Estructuras de segmentación liberadas.");
 	freePagingStructures();
 }
 
 int addressTranslation_SPA(int logicalAddress, int dtbID) {
 	int segmentNumber = getSegmentFromAddress(logicalAddress);
-	printf("\n\n\nnumero segmento %d\n\n\n",segmentNumber);
+//	printf("\n\n\nnumero segmento %d\n\n\n",segmentNumber);
 	int segmentOffset = getOffsetFromAddress(logicalAddress);
-	printf("\n\n\noffset segmento %d\n\n\n",segmentOffset);
+//	printf("\n\n\noffset segmento %d\n\n\n",segmentOffset);
 	int pageNumber = segmentOffset / cantLineasPorFrame;
-	printf("\n\n\nnumero pagina %d\n\n\n",pageNumber);
+//	printf("\n\n\nnumero pagina %d\n\n\n",pageNumber);
 	int frameOffset = segmentOffset % cantLineasPorFrame;
-	printf("\n\n\nframeOffset %d\n\n\n",frameOffset);
+//	printf("\n\n\nframeOffset %d\n\n\n",frameOffset);
 	char * dtbKey = string_itoa(dtbID);
 	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey)){
-
-		printf("\n\n\nno existe ese proceso\n\n\n");
+//		printf("\n\n\nno existe ese proceso\n\n\n");
 		free(dtbKey);
 		return ITS_A_TRAP;
 	}
@@ -55,8 +52,7 @@ int addressTranslation_SPA(int logicalAddress, int dtbID) {
 	free(dtbKey);
 	char* segmentKey = string_itoa(segmentNumber);
 	if (!dictionary_has_key(segments->segments, segmentKey)) {
-
-		printf("\n\n\nno existe ese segmento\n\n\n");
+//		printf("\n\n\nno existe ese segmento\n\n\n");
 		free(segmentKey);
 		return ITS_A_TRAP;
 	}
@@ -64,7 +60,7 @@ int addressTranslation_SPA(int logicalAddress, int dtbID) {
 	free(segmentKey);
 	if (pageNumber >= segment->limit)
 	{
-		printf("\n\n\nsegment fault perra - no existe esa pagina\n\n\n");
+//		printf("\n\n\nsegment fault perra - no existe esa pagina\n\n\n");
 		return ITS_A_TRAP;
 	}
 
@@ -94,16 +90,16 @@ int writeData_SPA(void* data, int size, int dtbID) {
 	if (freeFrames == NULL)
 		return INSUFFICIENT_SPACE;
 	segment->frameses = calloc(list_size(freeFrames),sizeof(int));
-	printf("\n\n\ncantidad de frames necesarios %d",list_size(freeFrames));
+//	printf("\n\n\ncantidad de frames necesarios %d",list_size(freeFrames));
 //	int offset = 0, firstPage = segments->nextPageNumber;
 	int offset = 0, pageNumber = 0;
 	while (!list_is_empty(freeFrames)) {
 		int* frameNumber = list_remove(freeFrames, 0);
 		//Para solucionar la fragmentacion interna en la ultima pagina
-		printf("\n\n\nnumero de frame %d\n\n\n",*frameNumber);
+//		printf("\n\n\nnumero de frame %d\n\n\n",*frameNumber);
 		char* buffer = calloc(1, tamanioFrame);
 		if(size - offset < tamanioFrame){
-			printf("\n\n\nhay fragmentacion interna\n\n\n");
+//			printf("\n\n\nhay fragmentacion interna\n\n\n");
 			memcpy(buffer,data+offset,size-offset);
 		}
 		else
@@ -112,22 +108,21 @@ int writeData_SPA(void* data, int size, int dtbID) {
 		if (writeFrame(buffer, *frameNumber) <= 0)
 			return ITS_A_TRAP;
 		free(buffer);
-		printf("\n\n\nnumero pagina %d\n\n\n",pageNumber);
+//		printf("\n\n\nnumero pagina %d\n\n\n",pageNumber);
 		segment->frameses[pageNumber++] = *frameNumber;
 		free(frameNumber);
 		offset += tamanioFrame;
 		segment->limit++;
 	}
+	list_destroy_and_destroy_elements(freeFrames, free);
 	int segmentNumber = segments->nextSegmentNumber++;
 	char* segmentKey = string_itoa(segmentNumber);
 	dictionary_put(segments->segments, segmentKey, segment);
 	free(segmentKey);
-	printf("\n\n\n numero segmento %d",segmentNumber);
-	printf("\n\n\n cant digitos %d",offsetNumberOfDigits);
-	printf("\n\n\n dir segmento %d",segmentNumber * powi(10, offsetNumberOfDigits));
-
-	printf("\n\n\n cant linear por fram %d",cantLineasPorFrame);
-
+//	printf("\n\n\n numero segmento %d",segmentNumber);
+//	printf("\n\n\n cant digitos %d",offsetNumberOfDigits);
+//	printf("\n\n\n dir segmento %d",segmentNumber * powi(10, offsetNumberOfDigits));
+//	printf("\n\n\n cant linear por fram %d",cantLineasPorFrame);
 	return segmentNumber * powi(10, offsetNumberOfDigits);
 
 	//Ir guardando cada pagina en un frame e ir poniendo la key es la tabla de paginas de ese segmento, ir incrementando la cantidad de paginas que tiene ese segmento
@@ -162,10 +157,10 @@ int readData_SPA(void** target, int logicalAddress, int dtbID) {
 	int frameNumber = 0;
 	for (int i = 0; i < segment->limit; i++) {
 		frameNumber = segment->frameses[i];
-		printf("\n\nnumero de página %d- número de frame %d\n\n", i, frameNumber);
+//		printf("\n\nnumero de página %d- número de frame %d\n\n", i, frameNumber);
 		*target = realloc(*target, sizeRead + tamanioFrame);
 		result = readFrame(*target + sizeRead, frameNumber);
-		printf("\n\n\nresultado %d\n\n\n", result);
+//		printf("\n\n\nresultado %d\n\n\n", result);
 		sizeRead += tamanioFrame;
 		if (result == INVALID_LINE_NUMBER || result == INVALID_FRAME_NUMBER) {
 			return ITS_A_TRAP;
@@ -189,8 +184,7 @@ int closeFile_SPA(int dtbID, int logicalAddress) {
 		free(segmentKey);
 		return ITS_A_TRAP;
 	}
-	t_segment_paged* segment = dictionary_remove(segments->segments,
-			segmentKey);
+	t_segment_paged* segment = dictionary_remove(segments->segments, segmentKey);
 	free(segmentKey);
 	for(int i = 0; i < segment->limit ; i++){
 		addFreeFrame(segment->frameses[i]);
@@ -206,7 +200,7 @@ int closeDTBFiles_SPA(int dtbID) {
 		free(dtbKey);
 		return ITS_A_TRAP;
 	}
-	t_segments* segments = dictionary_get(segmentspagedPerDTBTable, dtbKey);
+	t_segments* segments = dictionary_remove(segmentspagedPerDTBTable, dtbKey);
 	free(dtbKey);
 	void dictionaryDestroyer(void* data) {
 		t_segment_paged* segment = data;
@@ -231,7 +225,6 @@ int dump_SPA(int dtbID){
 	free(dtbKey);
 //	Logger_Log(LOG_INFO, "G.DT %d", dtbID);
 	Logger_Log(LOG_INFO, "Número próximo segmento %d", segments->nextSegmentNumber);
-
 	void segmentDumper(char* key, void * data) {
 		t_segment_paged* segment = data;
 		Logger_Log(LOG_INFO, "Segmento %s - Cantidad de páginas = %d", key, segment->limit);

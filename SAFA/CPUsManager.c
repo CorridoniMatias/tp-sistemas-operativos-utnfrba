@@ -92,7 +92,8 @@ bool IsIdle(void* myCPU)
 int IdleCPUsAmount()
 {
 
-	return list_size(list_filter(cpus, IsIdle));
+
+	return list_count_satisfying(cpus, IsIdle);
 
 }
 

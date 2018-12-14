@@ -147,6 +147,7 @@ void MonitorConfigFile()
 		printf("El retardo es %d\n", settings->retardo);
 		printf("El algoritmo es %s\n", settings->algoritmo);
 		printf("El puerto es %d\n", settings->puerto);
+//		return;
 	}
 
 	//Dejo el lugar ordenado antes de irme...

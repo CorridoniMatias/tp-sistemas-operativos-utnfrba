@@ -59,6 +59,7 @@ void CreateDummy()
 	dummyDTB->firstResponseTime = 0;
 	dummyDTB->arrivalAtREADYtime.tv_sec = 0;
 	dummyDTB->arrivalAtREADYtime.tv_nsec = 0;
+	dummyDTB->quantumRemainder = 0;
 	dummyDTB->resourcesKept = list_create();
 	return;
 
@@ -125,7 +126,8 @@ DTB* CreateDTB(char* script)
 	//De entrada no tiene ningun archivo abierto
 	newDTB->openedFilesAmount = 0;
 	//Le pongo un valor basura, para su primera ejecucion (por si fuera con VRR)
-	newDTB->quantumRemainder = -1;
+//	newDTB->quantumRemainder = -1;
+	newDTB->quantumRemainder = 0;
 	newDTB->status = -1;										//Valor basura, todavia no esta en NEW
 	newDTB->ioOperations = 0;									//Al arrancar no tiene ninguna
 	newDTB->sentencesWhileAtNEW = 0;							//Todavia no esta en NEW ni pasaron sentencias con el ahi
@@ -167,6 +169,7 @@ void AddToReady(DTB* myDTB, char* currentAlgorithm)
 	}
 	else if((strcmp(currentAlgorithm, "VRR")) == 0)
 	{
+		printf("\n\nquantum %d",myDTB->quantumRemainder);
 		list_add(READYqueue_VRR, myDTB);
 		Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Agregado el DTB de ID %d a READY. Hay %d DTBs ahi", myDTB->id, list_size(READYqueue_VRR));
 	}
@@ -214,7 +217,7 @@ void AddToExit(DTB* myDTB)
 	}
 
 	//Libero la memoria de la lista de recursos, libero los recursos y hago un signal de todos (desde el modulo de ResourceManager.h)
-	list_destroy_and_destroy_elements(myDTB->resourcesKept, FreeInstancesAndDestroy);
+	list_clean_and_destroy_elements(myDTB->resourcesKept, FreeInstancesAndDestroy);
 
 	bool isDTB(void* data){
 		uint32_t id = *((uint32_t*)data);
@@ -244,6 +247,8 @@ void AddToExit(DTB* myDTB)
 	//No me olvido de disminuir la cantidad de procesos en memoria del sistema
 	inMemoryAmount--;
 	Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Ahora hay %d procesos en memoria", inMemoryAmount);
+	if(list_size(NEWqueue->elements)>0)
+		AddPLPTask(PLP_TASK_NORMAL_SCHEDULE);
 
 }
 
@@ -415,6 +420,7 @@ void PlanificadorLargoPlazo()
 {
 
 	Logger_Log(LOG_INFO, "SAFA::PLANIF->Planificador de Largo Plazo ya operativo");
+	int* aux;
 	int currentTask;
 
 	while(1)
@@ -426,7 +432,9 @@ void PlanificadorLargoPlazo()
 
 		//En cada iteracion, saco la primer tarea de la cola, y guardo su valor para luego compararla y saber que modulo realizar
 		pthread_mutex_lock(&mutexPLPtasksQueue);
-		currentTask = *((int*) queue_pop(PLPtasksQueue));
+		aux =  queue_pop(PLPtasksQueue);
+		currentTask = *aux;
+		free(aux);
 		pthread_mutex_unlock(&mutexPLPtasksQueue);
 
 		//Me agarro el grado de multiprogramacion, antes que alguien lo cambie
@@ -500,6 +508,7 @@ void PlanificadorLargoPlazo()
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se saco el path \"%s\" de la cola de scripts a cargar", newPath);
 				//No le hago free aca, cuando elimine todos lo hare
 				newDTB = CreateDTB(newPath);
+				free(newPath);
 			    AddToNew(newDTB);
 			}
 			pthread_mutex_unlock(&mutexScriptsQueue);
@@ -551,6 +560,7 @@ void PlanificadorLargoPlazo()
 				pthread_mutex_lock(&mutexSettings);
 				AddToReady(toBeInitialized, settings->algoritmo);
 				pthread_mutex_unlock(&mutexSettings);
+				CreatableGDTDestroyer(justDummied);
 
 			}
 
@@ -562,7 +572,10 @@ void PlanificadorLargoPlazo()
 			AddPLPTask(PLP_TASK_NORMAL_SCHEDULE);
 
 		}
-
+		else if (currentTask == P_EXIT) {
+			Logger_Log(LOG_INFO, "SAFA::PLANIF->PLP terminando");
+			return;
+		}
 	}
 
 }
@@ -589,6 +602,7 @@ void AggregateSentencesWhileAtNEW(int amount)
 void PlanificadorCortoPlazo()
 {
 	AlgorithmStatus schedulingRules;				//Para consultar aca y reducir la region critica
+	int* aux;
 	int currentTask;
 	while(1)
 	{
@@ -598,7 +612,9 @@ void PlanificadorCortoPlazo()
 
 		//En cada iteracion, saco la primer tarea de la cola, y guardo su valor para luego compararla y saber que modulo realizar
 		pthread_mutex_lock(&mutexPCPtasksQueue);
-		currentTask = *((int*) queue_pop(PCPtasksQueue));
+		aux = queue_pop(PCPtasksQueue);
+		currentTask = *aux;
+		free(aux);
 		pthread_mutex_unlock(&mutexPCPtasksQueue);
 
 		//Excluyentemente, guardo la informacion de la configuracion para planificar; al principio de cada ciclo
@@ -720,7 +736,7 @@ void PlanificadorCortoPlazo()
 			pthread_mutex_lock(&mutexToBeBlocked);
 			while(!queue_is_empty(toBeBlocked))
 			{
-				nextToBlock = (BlockableInfo*) queue_pop(toBeBlocked);
+				nextToBlock = queue_pop(toBeBlocked);
 				printf("\n\nbabyComeback=%d\n\n",nextToBlock->dummyComeback);
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se intentara bloquear el DTB de ID = %d", nextToBlock->id);
 
@@ -758,14 +774,14 @@ void PlanificadorCortoPlazo()
 					UpdateOpenedFiles(target, nextToBlock->openedFilesUpdate, false);
 				}
 				AddToBlocked(target);
+				BlockableInfoDestroyer(nextToBlock, false);
 			}
 			pthread_mutex_unlock(&mutexToBeBlocked);
 
 			//No me olvido de este free! Ni de avisar al planificador que, tras bloquear todos, vuelva a planificar
-			free(nextToBlock);
+//			free(nextToBlock);
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Bloqueados todos los DTBs pendientes. Volviendo a planificacion normal");
 			AddPCPTask(PCP_TASK_NORMAL_SCHEDULE);
-
 		}
 
 		//Tras aviso desde DAM
@@ -779,7 +795,7 @@ void PlanificadorCortoPlazo()
 			while(!queue_is_empty(toBeUnlocked))
 			{
 
-				nextToUnlock = (UnlockableInfo*) queue_pop(toBeUnlocked);
+				nextToUnlock = queue_pop(toBeUnlocked);
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se intentara desbloquear el DTB de id = %d", nextToUnlock->id);
 				printf("\n\nhere we go=%d\n\n",nextToUnlock->overwritePC);
 				//Closure anidada, para poder hallar de las colas el DTB con el mismo ID que el recien sacado de la cola
@@ -849,7 +865,7 @@ void PlanificadorCortoPlazo()
 
 				//Muevo este DTB a la cola de READY
 				AddToReady(target, schedulingRules.name);
-				free(nextToUnlock);
+				UnlockableInfoDestroyer(nextToUnlock, false);
 
 			}
 			pthread_mutex_unlock(&mutexToBeUnlocked);
@@ -930,7 +946,10 @@ void PlanificadorCortoPlazo()
 			AddPCPTask(PCP_TASK_NORMAL_SCHEDULE);
 
 		}
-
+		else if (currentTask == P_EXIT) {
+			Logger_Log(LOG_INFO, "SAFA::PLANIF->PCP terminando");
+			return;
+		}
 		//Aplico retardo de planificacion; multiplico por mil, ya que son milisegundos y el usleep es con microsegundos
 		usleep((settings->retardo) * 1000);
 
@@ -1107,7 +1126,7 @@ void UpdateOpenedFiles(DTB* toBeUpdated, t_dictionary* currentOFs, bool dontOver
 	//Recorro el diccionario parametro (el actualizado) entero, y ejecuto la closure para que sobreescriba cada una
 	dictionary_iterator(currentOFs, UpdateSingleFile);
 
-	dictionary_destroy(currentOFs);
+//	dictionary_destroy(currentOFs);
 }
 
 SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable)
@@ -1211,6 +1230,7 @@ SerializedPart* GetMessageForCPU(DTB* chosenDTB)
 	free(pcToSend);
 	free(quantumToSend);
 	free(ofaToSend);
+	free(pathSP.data);
 	free(filesSP.data);
 	return message;
 
@@ -1253,14 +1273,16 @@ SerializedPart* ScheduleVRR(int maxQuantum)
 	//ya sea porque se quedo sin quantum o porque se cambio el parametro de conexion en el medio
 	void HeunMethod(void* aDTB)
 	{
-		DTB* realDTB = (DTB*) aDTB;
+		DTB* realDTB = aDTB;
+		printf("\n\nflag %d",realDTB->initialized);
+		printf("\n\nquantum %d",realDTB->quantumRemainder);
 		if((realDTB->quantumRemainder == 0) || (realDTB->quantumRemainder > maxQuantum))
 		{
 			realDTB->quantumRemainder = maxQuantum;
 		}
 	}
 
-	list_map(READYqueue_VRR, (void*)HeunMethod);
+	list_iterate(READYqueue_VRR, HeunMethod);
 
 	//Tomo el primer DTB de la "cola de prioridad" (el primero que tenga quantum sobrante y no natural)
 	DTB* chosenDTB = list_remove_by_condition(READYqueue_VRR, AtPriorityQueue);
@@ -1521,21 +1543,27 @@ void LogicalAddressDestroyer(void* addressPtr)
 
 }
 
-void BlockableInfoDestroyer(void* BI)
+void BlockableInfoDestroyer(void* BI, bool destroyElements)
 {
 
 	BlockableInfo* castBI = (BlockableInfo*) BI;
-	dictionary_destroy_and_destroy_elements(castBI->openedFilesUpdate, LogicalAddressDestroyer);
+	if (destroyElements)
+		dictionary_destroy_and_destroy_elements(castBI->openedFilesUpdate, LogicalAddressDestroyer);
+	else
+		dictionary_destroy(castBI->openedFilesUpdate);
 	//Al igual que en DTBDestroyer, el free principal lo hago sobre el parametro
 	free(BI);
 
 }
 
-void UnlockableInfoDestroyer(void* UI)
+void UnlockableInfoDestroyer(void* UI, bool destroyElements)
 {
 
-	UnlockableInfo* castUI = (UnlockableInfo*) UI;
-	dictionary_destroy_and_destroy_elements(castUI->openedFilesUpdate, LogicalAddressDestroyer);
+	UnlockableInfo* castUI = UI;
+	if (destroyElements)
+		dictionary_destroy_and_destroy_elements(castUI->openedFilesUpdate, LogicalAddressDestroyer);
+	else
+		dictionary_destroy(castUI->openedFilesUpdate);
 	//Al igual que en DTBDestroyer, el free principal lo hago sobre el parametro
 	free(UI);
 
@@ -1552,6 +1580,10 @@ void DTBDestroyer(void* aDTB)
 {
 
 	DTB* castDTB = (DTB*) aDTB;
+	dictionary_destroy_and_destroy_elements(castDTB->openedFiles, free);
+	if(castDTB->resourcesKept != NULL){
+		list_destroy_and_destroy_elements(castDTB->resourcesKept, free);
+	}
 	free(castDTB->pathEscriptorio);
 	//El free del DTB lo hago sobre el parametro, no el casteado, asi me libera la memoria ocupada por ese
 	//Al salir de la funcion, el casteado (necesario para liberar el path) liberara la memoria suya solo, ya que es local
@@ -1579,8 +1611,14 @@ void DeleteQueuesAndLists()
 	list_destroy_and_destroy_elements(BLOCKEDqueue, DTBDestroyer);
 	list_destroy_and_destroy_elements(EXECqueue, DTBDestroyer);
 	list_destroy_and_destroy_elements(EXITqueue, DTBDestroyer);
-	queue_destroy_and_destroy_elements(toBeUnlocked, UnlockableInfoDestroyer);
-	queue_destroy_and_destroy_elements(toBeBlocked, BlockableInfoDestroyer);
+	void UnlockableInfoDestroyer2(void* UI){
+			UnlockableInfoDestroyer(UI, true);
+		}
+	queue_destroy_and_destroy_elements(toBeUnlocked, UnlockableInfoDestroyer2);
+	void BlockableInfoDestroyer2(void* BI){
+		BlockableInfoDestroyer(BI, true);
+	}
+	queue_destroy_and_destroy_elements(toBeBlocked, BlockableInfoDestroyer2);
 	queue_destroy_and_destroy_elements(toBeEnded, EndableDestroyer);
 	list_destroy_and_destroy_elements(beingDummied, DTBDestroyer);
 	queue_destroy_and_destroy_elements(dummiedQueue, CreatableGDTDestroyer);

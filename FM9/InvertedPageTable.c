@@ -23,11 +23,10 @@ void freeIPTStructures() {
 		void listDestroyer(void* pages) {
 			list_destroy_and_destroy_elements(pages, free);
 		}
-		dictionary_clean_and_destroy_elements(DTBPages, listDestroyer);
+		dictionary_destroy_and_destroy_elements(DTBPages, listDestroyer);
 	}
 
-	dictionary_clean_and_destroy_elements(pagesPerDTBTable,
-			dictionaryDestroyer);
+	dictionary_destroy_and_destroy_elements(pagesPerDTBTable, dictionaryDestroyer);
 	freePagingStructures();
 //	Logger_Log(LOG_INFO, "FM9 -> Tabla de páginas invertida liberada.");
 	Logger_Log(LOG_INFO, "FM9 -> Estructuras de tabla de páginas invertida liberadas.");
@@ -74,6 +73,7 @@ int writeData_TPI(void* data, int size, int dtbID) {
 		updateIPTable(*frameNumber, paginas->nextPageNumber++, dtbID);
 		free(frameNumber);
 	}
+	list_destroy_and_destroy_elements(freeFrames, free);
 	char* pageKey = string_itoa(pages->firstPage);
 	dictionary_put(paginas->pagesPerFiles, pageKey, pages);
 	free(pageKey);
@@ -128,9 +128,9 @@ int closeFile_TPI(int dtbID, int logicalAddress) {
 		free(pageKey);
 		return ITS_A_TRAP;
 	}
-	t_pages_per_file* pages = dictionary_get(paginas->pagesPerFiles, pageKey);
+	t_pages_per_file* pages = dictionary_remove(paginas->pagesPerFiles, pageKey);
 	freeFrames(pages, dtbID);
-	dictionary_remove_and_destroy(paginas->pagesPerFiles, pageKey, free);
+	free(pages);
 	free(pageKey);
 	return 1;
 }
@@ -142,7 +142,7 @@ int closeDTBFiles_TPI(int dtbID) {
 		free(dtbKey);
 		return ITS_A_TRAP;
 	}
-	t_pages* paginas = dictionary_get(pagesPerDTBTable, dtbKey);
+	t_pages* paginas = dictionary_remove(pagesPerDTBTable, dtbKey);
 	free(dtbKey);
 	void dictionaryDestroyer(void* data){
 		t_pages_per_file* file = data;
