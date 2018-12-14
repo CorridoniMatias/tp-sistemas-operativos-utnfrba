@@ -148,6 +148,14 @@ void CommandFinalizar (int argC, char** args, char* callingLine, void* extraData
 	pthread_mutex_lock(&mutexToBeEnded);
 	queue_push(toBeEnded, paramID);
 	pthread_mutex_unlock(&mutexToBeEnded);
+	pthread_mutex_lock(&mutexCPUs);
+	CPU* chosenCPU = list_find(cpus, IsIdle);
+	chosenCPU->busy = true;
+	Logger_Log(LOG_DEBUG, "SAFA::CPUS->Hallada CPU libre! Socket: %d. Quedan %d CPUs libres", chosenCPU->socket, IdleCPUsAmount());
+	pthread_mutex_unlock(&mutexCPUs);
+	Logger_Log(LOG_DEBUG, "SAFA::CPUS->Se mando a CPU la orden de liberar la memoria del GDT %d", atoi(args[1]));
+	declare_and_init(dtbID, uint32_t, atoi(args[1]))
+	SocketCommons_SendData(chosenCPU->socket, MESSAGETYPE_CPU_FREEGDT, dtbID, sizeof(uint32_t));
 	AddPCPTask(PCP_TASK_END_DTB);
 	//No hace falta free del paramID, cuando se haga un pop o destroy de ese elemento, se hara solo
 	CommandInterpreter_FreeArguments(args);

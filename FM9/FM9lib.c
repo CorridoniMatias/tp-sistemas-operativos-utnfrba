@@ -38,7 +38,7 @@ void configurar() {
 		case SEG:
 			memoryFunctions->createStructures = createSegmentationStructures;
 			memoryFunctions->freeStructures = freeSegmentationStructures;
-			memoryFunctions->virtualAddressTranslation = addressTranslation_SEG;
+			memoryFunctions->logicalAddressTranslation = addressTranslation_SEG;
 			memoryFunctions->writeData = writeData_SEG;
 			memoryFunctions->readData = readData_SEG;
 			memoryFunctions->closeFile = closeFile_SEG;
@@ -48,7 +48,7 @@ void configurar() {
 		case SPA:
 			memoryFunctions->createStructures = createPagedSegmentationStructures;
 			memoryFunctions->freeStructures = freePagedSegmentationStructures;
-			memoryFunctions->virtualAddressTranslation = addressTranslation_SPA;
+			memoryFunctions->logicalAddressTranslation = addressTranslation_SPA;
 			memoryFunctions->writeData = writeData_SPA;
 			memoryFunctions->readData = readData_SPA;
 			memoryFunctions->closeFile = closeFile_SPA;
@@ -58,7 +58,7 @@ void configurar() {
 		case TPI:
 			memoryFunctions->createStructures = createIPTStructures;
 			memoryFunctions->freeStructures = freeIPTStructures;
-			memoryFunctions->virtualAddressTranslation = addressTranslation_TPI;
+			memoryFunctions->logicalAddressTranslation = addressTranslation_TPI;
 			memoryFunctions->writeData = writeData_TPI;
 			memoryFunctions->readData = readData_TPI;
 			memoryFunctions->closeFile = closeFile_TPI;

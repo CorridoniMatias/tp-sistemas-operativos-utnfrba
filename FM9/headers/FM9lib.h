@@ -32,7 +32,7 @@ Configuracion* settings;
 typedef struct{
 	void (*createStructures)();
 	void (*freeStructures)();
-	int (*virtualAddressTranslation)(int logicalAddress, int dtdID);
+	int (*logicalAddressTranslation)(int logicalAddress, int dtdID);
 	int (*writeData)(void* data, int size, int dtdID);
 	int (*readData)(void** target, int logicalAddress, int dtdID);
 	int (*closeFile)(int dtdID,int logicalAddress);

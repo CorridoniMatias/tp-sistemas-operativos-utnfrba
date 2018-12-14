@@ -94,7 +94,7 @@ char* askLineToFM9(uint32_t idDtb, uint32_t logicDir, uint32_t pc, int fm9){
 
 	DeserializedData* data = Serialization_Deserialize(msgFromFM9);
 
-	if(*(int*)data->parts[0] == 1){
+	if(*(uint32_t*)data->parts[0] == 1){
 		free(id);
 		free(newLogicDir);
 		Serialization_CleanupSerializedPacket(packetToFM9);

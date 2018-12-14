@@ -22,9 +22,14 @@ int main(int argc, char *argv[])
 		printf("\nesperando recibir datos\n");
 		int err,messageType,msglength;
 		void* msgFromSafa = SocketCommons_ReceiveData(safa,&messageType,&msglength,&err);
+		if(messageType == MESSAGETYPE_CPU_FREEGDT){
+			Logger_Log(LOG_INFO,"Se recibio orden de avisar a FM9 de liberar la memoria del GDT: %d",*((uint32_t*)msgFromSafa));
+			SocketCommons_SendData(fm9, MESSAGETYPE_FM9_CLOSEDTB, msgFromSafa, sizeof(uint32_t));
+			free(msgFromSafa);
+		}
 		Logger_Log(LOG_DEBUG,"Se recibio orden de ejecucion: %d",messageType);
 		DeserializedData* data = Serialization_Deserialize(msgFromSafa);
-		int flagg = *(int*)data->parts[1];
+		uint32_t flagg = *((uint32_t*)data->parts[1]);
 		printf("\nflag=%d\n",flagg);
 		if (flagg == 0)
 			{
@@ -126,6 +131,7 @@ int main(int argc, char *argv[])
 			}
 			Serialization_CleanupDeserializationStruct(data);
 			dictionary_destroy_and_destroy_elements(extraData.dictionary, free);
+			free(msgFromSafa);
 		}
 
 	}

@@ -3,9 +3,6 @@
 void createIPTStructures() {
 
 	createPagingStructures();
-
-	Logger_Log(LOG_INFO, "FM9 -> Creando tabla de páginas invertida.");
-
 	pagesPerDTBTable = dictionary_create();
 
 	IPTable = calloc(cantFrames, sizeof(IPTEntry));
@@ -15,8 +12,7 @@ void createIPTStructures() {
 
 //		Logger_Log(LOG_DEBUG, "FM9 -> Entrada de tabla de páginas invertida %d creada.", i);
 	}
-
-	Logger_Log(LOG_INFO, "FM9 -> Se creó tabla de páginas invertida.");
+	Logger_Log(LOG_INFO, "FM9 -> Estructuras de tabla de páginas invertida creadas.");
 }
 
 void freeIPTStructures() {
@@ -33,7 +29,8 @@ void freeIPTStructures() {
 	dictionary_clean_and_destroy_elements(pagesPerDTBTable,
 			dictionaryDestroyer);
 	freePagingStructures();
-	Logger_Log(LOG_INFO, "FM9 -> Tabla de páginas invertida liberada.");
+//	Logger_Log(LOG_INFO, "FM9 -> Tabla de páginas invertida liberada.");
+	Logger_Log(LOG_INFO, "FM9 -> Estructuras de tabla de páginas invertida liberadas.");
 }
 
 int writeData_TPI(void* data, int size, int dtbID) {
@@ -60,11 +57,11 @@ int writeData_TPI(void* data, int size, int dtbID) {
 		int* frameNumber = list_remove(freeFrames, 0);
 //		if (writeFrame(data + offset, *frameNumber) <= 0)
 //			return ITS_A_TRAP;
-		printf("\n\n\nnumero de frame %d\n\n\n",*frameNumber);
+//		printf("\n\n\nnumero de frame %d\n\n\n",*frameNumber);
 		//Para solucionar la fragmentacion interna en la ultima pagina
 		char* buffer = calloc(1, tamanioFrame);
 		if(size - offset < tamanioFrame){
-			printf("\n\n\nhay fragmentacion interna\n\n\n");
+//			printf("\n\n\nhay fragmentacion interna\n\n\n");
 			memcpy(buffer,data+offset,size-offset);
 		}
 		else
@@ -119,7 +116,7 @@ int readData_TPI(void** target, int logicalAddress, int dtbID) {
 
 int closeFile_TPI(int dtbID, int logicalAddress) {
 	char* dtbKey = string_itoa(dtbID);
-	if (dictionary_has_key(pagesPerDTBTable, dtbKey)) {
+	if (!dictionary_has_key(pagesPerDTBTable, dtbKey)) {
 		free(dtbKey);
 		return ITS_A_TRAP;
 	}
@@ -141,7 +138,7 @@ int closeFile_TPI(int dtbID, int logicalAddress) {
 
 int closeDTBFiles_TPI(int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
-	if (dictionary_has_key(pagesPerDTBTable, dtbKey)) {
+	if (!dictionary_has_key(pagesPerDTBTable, dtbKey)) {
 		free(dtbKey);
 		return ITS_A_TRAP;
 	}
@@ -160,11 +157,11 @@ int closeDTBFiles_TPI(int dtbID) {
 int dump_TPI(int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
 	if (!dictionary_has_key(pagesPerDTBTable, dtbKey))
-		return -1;
+		return -ITS_A_TRAP;
 
 	t_pages* paginas = dictionary_get(pagesPerDTBTable, dtbKey);
 	free(dtbKey);
-	Logger_Log(LOG_INFO, "G.DT %d", dtbID);
+//	Logger_Log(LOG_INFO, "G.DT %d", dtbID);
 	Logger_Log(LOG_INFO, "Número próxima página %d", paginas->nextPageNumber);
 	int i = 0;
 	void pageDumper(char* key, void * data) {
@@ -179,8 +176,10 @@ int dump_TPI(int dtbID) {
 		while (offset < pages->numberOfPages) {
 			frameNumber = getFrameOfPage(pages->firstPage + offset, dtbID);
 			Logger_Log(LOG_INFO, "Página número %d está en frame %d", pages->firstPage + offset, frameNumber);
-			Logger_Log(LOG_INFO, "Contenido Página %d",  pages->firstPage + offset);
-			readFrame(buffer, frameNumber);
+//			Logger_Log(LOG_INFO, "Contenido  %d",  pages->firstPage + offset);
+			void* buffer = calloc(1, tamanioFrame + 1);
+			readFrame(buffer,frameNumber);
+			Logger_Log(LOG_INFO, "Contenido\n%s", buffer);
 			offset++;
 		}
 		free(buffer);
@@ -208,9 +207,8 @@ int addressTranslation_TPI(int logicalAddress, int dtbID) {
 	lineNum *= cantLineasPorFrame;
 	int offset = logicalAddress % cantLineasPorFrame;
 	lineNum += offset;
-	Logger_Log(LOG_INFO, "FM9 -> Dirección lógica = %d.", logicalAddress);
-	Logger_Log(LOG_INFO, "FM9 -> Dirección física = %d.", lineNum);
-
+//	Logger_Log(LOG_INFO, "FM9 -> Dirección lógica = %d.", logicalAddress);
+//	Logger_Log(LOG_INFO, "FM9 -> Dirección física = %d.", lineNum);
 	return lineNum;
 }
 

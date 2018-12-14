@@ -12,6 +12,9 @@ void createPagedSegmentationStructures() {
 		aux = aux / 10;
 		offsetNumberOfDigits++;
 	}
+
+	Logger_Log(LOG_INFO, "FM9 -> Estructuras de segmentación paginada creadas.");
+	Logger_Log(LOG_INFO, "FM9 -> Cantidad de dígitos de la dirección lógica empleados para el offset de segmento %d.", offsetNumberOfDigits);
 }
 
 void freePagedSegmentationStructures() {
@@ -28,6 +31,7 @@ void freePagedSegmentationStructures() {
 	}
 	dictionary_clean_and_destroy_elements(segmentsPerDTBTable,
 			destroyMasterTable);
+	Logger_Log(LOG_INFO, "FM9 -> Estructuras de segmentación liberadas.");
 	freePagingStructures();
 }
 
@@ -66,8 +70,8 @@ int addressTranslation_SPA(int logicalAddress, int dtbID) {
 
 	int frameNumber = segment->frameses[pageNumber];
 	int numLinea = frameNumber * cantLineasPorFrame + frameOffset;
-	Logger_Log(LOG_INFO, "FM9 -> Dirección lógica = %d.", logicalAddress);
-	Logger_Log(LOG_INFO, "FM9 -> Dirección física = %d.", numLinea);
+//	Logger_Log(LOG_INFO, "FM9 -> Dirección lógica = %d.", logicalAddress);
+//	Logger_Log(LOG_INFO, "FM9 -> Dirección física = %d.", numLinea);
 	return numLinea;
 
 }
@@ -221,24 +225,24 @@ int dump_SPA(int dtbID){
 	char* dtbKey = string_itoa(dtbID);
 	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey)) {
 		free(dtbKey);
-		return -1;
+		return ITS_A_TRAP;
 	}
 	t_segments* segments = dictionary_get(segmentspagedPerDTBTable, dtbKey);
 	free(dtbKey);
-	Logger_Log(LOG_INFO, "G.DT %d", dtbID);
+//	Logger_Log(LOG_INFO, "G.DT %d", dtbID);
 	Logger_Log(LOG_INFO, "Número próximo segmento %d", segments->nextSegmentNumber);
 
 	void segmentDumper(char* key, void * data) {
 		t_segment_paged* segment = data;
-		Logger_Log(LOG_INFO, "Segmento %s : Cantidad de páginas = %d", key, segment->limit);
+		Logger_Log(LOG_INFO, "Segmento %s - Cantidad de páginas = %d", key, segment->limit);
 		Logger_Log(LOG_INFO, "Contenido Segmento %s", key);
 		int frameNumber = 0;
 		for(int i = 0; i < segment->limit ; i++){
 			frameNumber = segment->frameses[i];
 		Logger_Log(LOG_INFO, "Página número %d está en frame %d", i, frameNumber);
-		void* buffer = malloc(tamanioFrame);
-		Logger_Log(LOG_INFO, "Contenido Página %d", i);
+		void* buffer = calloc(1, tamanioFrame + 1);
 		readFrame(buffer,frameNumber);
+		Logger_Log(LOG_INFO, "Contenido\n%s", buffer);
 		free(buffer);
 		}
 	}

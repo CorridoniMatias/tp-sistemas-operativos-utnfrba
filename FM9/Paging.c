@@ -4,7 +4,7 @@ static int useFrame(void* page, int numFrame,char* log, int (*operation)(void*,i
 
 void createPagingStructures() {
 
-	Logger_Log(LOG_INFO, "FM9 -> Creando estructuras de paginado.");
+//	Logger_Log(LOG_INFO, "FM9 -> Creando estructuras de paginado.");
 
 	tamanioFrame = settings->tam_pagina;
 	cantLineasPorFrame =  tamanioFrame / tamanioLinea;
@@ -21,7 +21,9 @@ void createPagingStructures() {
 
 //	Logger_Log(LOG_DEBUG, "FM9 -> Se guardaron %d frames libres.", framesLibres->elements_count);
 
-	Logger_Log(LOG_INFO, "FM9 -> Se crearon estructuras de paginado.");
+
+	Logger_Log(LOG_INFO, "FM9 -> Estructuras de paginación creadas.");
+	Logger_Log(LOG_INFO, "FM9 -> Tamaño frame en bytes = %d - Tamaño frame en lineas = %d - Cantidad de frames = %d", tamanioFrame, cantLineasPorFrame, cantFrames);
 }
 
 void freePagingStructures() {
@@ -35,8 +37,8 @@ void freePagingStructures() {
 	;
 
 	list_destroy_and_destroy_elements(framesLibres, liberarFrame);
-
 	Logger_Log(LOG_INFO, "FM9 -> Lista de frames libres liberada.");
+	Logger_Log(LOG_INFO, "FM9 -> Estructuras de paginación liberadas.");
 }
 
 void addFreeFrame(int numFrame) {
@@ -80,8 +82,11 @@ int framesNeeded(int size) {
 
 t_list* getFreeFrames(int size){
 	int framesNecesarios = framesNeeded(size);
-	if(framesLibres->elements_count<framesNecesarios)
+	if(framesLibres->elements_count<framesNecesarios){
+		Logger_Log(LOG_ERROR, "FM9 -> No hay %d frames libres!", framesNecesarios);
 		return NULL;
+	}
+	Logger_Log(LOG_INFO, "FM9 -> Se devolvio %d frames libres.", framesNecesarios);
 	return list_take_and_remove(framesLibres,framesNecesarios);
 }
 
@@ -91,7 +96,7 @@ static int useFrame(void* page, int numFrame,char* log, int (*operation)(void*,i
 	int lineaInicial = numFrame * cantLineasPorFrame;
 
 	for (int i = 0; i < cantLineasPorFrame; i++) {
-		printf("\n\n\nnumero de linea donde imprimir = %d",lineaInicial + i);
+//		printf("\n\n\nnumero de linea donde imprimir = %d",lineaInicial + i);
 		if (operation(((char*) page) + i * tamanioLinea, lineaInicial + i) == INVALID_LINE_NUMBER)
 			return INVALID_LINE_NUMBER;
 	}

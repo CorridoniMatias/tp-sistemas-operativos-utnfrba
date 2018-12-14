@@ -2,7 +2,7 @@
 
 void createStorage() {
 
-	Logger_Log(LOG_INFO, "FM9 -> Creando Storage.");
+//	Logger_Log(LOG_INFO, "FM9 -> Creando Storage.");
 
 	tamanioLinea = settings->max_linea;
 	cantLineas = settings->tamanio / tamanioLinea;
@@ -14,6 +14,7 @@ void createStorage() {
 //		Logger_Log(LOG_DEBUG, "FM9 -> Linea %d creada.", i);
 	}
 	Logger_Log(LOG_INFO, "FM9 -> Storage creado.");
+	Logger_Log(LOG_INFO, "FM9 -> Tamaño storage = %d - Tamaño linea = %d - Cantidad de lineas = %d", settings->tamanio, tamanioLinea, cantLineas);
 }
 
 void freeStorage() {
@@ -31,40 +32,40 @@ int writeLine(void* data, int numLinea) {
 
 	verifyLineNumber(numLinea);
 	memcpy(storage[numLinea], data, tamanioLinea);
-	char* linea = calloc(1,tamanioLinea);
-	memset(linea,0,tamanioLinea);
-	memcpy(linea, data, tamanioLinea);
-	linea = realloc(linea, tamanioLinea + 1);
-	memcpy(linea + tamanioLinea, "\0", 1);
-	printf("linea = %s.", linea);
-	Logger_Log(LOG_DEBUG, "Contenido de Data: %s.", linea);
-	free(linea);
+//	char* linea = calloc(1,tamanioLinea);
+//	memset(linea,0,tamanioLinea);
+//	memcpy(linea, data, tamanioLinea);
+//	linea = realloc(linea, tamanioLinea + 1);
+//	memcpy(linea + tamanioLinea, "\0", 1);
+//	printf("linea = %s.", linea);
+////	Logger_Log(LOG_DEBUG, "Contenido de Data: %s.", linea);
+//	free(linea);
 //	Logger_Log(LOG_DEBUG, "FM9 -> Contenido guardado en Storage = %s - En linea = %d.", storage[numLinea], numLinea);
 //
-//	Logger_Log(LOG_INFO, "FM9 -> Escritura en Storage exitosa en linea %d.", numLinea);
+	Logger_Log(LOG_INFO, "FM9 -> Escritura en Storage en linea %d exitosa!", numLinea);
 
 	return 1;
 }
 
 int readLine(void* target, int numLinea) {
 
-	char* linea = NULL;
+//	char* linea = NULL;
 	verifyLineNumber(numLinea)
-	linea = calloc(1,tamanioLinea);
-	memset(linea,0,tamanioLinea);
-	memcpy(linea, storage[numLinea], tamanioLinea);
-	linea = realloc(linea, tamanioLinea + 1);
-	memcpy(linea + tamanioLinea, "\0", 1);
+//	linea = calloc(1,tamanioLinea);
+//	memset(linea,0,tamanioLinea);
+	memcpy(target, storage[numLinea], tamanioLinea);
+//	linea = realloc(linea, tamanioLinea + 1);
+//	memcpy(linea + tamanioLinea, "\0", 1);
 
-	Logger_Log(LOG_DEBUG, "Contenido de Storage = %s -- En linea = %d.", linea, numLinea);
-	target = memset(target,0,tamanioLinea);
-	memcpy(target, linea, tamanioLinea);
+//	Logger_Log(LOG_DEBUG, "Contenido de Storage = %s -- En linea = %d.", linea, numLinea);
+//	target = memset(target,0,tamanioLinea);
+//	memcpy(target, linea, tamanioLinea);
 
-	printf("\n\ntarget=\"%s\"\n\n",(char*)target);
+//	printf("\n\ntarget=\"%s\"\n\n",(char*)target);
 
-	free(linea);
+//	free(linea);
 
-//	Logger_Log(LOG_INFO, "FM9 -> Lectura de Storage exitosa de linea %d.", numLinea);
+	Logger_Log(LOG_INFO, "FM9 -> Lectura de Storage de linea %d exitosa!", numLinea);
 
 	return 1;
 }

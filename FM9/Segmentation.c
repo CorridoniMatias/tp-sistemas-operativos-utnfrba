@@ -15,17 +15,20 @@ void createSegmentationStructures() {
 		aux = aux / 10;
 		offsetNumberOfDigits++;
 	}
+	Logger_Log(LOG_INFO, "FM9 -> Estructuras de segmentación creadas.");
+	Logger_Log(LOG_INFO, "FM9 -> Cantidad de dígitos de la dirección lógica empleados para el offset de segmento %d.", offsetNumberOfDigits);
 }
 
 void freeSegmentationStructures() {
 	list_destroy_and_destroy_elements(freeSegments, free);
-	void dictionaryDestroyer(void* segments) {
-		dictionary_destroy_and_destroy_elements(
-				((t_segments*) segments)->segments, free);
+	void dictionaryDestroyer(void* data) {
+		t_segments* segments = data;
+		dictionary_destroy_and_destroy_elements(segments->segments, free);
 		free(segments);
 	}
-	dictionary_destroy_and_destroy_elements(segmentsPerDTBTable,
-			dictionaryDestroyer);
+	dictionary_destroy_and_destroy_elements(segmentsPerDTBTable, dictionaryDestroyer);
+
+	Logger_Log(LOG_INFO, "FM9 -> Estructuras de segmentación liberadas.");
 }
 
 //TESTEAR QUE PASA SI LE MANDO UN SEGMENTO QUE TIENE FRAGMENTACION INTERNA POR LA LINEA
@@ -47,7 +50,7 @@ int writeData_SEG(void* data, int size, int dtbID) {
 	}
 	for (int i = 0; i < lineasNecesarias; i++) {
 		if (writeLine(((char*) data) + i * tamanioLinea, freeSegment->base + i) == INVALID_LINE_NUMBER) {
-			printf("\n\n\nnumero de linea %d\n\n\n",freeSegment->base + i);
+//			printf("\n\n\nnumero de linea %d\n\n\n",freeSegment->base + i);
 			return ITS_A_TRAP;
 		}
 	}
@@ -82,9 +85,9 @@ int writeData_SEG(void* data, int size, int dtbID) {
 		list_add(freeSegments, freeSegment);
 	}
 	//Ver como hacer para que el segment number sea parte de la direccion lógica
-	printf("\n\n\n\nnumero de segmento %d\n\n\n",segmentNumber);
+//	printf("\n\n\n\nnumero de segmento %d\n\n\n",segmentNumber);
 	int virtualAddress = segmentNumber * powi(10, offsetNumberOfDigits);
-	Logger_Log(LOG_INFO, "FM9 -> Dirección lógica = %d.", virtualAddress);
+//	Logger_Log(LOG_INFO, "FM9 -> Dirección lógica = %d.", virtualAddress);
 	return virtualAddress;
 }
 
@@ -115,8 +118,8 @@ int readData_SEG(void** target, int logicalAddress, int dtbID) {
 		*target = realloc(*target, sizeRead + tamanioLinea);
 		memset(*target+sizeRead,0,tamanioLinea);
 		if (readLine(*target + sizeRead, baseLine+linesRead) == INVALID_LINE_NUMBER){
-			printf("\n\n\nnumero invalido de linea\n\n\n");
-			break;
+//			printf("\n\n\nnumero invalido de linea\n\n\n");
+			return ITS_A_TRAP;
 		}
 		sizeRead += tamanioLinea;
 		linesRead++;
@@ -143,9 +146,9 @@ int addressTranslation_SEG(int logicalAddress, int dtbID) {
 	if (getOffsetFromAddress(logicalAddress) >= segment->limit)
 		return ITS_A_TRAP;
 
-	Logger_Log(LOG_INFO, "FM9 -> Dirección lógica = %d.", logicalAddress);
+//	Logger_Log(LOG_INFO, "FM9 -> Dirección lógica = %d.", logicalAddress);
 	int numLinea = segment->base + getOffsetFromAddress(logicalAddress);
-	Logger_Log(LOG_INFO, "FM9 -> Dirección física = %d.", numLinea);
+//	Logger_Log(LOG_INFO, "FM9 -> Dirección física = %d.", numLinea);
 
 	return numLinea;
 }
@@ -154,20 +157,24 @@ int dump_SEG(int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
 	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey)) {
 		free(dtbKey);
-		return -1;
+		return ITS_A_TRAP;
 	}
 	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
 	free(dtbKey);
-	Logger_Log(LOG_INFO, "G.DT %d", dtbID);
+//	Logger_Log(LOG_INFO, "G.DT %d", dtbID);
+	Logger_Log(LOG_INFO, "Número próximo segmento %d", segments->nextSegmentNumber);
 	void segmentDumper(char* key, void * data) {
 		t_segment* segment = data;
-		Logger_Log(LOG_INFO, "Segmento %s : Base = %d : Límite = %d", key,
-				segment->base, segment->limit);
+		Logger_Log(LOG_INFO, "Segmento %s - Base = %d - Límite = %d", key, segment->base, segment->limit);
 		char* buffer = malloc(tamanioLinea);
-		Logger_Log(LOG_INFO, "Contenido Segmento %s", key);
+		int size = 0;
 		for (int i = 0; i < segment->limit; i++) {
 			readLine(buffer, segment->base + i);
+			size += tamanioLinea;
 		}
+		buffer = realloc(buffer, size + 1);
+		buffer[size] = 0;
+		Logger_Log(LOG_INFO, "Tamaño en bytes %d\nContenido\n%s", size, buffer);
 		free(buffer);
 	}
 	dictionary_iterator(segments->segments, segmentDumper);
@@ -177,18 +184,22 @@ int dump_SEG(int dtbID) {
 
 int closeFile_SEG(int dtbID, int virtualAddress) {
 	char* dtbKey = string_itoa(dtbID);
-	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey))
-		return -1;
+	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey)){
+		free(dtbKey);
+		return ITS_A_TRAP;}
 
 	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
-
+	free(dtbKey);
 	int segmentNumber = getSegmentFromAddress(virtualAddress);
-	printf("\n\n\n\nnumero de segmento %d\n\n\n",segmentNumber);
+//	printf("\n\n\n\nnumero de segmento %d\n\n\n",segmentNumber);
 	char* segmentKey = string_itoa(segmentNumber);
 	if (!dictionary_has_key(segments->segments, segmentKey)) {
-		return -1;
+		free(segmentKey);
+		return ITS_A_TRAP;
 	}
+	free(segmentKey);
 	t_segment* segment = dictionary_remove(segments->segments, segmentKey);
+	free(segmentKey);
 	addFreeSegment(segment);
 //	free(segment);
 	return 1;
@@ -198,9 +209,9 @@ int closeDTBFiles_SEG(int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
 	if (!dictionary_has_key(segmentsPerDTBTable, dtbKey)) {
 		free(dtbKey);
-		return -1;
+		return ITS_A_TRAP;
 	}
-	t_segments* segments = dictionary_get(segmentsPerDTBTable, dtbKey);
+	t_segments* segments = dictionary_remove(segmentsPerDTBTable, dtbKey);
 	void dictionaryDestroyer(void* data){
 		t_segment* segment = data;
 		addFreeSegment(segment);

@@ -51,6 +51,7 @@
 #define MESSAGETYPE_CPU_BORRAR 332		//Comando: borrar
 #define MESSAGETYPE_CPU_CREAR 333		//Comando crear
 #define MESSAGETYPE_CPU_RECEIVELINE 334	//Recibir linea del FM9
+#define MESSAGETYPE_CPU_FREEGDT 335	//Liberar la memoria del FM9 para un DTB que finalizo en el SAFA mediante el comando finalizar
 
 //PROTOCOLO FM9 (4X)
 #define MESSAGETYPE_FM9_GETLINE 40 //Pedir una linea de un archivo

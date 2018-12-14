@@ -1,5 +1,11 @@
 #include "headers/FM9_Server.h"
 
+void CommandQuit (int argC, char** args, char* callingLine, void* extraData)
+{
+	SocketServer_Stop();
+	CommandInterpreter_FreeArguments(args);
+}
+
 void OnPostInterpreter(char* cmd, char* sep, void* args, bool actionFired) {
 	free(cmd);
 }
@@ -42,7 +48,7 @@ void onPacketArrived(int socketID, int message_type, void* data, int message_len
 
 	run->data = arriveData;
 	if (data == NULL) {
-			printf("\n\n\n\nPUEDE QUE ESTE LOCO JHONNY PERO DATA ES NULL\n\n\n\n");
+//			printf("\n\n\n\nPUEDE QUE ESTE LOCO JHONNY PERO DATA ES NULL\n\n\n\n");
 		}
 	void freeData(void * data){
 		OnArrivedData* onArriveData = data;
@@ -71,7 +77,7 @@ void onPacketArrived(int socketID, int message_type, void* data, int message_len
 			run->runnable = FM9_CloseDTB;
 			break;
 		default:
-			printf("\n\nme llego un mensaje que no entiendo\n\n");
+//			printf("\n\nme llego un mensaje que no entiendo\n\n");
 			free(run);
 			free(arriveData);
 			free(data);
@@ -107,6 +113,7 @@ void StartServer() {
 	SocketServer_ActionsListeners actions = INIT_ACTION_LISTENER;
 
 	CommandInterpreter_RegisterCommand("dump", FM9_Dump);
+	CommandInterpreter_RegisterCommand("quit", (void*)CommandQuit);
 
 	actions.OnConsoleInputReceived = (void*) ProcessLineInput;
 	actions.OnPacketArrived = (void*) onPacketArrived;

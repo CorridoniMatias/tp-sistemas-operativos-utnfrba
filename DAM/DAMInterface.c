@@ -393,7 +393,18 @@ void DAM_Flush(void* arriveData)
 	char* archivo = DAM_ReadFileFromFM9(dtbID, direccionLogica,socketFM9, &len);
 	//Usado para test:
 	//char* archivo = "MAKE c:/1/2/3.txt\nPULL d:/9/8/.bat\nULTIMA LINEA\nMAKE c:/1/2/3.txt\nPULL d:/9/8/.bat\nULTIMA LINEA";
+	if (archivo == NULL) {
+		Logger_Log(LOG_ERROR, "ERROR EN FLUSH POR PARTE DEL FM9: %d",
+				*((uint32_t*) data));
+		DAM_ErrorOperacion(dtbID);
+		free(archivo);
+		close(socketFM9);
+		close(socketMDJ);
 
+		Serialization_CleanupDeserializationStruct(dest);
+		SocketServer_CleanOnArrivedData(data);
+		return;
+	}
 	int offset = 0;
 	int sizeToSend = 0;
 	int msg_type, length, status;
