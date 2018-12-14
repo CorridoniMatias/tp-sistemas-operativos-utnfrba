@@ -91,7 +91,7 @@ int writeData_SEG(void* data, int size, int dtbID) {
 	} else {
 		freeSegment->base += lineasNecesarias;
 		freeSegment->limit += lineasNecesarias;
-		addFreeSegment(freeSegments, freeSegment);
+		addFreeSegment(freeSegment);
 	}
 	//Ver como hacer para que el segment number sea parte de la direccion lógica
 //	printf("\n\n\n\nnumero de segmento %d\n\n\n",segmentNumber);
