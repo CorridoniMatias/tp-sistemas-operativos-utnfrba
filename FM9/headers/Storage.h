@@ -5,6 +5,7 @@
 #include "kemmens/logger.h"
 #include "FM9lib.h"
 #include "FM9Errors.h"
+#include <pthread.h>
 
 #define verifyLineNumber(numLinea)					\
 	if (numLinea >= cantLineas || numLinea < 0)		\
