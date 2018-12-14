@@ -26,6 +26,7 @@ int main(int argc, char *argv[])
 			Logger_Log(LOG_INFO,"Se recibio orden de avisar a FM9 de liberar la memoria del GDT: %d",*((uint32_t*)msgFromSafa));
 			SocketCommons_SendData(fm9, MESSAGETYPE_FM9_CLOSEDTB, msgFromSafa, sizeof(uint32_t));
 			free(msgFromSafa);
+			continue;
 		}
 		Logger_Log(LOG_DEBUG,"Se recibio orden de ejecucion: %d",messageType);
 		DeserializedData* data = Serialization_Deserialize(msgFromSafa);
