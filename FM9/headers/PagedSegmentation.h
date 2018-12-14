@@ -6,6 +6,7 @@
 #include "Paging.h"
 #include "FM9Errors.h"
 #include "Segmentation.h"
+#include <pthread.h>
 
 
 //La base y limit es el número de linea
