@@ -132,14 +132,31 @@ void esperarRespuesta(void* socket)
 */
 
 
+void CommandQuit (int argC, char** args, char* callingLine, void* extraData)
+{
+	SocketServer_Stop();
+	CommandInterpreter_FreeArguments(args);
+	if(settings->socketSAFA != -1)
+		close(settings->socketSAFA);
+
+	Logger_Log(LOG_INFO, "Apagando DAM");
+}
+
+void ProcessLineInput(char* line)
+{
+	CommandInterpreter_Do(line, " ", NULL);
+	free(line);
+}
+
 void levantarServidor()
 {
 
 	SocketServer_Start("DAM", settings->puertoEscucha);
 	SocketServer_ActionsListeners acciones = INIT_ACTION_LISTENER;
 	CommandInterpreter_RegisterCommand("iam", (void*)comandoIAm);
+	CommandInterpreter_RegisterCommand("quit", CommandQuit);
 
-	acciones.OnConsoleInputReceived = NULL;						//El Diego no tiene consola, no es necesaria (creo)
+	acciones.OnConsoleInputReceived = ProcessLineInput;						//El Diego no tiene consola, no es necesaria (creo)
 	acciones.OnPacketArrived = (void*)llegoUnPaquete;
 	acciones.OnClientConnected = (void*)clienteConectado;
 	acciones.OnClientDisconnect = (void*)clienteDesconectado;
