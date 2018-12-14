@@ -7,6 +7,7 @@
 #include "FM9lib.h"
 #include "Storage.h"
 #include "FM9Errors.h"
+#include <pthread.h>
 
 #define verifyFrameNumber(numFrame)					\
 	if(numFrame >= cantFrames || numFrame < 0)		\
