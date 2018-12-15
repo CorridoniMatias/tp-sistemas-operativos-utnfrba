@@ -181,21 +181,23 @@ int dump_SEG(int dtbID) {
 	free(dtbKey);
 //	Logger_Log(LOG_INFO, "G.DT %d", dtbID);
 	Logger_Log(LOG_INFO, "Número próximo segmento %d", segments->nextSegmentNumber);
+	loggLines = false;
 	void segmentDumper(char* key, void * data) {
 		t_segment* segment = data;
 		Logger_Log(LOG_INFO, "Segmento %s - Base = %d - Límite = %d", key, segment->base, segment->limit);
-		char* buffer = malloc(tamanioLinea);
-		int size = 0;
+		char* buffer = calloc(1,tamanioLinea + 1);
+//		int size = 0;
 		for (int i = 0; i < segment->limit; i++) {
 			readLine(buffer, segment->base + i);
-			size += tamanioLinea;
+//			size += tamanioLinea;
+			Logger_Log(LOG_INFO, "Contenido linea %d\n%s", segment->base + i, buffer);
 		}
-		buffer = realloc(buffer, size + 1);
-		buffer[size] = 0;
-		Logger_Log(LOG_INFO, "Tamaño en bytes %d\nContenido\n%s", size, buffer);
+//		buffer = realloc(buffer, size + 1);
+//		buffer[size] = 0;
 		free(buffer);
 	}
 	dictionary_iterator(segments->segments, segmentDumper);
+	loggLines = true;
 	return 1;
 
 }
@@ -217,7 +219,6 @@ int closeFile_SEG(int dtbID, int virtualAddress) {
 		free(segmentKey);
 		return ITS_A_TRAP;
 	}
-	free(segmentKey);
 	t_segment* segment = dictionary_remove(segments->segments, segmentKey);
 	free(segmentKey);
 	addFreeSegment(segment);

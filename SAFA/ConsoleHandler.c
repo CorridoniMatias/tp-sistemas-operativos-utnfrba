@@ -155,7 +155,13 @@ void CommandFinalizar (int argC, char** args, char* callingLine, void* extraData
 	pthread_mutex_unlock(&mutexCPUs);
 	Logger_Log(LOG_DEBUG, "SAFA::CPUS->Se mando a CPU la orden de liberar la memoria del GDT %d", atoi(args[1]));
 	declare_and_init(dtbID, uint32_t, atoi(args[1]))
+	bool found = SocketServer_ReserveSocket(chosenCPU->socket);
 	SocketCommons_SendData(chosenCPU->socket, MESSAGETYPE_CPU_FREEGDT, dtbID, sizeof(uint32_t));
+	if(found){
+		OnArrivedData* arrivedData = SocketServer_WakeMeUpWhenDataIsAvailableOn(chosenCPU->socket);
+		SocketServer_CleanOnArrivedData(arrivedData);
+		FreeCPU(chosenCPU->socket);
+	}
 	AddPCPTask(PCP_TASK_END_DTB);
 	//No hace falta free del paramID, cuando se haga un pop o destroy de ese elemento, se hara solo
 	CommandInterpreter_FreeArguments(args);
@@ -181,7 +187,7 @@ void CommandMetricas (int argC, char** args, char* callingLine, void* extraData)
 		//Busco el DTB con ese ID y su informacion; si esta (!NULL) muestro la metrica; si no, lo informo
 		pthread_mutex_lock(&mutexSettings);
 		DTB* wanted = GetDTBbyID(atoi(args[1]), settings->algoritmo);
-		pthread_mutex_lock(&mutexSettings);
+		pthread_mutex_unlock(&mutexSettings);
 
 		if(wanted)
 		{

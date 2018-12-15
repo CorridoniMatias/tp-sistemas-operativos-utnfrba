@@ -79,10 +79,10 @@ char* askLineToFM9(uint32_t idDtb, uint32_t logicDir, uint32_t pc, int fm9){
 
 	SerializedPart fieldForFM91 = { .size = 4, .data = id };
 	SerializedPart fieldForFM92 = { .size = sizeof(uint32_t), .data = newLogicDir };
-	printf("\nid= %d\n", idDtb);
-	printf("\ndir lógica = %d\n", logicDir);
-
-	printf("\npc = %d\n", pc);
+//	printf("\nid= %d\n", idDtb);
+//	printf("\ndir lógica = %d\n", logicDir);
+//
+//	printf("\npc = %d\n", pc);
 	SerializedPart* packetToFM9 = Serialization_Serialize(2, fieldForFM91, fieldForFM92);
 
 	SocketCommons_SendData(fm9,MESSAGETYPE_FM9_GETLINE, packetToFM9->data, packetToFM9->size);
@@ -100,7 +100,7 @@ char* askLineToFM9(uint32_t idDtb, uint32_t logicDir, uint32_t pc, int fm9){
 		Serialization_CleanupSerializedPacket(packetToFM9);
 		char* line = string_duplicate((char*)data->parts[1]);
 		Serialization_CleanupDeserializationStruct(data);
-		printf("\nlinea recibida =\"%s\"\n",line);
+//		printf("\nlinea recibida =\"%s\"\n",line);
 		return line;
 	}
 		free(id);
@@ -279,7 +279,7 @@ void CommandWait(int argC, char** args, char* callingLine, void* extraData){
 
 		SerializedPart* packetToSAFA = Serialization_Serialize(2, fieldForSAFA1, fieldForSAFA2);
 
-		printf("\n\n\n\n pidiendo el recurso\n\n\n");
+//		printf("\n\n\n\n pidiendo el recurso\n\n\n");
 		SocketCommons_SendData(((Operation*)extraData)->socketSAFA,MESSAGETYPE_CPU_WAIT, packetToSAFA->data, packetToSAFA->size);
 
 		int messageType,err,msglength;
@@ -289,7 +289,7 @@ void CommandWait(int argC, char** args, char* callingLine, void* extraData){
 
 		//Siendo code = 1, pudo ser asignado y code = 0, no pudo ser asignado. Quedaria de la siguente forma
 		if(code == 1 ){
-			printf("\n\n\n\nse pudo asignar el recurso\n\n\n");
+//			printf("\n\n\n\nse pudo asignar el recurso\n\n\n");
 			StringUtils_FreeArray(args);
 			free(id);
 //			Serialization_CleanupDeserializationStruct(data);
@@ -299,7 +299,7 @@ void CommandWait(int argC, char** args, char* callingLine, void* extraData){
 		}
 		else {
 
-			printf("\n\n\n\nNOOOOOOO se pudo asignar el recurso\n\n\n");
+//			printf("\n\n\n\nNOOOOOOO se pudo asignar el recurso\n\n\n");
 			int32_t idDtb = ((Operation*)extraData)->dtb;
 			declare_and_init(id, int32_t,idDtb);
 			int32_t pc = ((Operation*)extraData)->programCounter;
@@ -366,7 +366,7 @@ void CommandSignal(int argC, char** args, char* callingLine, void* extraData){
 
 	if(argC == 1){
 
-		printf("\n\n\n\n\nhaciendo SIGNALLLLL\n\n\n\n");
+//		printf("\n\n\n\n\nhaciendo SIGNALLLLL\n\n\n\n");
 		int32_t idDtb = ((Operation*)extraData)->dtb;
 		declare_and_init(id, int32_t,idDtb);
 		char* resource = args[1];
@@ -458,14 +458,14 @@ return;
 
 void CommandClose(int argC, char** args, char* callingLine, void* extraData){
 	if (argC == 1) {
-		printf("\n\n\n\n\n\nhaciendo CLOSE\n\n\n");
-		printf("\n\n\n\n\n\npath = %s\n\n\n\n\n",args[1]);
-		if (dictionary_has_key(((Operation*) extraData)->dictionary, args[1])){
-
-			printf("\n\n\ntiene la key\n\n\n");
-		}
-		else
-			printf("\n\n\n MIERDAA NO LA TIENE la key\n\n\n");
+//		printf("\n\n\n\n\n\nhaciendo CLOSE\n\n\n");
+//		printf("\n\n\n\n\n\npath = %s\n\n\n\n\n",args[1]);
+//		if (dictionary_has_key(((Operation*) extraData)->dictionary, args[1])){
+//
+////			printf("\n\n\ntiene la key\n\n\n");
+//		}
+//		else
+//			printf("\n\n\n MIERDAA NO LA TIENE la key\n\n\n");
 		if (dictionary_has_key(((Operation*) extraData)->dictionary, args[1])) {
 //			if (openFileVerificator(((Operation*) extraData)->dictionary, args[1])) {
 
@@ -557,7 +557,7 @@ void CommandCrear(int argC, char** args, char* callingLine, void* extraData){
 
 	SerializedPart* packetToDAM = Serialization_Serialize(3, fieldForDAM1, fieldForDAM2, fieldForDAM3);
 
-	printf("\n\nprogram counter crear = %d\n\n",pc);
+//	printf("\n\nprogram counter crear = %d\n\n",pc);
 	SerializedPart fieldForSAFA1 = {.size = sizeof(uint32_t), .data =id};
 	SerializedPart fieldForSAFA2 = {.size = sizeof(uint32_t), .data = newPc};
 	SerializedPart fieldForSAFA3 = {.size = sizeof(uint32_t), .data = newQ};
@@ -671,11 +671,11 @@ SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 		Logger_Log(LOG_DEBUG, "CPU->Tabla de archivos abiertos invalida");
 	else
 		Logger_Log(LOG_DEBUG, "CPU->Tabla de archivos abiertos OK");
-	printf("\n\npor imprimir diciconario?\n\n");
+//	printf("\n\npor imprimir diciconario?\n\n");
 	void CopyPath(char* path, void* address)
 	{
 
-		printf("\n\npath=%s-address=%d\n\n",path,*((uint32_t*)address));
+//		printf("\n\npath=%s-address=%d\n\n",path,*((uint32_t*)address));
 		nextSize = strlen(path);							//Obtengo el largo del path
 		totalSize += (nextSize + 2 + sizeof(uint32_t));		//Sumo a totalSize, y sumo 2 mas por los : y la ,
 		result = realloc(result, totalSize);				//Realloco memoria

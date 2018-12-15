@@ -28,7 +28,7 @@ void AddNewResource(char* name)
 
 void SignalForResource(char* name, uint32_t requesterID)
 {
-	printf("\n\nse entro al signal\n\n");
+//	printf("\n\nse entro al signal\n\n");
 	//Closure para encontrar el DTB que solicita el recurso entre los DTBs de EXEC
 	bool IsRequesterDTB(void* aDTB)
 	{
@@ -59,16 +59,16 @@ void SignalForResource(char* name, uint32_t requesterID)
 
 	//Si el recurso ya existe, aumento en uno sus instancias disponibles; obtengo sus datos y actualizo
 	pthread_mutex_lock(&tableMutex);
-	printf("\n\nname =\"%s\"\n",name);
+//	printf("\n\nname =\"%s\"\n",name);
 	if(dictionary_has_key(resources, name))
 	{
 		//Puntero a los datos del recurso al que se le hizo signal
 		ResourceStatus* signaled = (ResourceStatus*) dictionary_get(resources, name);
-		pthread_mutex_unlock(&tableMutex);
 		signaled->availables++;
+		pthread_mutex_unlock(&tableMutex);
 		Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->Se registro signal sobre recurso %s", name);
 		Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->Instancias libres: %d. Procesos esperando: %d", signaled->availables, queue_size(signaled->waiters));
-		printf("\n\nvalor actual del contador %d\n\n\n", signaled->availables);
+//		printf("\n\nvalor actual del contador %d\n\n\n", signaled->availables);
 //		dictionary_putMAESTRO(resources, name, signaled, ResourceDestroyer);
 	}
 	//Si no, creo uno nuevo
@@ -83,20 +83,32 @@ void SignalForResource(char* name, uint32_t requesterID)
 	{
 		pthread_mutex_lock(&mutexEXEC);
 		//No me fijo que sea Null, ya deberia estar aca
-		DTB* requester = (DTB*) list_find(EXECqueue, IsRequesterDTB);
+		DTB* requester = list_find(EXECqueue, IsRequesterDTB);
+		pthread_mutex_unlock(&mutexEXEC);
+		if(requester == NULL){
+			requester = list_find(BLOCKEDqueue, IsRequesterDTB);
+		}
+		if (requester == NULL) {
+			if ((strcmp(settings->algoritmo, "RR")) == 0) {
+				requester = list_find(READYqueue_Own, IsRequesterDTB);
+			} else if ((strcmp(settings->algoritmo, "VRR")) == 0) {
+				requester = list_find(READYqueue_RR->elements, IsRequesterDTB);
+			} else if ((strcmp(settings->algoritmo, "PROPIO")) == 0) {
+				requester = list_find(READYqueue_VRR, IsRequesterDTB);
+			}
+		}
+
 		char* rName = list_find(requester->resourcesKept, IsInvolvedResource);
 		//Solo si ese recurso esta entre los tomados por el DTB involucrado, lo remuevo de esa lista
 		if(rName)
 		{
 			list_remove_by_condition(requester->resourcesKept, IsInvolvedResource);
 		}
-		pthread_mutex_unlock(&mutexEXEC);
 	}
 
 	pthread_mutex_lock(&tableMutex);
 	//Otro puntero, apunta a los datos del recurso al que se le hizo signal
-	ResourceStatus* involved = (ResourceStatus*) dictionary_get(resources, name);
-	pthread_mutex_unlock(&tableMutex);
+	ResourceStatus* involved = dictionary_get(resources, name);
 	//Si el recurso tenia DTBs esperando a que se libere, debo desbloquear el primero y darle la instancia
 	if(!queue_is_empty(involved->waiters))
 	{
@@ -105,36 +117,41 @@ void SignalForResource(char* name, uint32_t requesterID)
 //		involved->availables--;
 		//Me guardo el ID del primer DTB que lo estaba esperando
 		*firstWaiter = *((uint32_t*) queue_pop(involved->waiters));
+		pthread_mutex_unlock(&tableMutex);
 		//Actualizo los datos del recurso en el diccionario, hago un put sobre la misma key
 //		dictionary_putMAESTRO(resources, name, involved, ResourceDestroyer);
-
 		//Creo la estructura a meter en la cola; no modifica el PC del DTB (va en -1) ni debe registrar cambios en los archivos abiertos
 		UnlockableInfo* toBeAwakened = (UnlockableInfo*) malloc(sizeof(UnlockableInfo));
 		toBeAwakened->id = *firstWaiter;
 		toBeAwakened->newProgramCounter = -1;
 		toBeAwakened->openedFilesUpdate = dictionary_create();
+		toBeAwakened->overwritePC = false;
 		toBeAwakened->appendOFs = true;
 		bool toUnlockDTB(void* data){
 			DTB* dtb = data;
 			return dtb->id == toBeAwakened->id;
 		}
 
-		printf("\n\n id a buscar=%d",toBeAwakened->id);
+//		printf("\n\n id a buscar=%d",toBeAwakened->id);
 		DTB* blockedDTB = list_find(BLOCKEDqueue,toUnlockDTB);
-//		if(!blockedDTB){
-//			printf("\n\nno estaba en blocked\n\n");
-//			blockedDTB = list_get(EXECqueue,toUnlockDTB);
-//		}
-//		if(!blockedDTB){
-//			printf("\n\nno estaba en exec\n\n");
-//			blockedDTB = list_get(READYqueue_Own,toUnlockDTB);
-//		}
+		if(!blockedDTB){
+			if ((strcmp(settings->algoritmo, "RR")) == 0) {
+				blockedDTB = list_find(READYqueue_Own, toUnlockDTB);
+			} else if ((strcmp(settings->algoritmo, "VRR")) == 0) {
+				blockedDTB = list_find(READYqueue_RR->elements, toUnlockDTB);
+			} else if ((strcmp(settings->algoritmo, "PROPIO")) == 0) {
+				blockedDTB = list_find(READYqueue_VRR, toUnlockDTB);
+			}
+		}
+		if(!blockedDTB){
+			blockedDTB = list_find(EXECqueue,toUnlockDTB);
+		}
 //		if (!blockedDTB) {
 //			printf("\n\nno estaba en en ready\n\n");
 //			blockedDTB = list_get(READYqueue_Own, toUnlockDTB);
 //		}
-		printf("\n\nname =\"%s\"\n\n",name);
-		printf("\n\nblocked id =%d",blockedDTB->id);
+//		printf("\n\nname =\"%s\"\n\n",name);
+//		printf("\n\nblocked id =%d",blockedDTB->id);
 		char* resource = string_duplicate(name);
 		list_add(blockedDTB->resourcesKept, resource);
 		//Agrego el DTB a desbloquear a la cola de DTBs a mover (mutex mediante) de nuevo a READY; y le aviso al PCP
@@ -144,7 +161,7 @@ void SignalForResource(char* name, uint32_t requesterID)
 		pthread_mutex_unlock(&mutexToBeUnlocked);
 		AddPCPTask(PCP_TASK_UNLOCK_DTB);
 	}
-
+	pthread_mutex_unlock(&tableMutex);
 	//NO hago free de signaled ni de involved, salieron de un get (no hay malloc)
 }
 
@@ -165,41 +182,40 @@ bool WaitForResource(char* name, uint32_t requesterID)
 		}
 	}
 
-	printf("\n\nse entro al waitforResource\n\n");
+//	printf("\n\nse entro al waitforResource\n\n");
 	pthread_mutex_lock(&tableMutex);
 
-	printf("\n\nlock tablemutex adquirido\n\n");
+//	printf("\n\nlock tablemutex adquirido\n\n");
 	//Si el recurso no existe, lo creo y le pongo una instancia (la cual luego asignare)
 	if(!dictionary_has_key(resources, name))
 	{
 		pthread_mutex_unlock(&tableMutex);
-		printf("\n\nlock tablemutex liberado\n\n");
+//		printf("\n\nlock tablemutex liberado\n\n");
 		AddNewResource(name);
 	}
 	else
 		pthread_mutex_unlock(&tableMutex);
 
-	printf("\n\n pasado por addnewResourse\n\n");
+//	printf("\n\n pasado por addnewResourse\n\n");
 
 	pthread_mutex_lock(&tableMutex);
-	printf("\n\nlock tablemutex adquirido nuevamente\n\n");
+//	printf("\n\nlock tablemutex adquirido nuevamente\n\n");
 	//Obtengo los datos de ese recurso, y disminuyo en uno sus instancias libres
-	ResourceStatus* waited = (ResourceStatus*) dictionary_get(resources, name);
-	pthread_mutex_unlock(&tableMutex);
+	ResourceStatus* waited = dictionary_get(resources, name);
 	waited->availables--;
 	Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->Se registro wait sobre recurso %s", name);
 	Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->Instancias libres: %d. Procesos esperando: %d", waited->availables, queue_size(waited->waiters));
-
 	//Si la cantidad disponible quedo negativa, es porque no habia instancias libres; lo agrego a la cola de bloqueados
 	if(waited->availables < 0)
 	{
-
+		pthread_mutex_unlock(&tableMutex);
 		//Respuesta negativa
 		return false;
 	}
 	//Si no es asi, puedo asignarlo sin problemas!
 	else
 	{
+		pthread_mutex_unlock(&tableMutex);
 		//Respuesta positiva
 		pthread_mutex_lock(&mutexEXEC);
 		//No me fijo que sea Null, ya deberia estar aca

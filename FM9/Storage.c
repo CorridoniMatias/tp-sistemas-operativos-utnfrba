@@ -13,6 +13,7 @@ void createStorage() {
 		*(storage + i) = calloc(tamanioLinea, sizeof(char));
 //		Logger_Log(LOG_DEBUG, "FM9 -> Linea %d creada.", i);
 	}
+	loggLines = true;
 	pthread_mutex_init(&storageLock, NULL);
 	Logger_Log(LOG_INFO, "FM9 -> Storage creado.");
 	Logger_Log(LOG_INFO, "FM9 -> Tamaño storage = %d - Tamaño linea = %d - Cantidad de lineas = %d", settings->tamanio, tamanioLinea, cantLineas);
@@ -45,8 +46,8 @@ int writeLine(void* data, int numLinea) {
 ////	Logger_Log(LOG_DEBUG, "Contenido de Data: %s.", linea);
 //	free(linea);
 //	Logger_Log(LOG_DEBUG, "FM9 -> Contenido guardado en Storage = %s - En linea = %d.", storage[numLinea], numLinea);
-//
-	Logger_Log(LOG_INFO, "FM9 -> Escritura en Storage en linea %d exitosa!", numLinea);
+	if(loggLines)
+		Logger_Log(LOG_INFO, "FM9 -> Escritura en Storage en linea %d exitosa!", numLinea);
 
 	return 1;
 }
@@ -70,8 +71,8 @@ int readLine(void* target, int numLinea) {
 //	printf("\n\ntarget=\"%s\"\n\n",(char*)target);
 
 //	free(linea);
-
-	Logger_Log(LOG_INFO, "FM9 -> Lectura de Storage de linea %d exitosa!", numLinea);
+	if(loggLines)
+		Logger_Log(LOG_INFO, "FM9 -> Lectura de Storage de linea %d exitosa!", numLinea);
 
 	return 1;
 }

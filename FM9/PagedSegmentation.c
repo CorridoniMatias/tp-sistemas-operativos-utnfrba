@@ -12,7 +12,7 @@ void createPagedSegmentationStructures() {
 		aux = aux / 10;
 		offsetNumberOfDigits++;
 	}
-
+	pthread_mutex_init(&segmentsLock, NULL);
 	Logger_Log(LOG_INFO, "FM9 -> Estructuras de segmentación paginada creadas.");
 	Logger_Log(LOG_INFO, "FM9 -> Cantidad de dígitos de la dirección lógica empleados para el offset de segmento %d.", offsetNumberOfDigits);
 }
@@ -28,7 +28,10 @@ void freePagedSegmentationStructures() {
 		dictionary_destroy_and_destroy_elements(segmentos->segments, destroySegments);
 		free(segmentos);
 	}
+	pthread_mutex_lock(&segmentsLock);
 	dictionary_destroy_and_destroy_elements(segmentspagedPerDTBTable, destroyMasterTable);
+	pthread_mutex_unlock(&segmentsLock);
+	pthread_mutex_destroy(&segmentsLock);
 	Logger_Log(LOG_INFO, "FM9 -> Estructuras de segmentación liberadas.");
 	freePagingStructures();
 }
@@ -43,12 +46,15 @@ int addressTranslation_SPA(int logicalAddress, int dtbID) {
 	int frameOffset = segmentOffset % cantLineasPorFrame;
 //	printf("\n\n\nframeOffset %d\n\n\n",frameOffset);
 	char * dtbKey = string_itoa(dtbID);
+	pthread_mutex_lock(&segmentsLock);
 	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey)){
 //		printf("\n\n\nno existe ese proceso\n\n\n");
+		pthread_mutex_unlock(&segmentsLock);
 		free(dtbKey);
 		return ITS_A_TRAP;
 	}
 	t_segments* segments = dictionary_get(segmentspagedPerDTBTable,	dtbKey);
+	pthread_mutex_unlock(&segmentsLock);
 	free(dtbKey);
 	char* segmentKey = string_itoa(segmentNumber);
 	if (!dictionary_has_key(segments->segments, segmentKey)) {
@@ -75,14 +81,20 @@ int addressTranslation_SPA(int logicalAddress, int dtbID) {
 int writeData_SPA(void* data, int size, int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
 	t_segments* segments;
+	pthread_mutex_lock(&segmentsLock);
 	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey)) {
+		pthread_mutex_unlock(&segmentsLock);
 		segments = malloc(sizeof(t_segments));
 		segments->segments = dictionary_create();
 		segments->nextSegmentNumber = 0;
 //		segments->nextPageNumber = 0;
+		pthread_mutex_lock(&segmentsLock);
 		dictionary_put(segmentspagedPerDTBTable, dtbKey, segments);
-	} else
+		pthread_mutex_unlock(&segmentsLock);
+	} else{
 		segments = dictionary_get(segmentspagedPerDTBTable, dtbKey);
+		pthread_mutex_unlock(&segmentsLock);
+	}
 	free(dtbKey);
 	t_segment_paged* segment = malloc(sizeof(t_segment_paged));
 	segment->limit = 0;
@@ -138,12 +150,14 @@ int writeData_SPA(void* data, int size, int dtbID) {
 int readData_SPA(void** target, int logicalAddress, int dtbID) {
 	int segmentNumber = getSegmentFromAddress(logicalAddress);
 	char* dtbKey = string_itoa(dtbID);
+	pthread_mutex_lock(&segmentsLock);
 	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey)){
+		pthread_mutex_unlock(&segmentsLock);
 		free(dtbKey);
 		return ITS_A_TRAP;
 	}
-	t_segments* segments = dictionary_get(segmentspagedPerDTBTable,
-			dtbKey);
+	t_segments* segments = dictionary_get(segmentspagedPerDTBTable, dtbKey);
+	pthread_mutex_unlock(&segmentsLock);
 	free(dtbKey);
 	char* segmentKey = string_itoa(segmentNumber);
 	if (!dictionary_has_key(segments->segments, segmentKey)) {
@@ -172,12 +186,14 @@ int readData_SPA(void** target, int logicalAddress, int dtbID) {
 int closeFile_SPA(int dtbID, int logicalAddress) {
 	char* dtbKey = string_itoa(dtbID);
 	int segmentNumber = getSegmentFromAddress(logicalAddress);
+	pthread_mutex_lock(&segmentsLock);
 	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey)){
+		pthread_mutex_unlock(&segmentsLock);
 		free(dtbKey);
 		return ITS_A_TRAP;
 	}
-	t_segments* segments = dictionary_get(segmentspagedPerDTBTable,
-			dtbKey);
+	t_segments* segments = dictionary_get(segmentspagedPerDTBTable, dtbKey);
+	pthread_mutex_unlock(&segmentsLock);
 	free(dtbKey);
 	char* segmentKey = string_itoa(segmentNumber);
 	if (!dictionary_has_key(segments->segments, segmentKey)) {
@@ -196,11 +212,14 @@ int closeFile_SPA(int dtbID, int logicalAddress) {
 
 int closeDTBFiles_SPA(int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
+	pthread_mutex_lock(&segmentsLock);
 	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey)) {
+		pthread_mutex_unlock(&segmentsLock);
 		free(dtbKey);
 		return ITS_A_TRAP;
 	}
 	t_segments* segments = dictionary_remove(segmentspagedPerDTBTable, dtbKey);
+	pthread_mutex_unlock(&segmentsLock);
 	free(dtbKey);
 	void dictionaryDestroyer(void* data) {
 		t_segment_paged* segment = data;
@@ -217,28 +236,33 @@ int closeDTBFiles_SPA(int dtbID) {
 
 int dump_SPA(int dtbID){
 	char* dtbKey = string_itoa(dtbID);
+	pthread_mutex_lock(&segmentsLock);
 	if (!dictionary_has_key(segmentspagedPerDTBTable, dtbKey)) {
+		pthread_mutex_unlock(&segmentsLock);
 		free(dtbKey);
 		return ITS_A_TRAP;
 	}
 	t_segments* segments = dictionary_get(segmentspagedPerDTBTable, dtbKey);
+	pthread_mutex_unlock(&segmentsLock);
 	free(dtbKey);
 //	Logger_Log(LOG_INFO, "G.DT %d", dtbID);
 	Logger_Log(LOG_INFO, "Número próximo segmento %d", segments->nextSegmentNumber);
+	loggLines = false;
 	void segmentDumper(char* key, void * data) {
 		t_segment_paged* segment = data;
 		Logger_Log(LOG_INFO, "Segmento %s - Cantidad de páginas = %d", key, segment->limit);
 		Logger_Log(LOG_INFO, "Contenido Segmento %s", key);
 		int frameNumber = 0;
-		for(int i = 0; i < segment->limit ; i++){
+		char* buffer = calloc(1, tamanioFrame + 1);
+		for (int i = 0; i < segment->limit; i++) {
 			frameNumber = segment->frameses[i];
-		Logger_Log(LOG_INFO, "Página número %d está en frame %d", i, frameNumber);
-		void* buffer = calloc(1, tamanioFrame + 1);
-		readFrame(buffer,frameNumber);
-		Logger_Log(LOG_INFO, "Contenido\n%s", buffer);
-		free(buffer);
+			Logger_Log(LOG_INFO, "Página número %d está en frame %d", i, frameNumber);
+			readFrame(buffer, frameNumber);
+			Logger_Log(LOG_INFO, "Contenido\n%s", buffer);
 		}
+		free(buffer);
 	}
 	dictionary_iterator(segments->segments, segmentDumper);
+	loggLines = true;
 	return 1;
 }

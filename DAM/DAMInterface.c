@@ -57,15 +57,15 @@ static void* DAM_ReadFileFromFM9(uint32_t dtbID, uint32_t logicalAddress, int so
 
 	declare_and_init(id,uint32_t,dtbID)
 	SerializedPart p_id = {.size = sizeof(uint32_t), .data = id};
-	printf("\n\nid=%d\n\n",*id);
+//	printf("\n\nid=%d\n\n",*id);
 
 	declare_and_init(address, uint32_t, logicalAddress)
 	SerializedPart p_address = {.size = sizeof(uint32_t), .data = address};
-	printf("\n\naddress=%d\n\n",*address);
+//	printf("\n\naddress=%d\n\n",*address);
 
 	declare_and_init(maxSize, uint32_t, settings->transferSize)
 	SerializedPart p_size = {.size = sizeof(uint32_t), .data = maxSize};
-	printf("\n\ntransferSize=%d\n\n",*maxSize);
+//	printf("\n\ntransferSize=%d\n\n",*maxSize);
 
 	SerializedPart* serializedContent = Serialization_Serialize(3, p_id, p_address,p_size);
 
@@ -147,7 +147,7 @@ static int DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 		SerializedPart* serializedContent = Serialization_Serialize(3, p_iddtb, p_size, p_buffer);
 
 		SocketCommons_SendData(socketFM9, MESSAGETYPE_FM9_OPEN, serializedContent->data, serializedContent->size);
-		printf("\n\nbuffer=%s\n\n",(char*)buffer);
+//		printf("\n\nbuffer=%s\n\n",(char*)buffer);
 		Serialization_CleanupSerializedPacket(serializedContent);
 		free(piddtb);
 		free(psize);
@@ -182,7 +182,7 @@ static int DAM_SendToFM9(int socketFM9, void* content, int len, uint32_t iddtb)
 		{
 			uint32_t tmp = *((uint32_t*)data);
 
-			printf("\n direccion lógica recibida=%d\n",tmp);
+//			printf("\n direccion lógica recibida=%d\n",tmp);
 			free(data);
 			return tmp;
 		} else if(msg_type == MESSAGETYPE_INT)
@@ -320,7 +320,7 @@ void DAM_Abrir(void* arriveData)
 				close(socketMDJ);
 
 				int logicAddr = DAM_SendToFM9(socketFM9, file_content, file_size, idDTB);
-
+				free(file_content);
 				if(logicAddr >= 0)
 				{
 					SerializedPart p_filepath = {.size = strlen(filePath)+1, .data = data->parts[1]};
@@ -329,12 +329,13 @@ void DAM_Abrir(void* arriveData)
 					SerializedPart p_iddtb = {.size = sizeof(uint32_t), .data = data->parts[0]};
 
 					SerializedPart* part = Serialization_Serialize(3, p_iddtb, p_filepath, p_direccion);
-printf("\ndireccion lógica tomada del fm9 =%d\n",logicAddr);
+//printf("\ndireccion lógica tomada del fm9 =%d\n",logicAddr);
+					Logger_Log(LOG_INFO,"Se recibio dirección lógica %d para el GDT", logicAddr, idDTB);
 					//Verificamos si la operacion real fue abrir un archivo o hacer la operacion dummy
 					if(onArriveData->message_type == MESSAGETYPE_CPU_EXECDUMMY){
-						printf("\nenviando dir del dummy al safa\n");
+//						printf("\nenviando dir del dummy al safa\n");
 						SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_DUMMY, part->data, part->size);
-						printf("\nPUEDE QUE ESTE LOCO PERO FALTA UN PUNTO Y COMA\n");
+//						printf("\nPUEDE QUE ESTE LOCO PERO FALTA UN PUNTO Y COMA\n");
 					}else
 						SocketCommons_SendData(settings->socketSAFA, MESSAGETYPE_DAM_SAFA_ABRIR, part->data, part->size);
 

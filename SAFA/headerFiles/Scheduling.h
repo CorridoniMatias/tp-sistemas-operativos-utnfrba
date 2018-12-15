@@ -75,6 +75,7 @@ struct UnlockableInfo_s
 	uint32_t newProgramCounter;
 	bool appendOFs;
 	t_dictionary* openedFilesUpdate;
+	bool increaseIO;
 } typedef UnlockableInfo;
 
 /*

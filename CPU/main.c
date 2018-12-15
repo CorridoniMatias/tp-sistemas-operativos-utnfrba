@@ -19,26 +19,29 @@ int main(int argc, char *argv[])
 	{
 
 		finished = false;
-		printf("\nesperando recibir datos\n");
+//		printf("\nesperando recibir datos\n");
 		int err,messageType,msglength;
 		void* msgFromSafa = SocketCommons_ReceiveData(safa,&messageType,&msglength,&err);
 		if(messageType == MESSAGETYPE_CPU_FREEGDT){
 			Logger_Log(LOG_INFO,"Se recibio orden de avisar a FM9 de liberar la memoria del GDT: %d",*((uint32_t*)msgFromSafa));
 			SocketCommons_SendData(fm9, MESSAGETYPE_FM9_CLOSEDTB, msgFromSafa, sizeof(uint32_t));
+			declare_and_init(code, uint32_t, 0)
+			SocketCommons_SendData(safa, MESSAGETYPE_INT, code, sizeof(uint32_t));
+			free(code);
 			free(msgFromSafa);
 			continue;
 		}
-		Logger_Log(LOG_DEBUG,"Se recibio orden de ejecucion: %d",messageType);
+//		Logger_Log(LOG_DEBUG,"Se recibio orden de ejecucion: %d",messageType);
 		DeserializedData* data = Serialization_Deserialize(msgFromSafa);
 		uint32_t flag = *((uint32_t*)data->parts[1]);
-		printf("\nflag=%d\n",flag);
+//		printf("\nflag=%d\n",flag);
 		if (flag == 0)
 			{
-
-			printf("\nholis\n");
+			Logger_Log(LOG_DEBUG,"Se recibio orden de ejecucion del dummy");
+//			printf("\nholis\n");
 				executeDummy(data, diego, safa);
 
-				printf("\nholisrecharged\n");
+//				printf("\nholisrecharged\n");
 				usleep(settings->retardo*1000);
 
 				continue;
@@ -49,7 +52,7 @@ int main(int argc, char *argv[])
 			{
 
 			int cant = *((uint32_t*) data->parts[6]);
-			printf("\ncant=%d\n",cant);
+//			printf("\ncant=%d\n",cant);
 			t_dictionary* dictionary = BuildDictionary(data->parts[7], cant);
 			//Defino aca el struct para que se vaya actualizando el diccionario dependiendo cualquier cambio
 			Operation extraData;
@@ -60,16 +63,19 @@ int main(int argc, char *argv[])
 			extraData.commandResult = 0;
 			extraData.dictionary = dictionary;
 
-			printf("\n\nprogram counter de data=%d\n\n",*((uint32_t*)data->parts[4]));
+//			printf("\n\nprogram counter de data=%d\n\n",*((uint32_t*)data->parts[4]));
 			extraData.programCounter = *((uint32_t*)data->parts[4]);
-			printf("\n\nprogram counter recibido=%d\n\n",extraData.programCounter);
+//			printf("\n\nprogram counter recibido=%d\n\n",extraData.programCounter);
 			extraData.quantum = *((int32_t*) data->parts[5]);
 
+			Logger_Log(LOG_DEBUG,"Se recibio orden de ejecucion del GDT %d",extraData.dtb);
 			while( extraData.quantum > 0 )
 			{
 
 					char* line = askLineToFM9(extraData.dtb,*((uint32_t*) data->parts[3]),extraData.programCounter, fm9); //Pido una linea
 					if(strcmp(line,"error") != 0){
+
+						Logger_Log(LOG_DEBUG,"Se recibio la linea %d = \"%s\"", extraData.programCounter, line);
 						usleep(settings->retardo*1000); //retardo por operacion
 						extraData.programCounter++;
 						extraData.quantum--;
@@ -83,7 +89,8 @@ int main(int argc, char *argv[])
 							break;
 						}
 						else if (strcmp(line,"") == 0){
-							printf("\n\nse termino de ejecutar el script\n\n");
+//							printf("\n\nse termino de ejecutar el script\n\n");
+							Logger_Log(LOG_DEBUG,"Se termino de ejecutar el GDT %d", extraData.dtb);
 							uint32_t idDtb = extraData.dtb;
 							finished = true;
 //							declare_and_init(id, uint32_t,idDtb);

@@ -82,23 +82,23 @@ void InitSchedulingGlobalVariables()
 
 void AddPLPTask(int taskCode)
 {
-	Logger_Log(LOG_ERROR,"\n\nagregando PLP task %d\n\n",taskCode);
+//	Logger_Log(LOG_ERROR,"\n\nagregando PLP task %d\n\n",taskCode);
 	pthread_mutex_lock(&mutexPLPtasksQueue);
 	int* newTask = (int*) malloc(sizeof(int));
 	*newTask = taskCode;
 	queue_push(PLPtasksQueue, newTask);
 	pthread_mutex_unlock(&mutexPLPtasksQueue);
 	sem_post(&workPLP);
-	int semaforo;
-	sem_getvalue(&workPCP,&semaforo);
-	Logger_Log(LOG_ERROR,"\nsemaforo PLP %d \n\n",semaforo);
+//	int semaforo;
+//	sem_getvalue(&workPCP,&semaforo);
+//	Logger_Log(LOG_ERROR,"\nsemaforo PLP %d \n\n",semaforo);
 
 }
 
 void AddPCPTask(int taskCode)
 {
 
-	Logger_Log(LOG_ERROR,"\n\nagregando PCP task %d\n\n",taskCode);
+//	Logger_Log(LOG_ERROR,"\n\nagregando PCP task %d\n\n",taskCode);
 	pthread_mutex_lock(&mutexPCPtasksQueue);
 	int* newTask = (int*) malloc(sizeof(int));
 	*newTask = taskCode;
@@ -169,14 +169,14 @@ void AddToReady(DTB* myDTB, char* currentAlgorithm)
 	}
 	else if((strcmp(currentAlgorithm, "VRR")) == 0)
 	{
-		printf("\n\nquantum %d",myDTB->quantumRemainder);
+//		printf("\n\nquantum %d",myDTB->quantumRemainder);
 		list_add(READYqueue_VRR, myDTB);
 		Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Agregado el DTB de ID %d a READY. Hay %d DTBs ahi", myDTB->id, list_size(READYqueue_VRR));
 	}
 	else if((strcmp(currentAlgorithm, "PROPIO")) == 0)
 	{
 		list_add(READYqueue_Own, myDTB);
-		printf("\n\n\n\ntamaño ready queue %d\n\n\n", list_size(READYqueue_Own));
+//		printf("\n\n\n\ntamaño ready queue %d\n\n\n", list_size(READYqueue_Own));
 		//Ni bien agrego un DTB nuevo, ordeno la lista asi se "inserta ordenado"
 		list_sort(READYqueue_Own, DescendantPriority);
 		Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Agregado el DTB de ID %d a READY. Hay %d DTBs ahi", myDTB->id, list_size(READYqueue_VRR));
@@ -227,10 +227,10 @@ void AddToExit(DTB* myDTB)
 	void removeWaiter(char* key, void * data) {
 		ResourceStatus* resource = data;
 		if (list_any_satisfy(resource->waiters->elements, isDTB)){
-			printf("\n\nse encontro en waiters y se va a aumentar el contador\n\n\n");
+//			printf("\n\nse encontro en waiters y se va a aumentar el contador\n\n\n");
 			resource->availables++;
 
-			printf("\n\nvalor actual del contador %s %d\n\n\n", key, resource->availables);
+//			printf("\n\nvalor actual del contador %s %d\n\n\n", key, resource->availables);
 		}
 		list_remove_and_destroy_by_condition(resource->waiters->elements, isDTB, free);
 	}
@@ -666,7 +666,7 @@ void PlanificadorCortoPlazo()
 			pthread_mutex_lock(&mutexREADY);
 			if((strcmp(schedulingRules.name, "RR")) == 0)
 			{
-				printf("\n\nse esta usando RR\n\n");
+//				printf("\n\nse esta usando RR\n\n");
 				messageToSend = ScheduleRR(schedulingRules.quantum);
 			}
 			else if((strcmp(schedulingRules.name, "VRR")) == 0)
@@ -681,7 +681,7 @@ void PlanificadorCortoPlazo()
 			Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Armado el mensaje a enviarle al CPU");
 			//Envio, a traves del socket del CPU elegido, el mensaje acerca del DTB y su tamanio
 
-			printf("\n\n\nsize=%d\n\n\n",messageToSend->size);
+//			printf("\n\n\nsize=%d\n\n\n",messageToSend->size);
 
 
 			SocketCommons_SendData(chosenCPU->socket, MESSAGETYPE_SAFA_CPU_EXECUTE, messageToSend->data, messageToSend->size);
@@ -737,7 +737,7 @@ void PlanificadorCortoPlazo()
 			//while(!queue_is_empty(toBeBlocked))
 			//{
 				nextToBlock = queue_pop(toBeBlocked);
-				printf("\n\nbabyComeback=%d\n\n",nextToBlock->dummyComeback);
+//				printf("\n\nbabyComeback=%d\n\n",nextToBlock->dummyComeback);
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se intentara bloquear el DTB de ID = %d", nextToBlock->id);
 
 				//Funcion anidada, para poder comparar cada DTB de EXEC con el ultimo ID (local al while) hallado
@@ -797,7 +797,7 @@ void PlanificadorCortoPlazo()
 
 				nextToUnlock = queue_pop(toBeUnlocked);
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se intentara desbloquear el DTB de id = %d", nextToUnlock->id);
-				printf("\n\nhere we go=%d\n\n",nextToUnlock->overwritePC);
+//				printf("\n\nhere we go=%d\n\n",nextToUnlock->overwritePC);
 				//Closure anidada, para poder hallar de las colas el DTB con el mismo ID que el recien sacado de la cola
 				bool IsDTBToBeUnlocked(void* aDTB)
 				{
@@ -848,13 +848,14 @@ void PlanificadorCortoPlazo()
 					sentencesRun = 1;
 					//Pelotudos del futuro no incrementen el program counter aca.
 				}
-
+				if(nextToUnlock->increaseIO)
+					target->ioOperations++;
 				//Agrego las sentencias esperadas de los de NEW, y actualizo los archivos abiertos
 				AggregateSentencesWhileAtNEW(sentencesRun);
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se desbloqueara el DTB de id %d, leyo %d sentencias", target->id, sentencesRun);
 				UpdateOpenedFiles(target, nextToUnlock->openedFilesUpdate, nextToUnlock->appendOFs);
 				Logger_Log(LOG_DEBUG, "SAFA:PLANIF->Actualizados los archivos abiertos de dicho DTB");
-				printf("\n\nfirst=%d\n\n", (int)target->firstResponseTime);
+//				printf("\n\nfirst=%d\n\n", (int)target->firstResponseTime);
 				//Si no tiene marcado el instante de la primer respuesta (esta como 0),
 				//entonces debo marcarlo en este instante (es una respuesta del sistema)
 				if(target->firstResponseTime == 0)
@@ -884,7 +885,7 @@ void PlanificadorCortoPlazo()
 			//Puntero a un uint32_t, que va a guardar el ID de cada DTB a abortar/finalizar de la cola
 			uint32_t* nextToEnd;
 			pthread_mutex_lock(&mutexToBeEnded);
-			while(!queue_is_empty(toBeEnded))
+//			while(!queue_is_empty(toBeEnded))
 			{
 
 				nextToEnd = (uint32_t*) queue_pop(toBeEnded);
@@ -923,7 +924,11 @@ void PlanificadorCortoPlazo()
 					target = list_remove_by_condition(EXECqueue, IsDTBToBeEnded);
 					pthread_mutex_unlock(&mutexEXEC);
 				}
-
+				if(!target){
+				pthread_mutex_lock(&mutexNEW);
+				target = list_remove_by_condition(beingDummied, IsDTBToBeEnded);
+					pthread_mutex_unlock(&mutexNEW);
+				}
 				Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Se eliminará el DTB de id %d", target->id);
 
 				//Si no tiene marcado el instante de la primer respuesta (esta como 0),
@@ -962,14 +967,14 @@ bool DescendantPriority(void* dtbOne, void* dtbTwo)
 
 	DTB* firstDTB = (DTB*) dtbOne;
 	DTB* secondDTB = (DTB*) dtbTwo;
-	printf("\n\nprimer dtb io = %d \t segundo dtb io = %d\n\n",firstDTB->ioOperations, secondDTB->ioOperations);
+//	printf("\n\nprimer dtb io = %d \t segundo dtb io = %d\n\n",firstDTB->ioOperations, secondDTB->ioOperations);
 	if(firstDTB->ioOperations > secondDTB->ioOperations)
 	{
 		return true;
 	}
 	else if(firstDTB->ioOperations == secondDTB->ioOperations)
 	{
-		printf("\n\nprimer dtb sec = %ld \t segundo dtb sec = %ld\n\n",firstDTB->arrivalAtREADYtime.tv_sec, secondDTB->arrivalAtREADYtime.tv_sec);
+//		printf("\n\nprimer dtb sec = %ld \t segundo dtb sec = %ld\n\n",firstDTB->arrivalAtREADYtime.tv_sec, secondDTB->arrivalAtREADYtime.tv_sec);
 		//Si tienen la misma cantidad de operaciones IO, el que haya llegado antes a READY va primero
 		if(firstDTB->arrivalAtREADYtime.tv_sec < secondDTB->arrivalAtREADYtime.tv_sec)
 		{
@@ -978,7 +983,7 @@ bool DescendantPriority(void* dtbOne, void* dtbTwo)
 		//Si llegaron en el mismo segundo (muy probable) comparo los nanosegundos
 		else if(firstDTB->arrivalAtREADYtime.tv_sec == secondDTB->arrivalAtREADYtime.tv_sec)
 		{
-			printf("\n\nprimer dtb nano = %ld \t segundo dtb nano = %ld\n\n",firstDTB->arrivalAtREADYtime.tv_nsec, secondDTB->arrivalAtREADYtime.tv_nsec);
+//			printf("\n\nprimer dtb nano = %ld \t segundo dtb nano = %ld\n\n",firstDTB->arrivalAtREADYtime.tv_nsec, secondDTB->arrivalAtREADYtime.tv_nsec);
 			//Si el nanosegundo del primero es anterior, es porque estan bien ordenados
 			if(firstDTB->arrivalAtREADYtime.tv_nsec < secondDTB->arrivalAtREADYtime.tv_nsec)
 			{
@@ -1120,7 +1125,7 @@ void UpdateOpenedFiles(DTB* toBeUpdated, t_dictionary* currentOFs, bool dontOver
 		//Uso el putMAESTRO por las dudas, las commons se la comen
 		dictionary_putMAESTRO(toBeUpdated->openedFiles, path, address, LogicalAddressDestroyer);
 		toBeUpdated->openedFilesAmount++;
-		printf("\n\ncant archivos abiertos=%d\n\n",toBeUpdated->openedFilesAmount);
+//		printf("\n\ncant archivos abiertos=%d\n\n",toBeUpdated->openedFilesAmount);
 	}
 
 	//Recorro el diccionario parametro (el actualizado) entero, y ejecuto la closure para que sobreescriba cada una
@@ -1139,11 +1144,11 @@ SerializedPart FlattenPathsAndAddresses(t_dictionary* openFilesTable)
 		Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Tabla de archivos abiertos invalida");
 	else
 		Logger_Log(LOG_DEBUG, "SAFA::PLANIF->Tabla de archivos abiertos OK");
-	printf("\n\npor imprimir diciconario?\n\n");
+//	printf("\n\npor imprimir diciconario?\n\n");
 	void CopyPath(char* path, void* address)
 	{
 
-		printf("\n\npath=%s-address=%d\n\n",path,*((uint32_t*)address));
+//		printf("\n\npath=%s-address=%d\n\n",path,*((uint32_t*)address));
 		nextSize = strlen(path);							//Obtengo el largo del path
 		totalSize += (nextSize + 2 + sizeof(uint32_t));		//Sumo a totalSize, y sumo 2 mas por los : y la ,
 		result = realloc(result, totalSize);				//Realloco memoria
@@ -1176,9 +1181,9 @@ SerializedPart* GetMessageForCPU(DTB* chosenDTB)
 	declare_and_init(pathAddressToSend, uint32_t, chosenDTB->pathLogicalAddress)
 
 
-	printf("\n\npath address int=%d\n\n",chosenDTB->pathLogicalAddress);
+//	printf("\n\npath address int=%d\n\n",chosenDTB->pathLogicalAddress);
 
-	printf("\n\npc del chosen dtb=%d\n\n",chosenDTB->programCounter);
+//	printf("\n\npc del chosen dtb=%d\n\n",chosenDTB->programCounter);
 	declare_and_init(pcToSend, uint32_t, chosenDTB->programCounter)
 	declare_and_init(quantumToSend, uint32_t, chosenDTB->quantumRemainder)
 	//Cantidad de archivos abiertos
@@ -1188,31 +1193,31 @@ SerializedPart* GetMessageForCPU(DTB* chosenDTB)
 	SerializedPart idSP, flagSP, pathSP, pathAddressSP, pcSP, quantumSP, ofaSP, filesSP;
 	idSP.size = sizeof(uint32_t);
 	idSP.data = idToSend;
-	printf("\n\nid=%d\n\n",*((uint32_t*)(idSP.data)));
+//	printf("\n\nid=%d\n\n",*((uint32_t*)(idSP.data)));
 	flagSP.size = sizeof(uint32_t);
 	flagSP.data = flagToSend;
 
-	printf("\n\nflag =%d\n\n",*((uint32_t*)(flagSP.data)));
+//	printf("\n\nflag =%d\n\n",*((uint32_t*)(flagSP.data)));
 	pathSP.size = strlen(chosenDTB->pathEscriptorio) + 1;
-	printf("\n\nsize=%d--path=%s\n\n",pathSP.size,chosenDTB->pathEscriptorio);
+//	printf("\n\nsize=%d--path=%s\n\n",pathSP.size,chosenDTB->pathEscriptorio);
 	pathSP.data = malloc(pathSP.size);
 	strcpy(pathSP.data, chosenDTB->pathEscriptorio);
 	pathAddressSP.size = sizeof(uint32_t);
 	pathAddressSP.data = pathAddressToSend;
 
-	printf("\n\nlogical address int=%d\n\n",*((uint32_t*)(pathAddressSP.data)));
+//	printf("\n\nlogical address int=%d\n\n",*((uint32_t*)(pathAddressSP.data)));
 	pcSP.size = sizeof(uint32_t);
 	pcSP.data = pcToSend;
 
-	printf("\n\npc int=%d\n\n",*((uint32_t*)(pcSP.data)));
+//	printf("\n\npc int=%d\n\n",*((uint32_t*)(pcSP.data)));
 	quantumSP.size = sizeof(uint32_t);
 	quantumSP.data = quantumToSend;
 
-	printf("\n\nquantum int=%d\n\n",*((uint32_t*)(quantumSP.data)));
+//	printf("\n\nquantum int=%d\n\n",*((uint32_t*)(quantumSP.data)));
 	ofaSP.size = sizeof(uint32_t);
 	ofaSP.data = ofaToSend;
 
-	printf("\n\ncant archivos abiertos int=%d\n\n",*((uint32_t*)(ofaSP.data)));
+//	printf("\n\ncant archivos abiertos int=%d\n\n",*((uint32_t*)(ofaSP.data)));
 	filesSP = FlattenPathsAndAddresses(chosenDTB->openedFiles);
 
 	//La idea es armar un paquete serializado que va a tener la estructura:
@@ -1244,7 +1249,7 @@ SerializedPart* ScheduleRR(int quantum)
 	chosenDTB->quantumRemainder = quantum;
 	Logger_Log(LOG_DEBUG, "SAFA::PLANIF_RR->Confeccionando mensaje con DTB de path %s", chosenDTB->pathEscriptorio);
 	//Obtengo la cadena a enviarle al CPU asignado; detalle de la misma dentro de la funcion; el free es en otro lado
-	printf("\n\n\ndtb= %s\n\n\n",chosenDTB->pathEscriptorio);
+//	printf("\n\n\ndtb= %s\n\n\n",chosenDTB->pathEscriptorio);
 	SerializedPart* packet = GetMessageForCPU(chosenDTB);
 
 	AddToExec(chosenDTB);
@@ -1274,8 +1279,8 @@ SerializedPart* ScheduleVRR(int maxQuantum)
 	void HeunMethod(void* aDTB)
 	{
 		DTB* realDTB = aDTB;
-		printf("\n\nflag %d",realDTB->initialized);
-		printf("\n\nquantum %d",realDTB->quantumRemainder);
+//		printf("\n\nflag %d",realDTB->initialized);
+//		printf("\n\nquantum %d",realDTB->quantumRemainder);
 		if((realDTB->quantumRemainder == 0) || (realDTB->quantumRemainder > maxQuantum))
 		{
 			realDTB->quantumRemainder = maxQuantum;
@@ -1360,7 +1365,7 @@ int Metrics_TotalIOSentencesAmount()
 	//Closure a aplicar en todas las colas
 	void AddIOOpsFromDTB(void* aDTB)
 	{
-		DTB* castDTB = (DTB*) aDTB;
+		DTB* castDTB = aDTB;
 		if(castDTB->initialized != 0)
 		{
 			ioAmount += castDTB->ioOperations;
@@ -1403,7 +1408,8 @@ float Metrics_AverageIOSentences()
 
 	float avg;
 	//Para hallar el promedio, hago SentenciasIO/CantidadDTBs
-	avg = (float) (Metrics_TotalIOSentencesAmount() / Metrics_TotalDTBPopulation());
+//	printf("\n\n falor cantidad total de io %d\n\n",Metrics_TotalIOSentencesAmount());
+	avg = (float) (((float)Metrics_TotalIOSentencesAmount()) / Metrics_TotalDTBPopulation());
 	return avg;
 
 }
@@ -1425,9 +1431,8 @@ float Metrics_AverageExitingSentences()
 	}
 
 	list_iterate(EXITqueue, AddSentencesFromDTB);
-
 	//Divido la cantidad de sentencias recien hallada por la cantidad de DTBs en EXIT (solo evaluo esos)
-	avg = (float) (totalAmount / list_size(EXITqueue));
+	avg = (float) (((float)totalAmount) / list_size(EXITqueue));
 	return avg;
 
 }
@@ -1436,8 +1441,9 @@ float Metrics_IOSentencesPercentage()
 {
 
 	float percentage;
+//	printf("\n\n valor cantidad total de io %d\n\n",Metrics_TotalIOSentencesAmount());
 	//Casteo a float para que tome decimales, y multiplico por 100 para que quede tipo porcentaje
-	percentage = (float) (Metrics_TotalIOSentencesAmount() / Metrics_TotalRunSentencesAmount());
+	percentage = (float) (((float)Metrics_TotalIOSentencesAmount()) / Metrics_TotalRunSentencesAmount());
 	percentage *= 100;
 	return percentage;
 

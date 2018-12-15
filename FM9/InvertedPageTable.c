@@ -12,13 +12,16 @@ void createIPTStructures() {
 
 //		Logger_Log(LOG_DEBUG, "FM9 -> Entrada de tabla de páginas invertida %d creada.", i);
 	}
+	pthread_mutex_init(&iptLock, NULL);
+	pthread_mutex_init(&filesLock, NULL);
 	Logger_Log(LOG_INFO, "FM9 -> Estructuras de tabla de páginas invertida creadas.");
 }
 
 void freeIPTStructures() {
 
+	pthread_mutex_lock(&iptLock);
 	free(IPTable);
-
+	pthread_mutex_unlock(&iptLock);
 	void dictionaryDestroyer(void* DTBPages) {
 		void listDestroyer(void* pages) {
 			list_destroy_and_destroy_elements(pages, free);
@@ -26,7 +29,12 @@ void freeIPTStructures() {
 		dictionary_destroy_and_destroy_elements(DTBPages, listDestroyer);
 	}
 
+
+	pthread_mutex_lock(&filesLock);
 	dictionary_destroy_and_destroy_elements(pagesPerDTBTable, dictionaryDestroyer);
+	pthread_mutex_unlock(&filesLock);
+	pthread_mutex_destroy(&iptLock);
+	pthread_mutex_destroy(&filesLock);
 	freePagingStructures();
 //	Logger_Log(LOG_INFO, "FM9 -> Tabla de páginas invertida liberada.");
 	Logger_Log(LOG_INFO, "FM9 -> Estructuras de tabla de páginas invertida liberadas.");
@@ -35,13 +43,19 @@ void freeIPTStructures() {
 int writeData_TPI(void* data, int size, int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
 	t_pages* paginas;
+	pthread_mutex_lock(&filesLock);
 	if (!dictionary_has_key(pagesPerDTBTable, dtbKey)) {
+		pthread_mutex_unlock(&filesLock);
 		paginas = malloc(sizeof(t_pages));
 		paginas->pagesPerFiles = dictionary_create();
 		paginas->nextPageNumber = 0;
+		pthread_mutex_lock(&filesLock);
 		dictionary_put(pagesPerDTBTable, dtbKey, paginas);
-	} else
+		pthread_mutex_unlock(&filesLock);
+	} else{
 		paginas = dictionary_get(pagesPerDTBTable, dtbKey);
+		pthread_mutex_unlock(&filesLock);
+	}
 	free(dtbKey);
 
 	t_list* freeFrames = getFreeFrames(size);
@@ -82,11 +96,14 @@ int writeData_TPI(void* data, int size, int dtbID) {
 
 int readData_TPI(void** target, int logicalAddress, int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
-	if (!dictionary_has_key(pagesPerDTBTable, dtbKey))
-	{	free(dtbKey);
+	pthread_mutex_lock(&filesLock);
+	if (!dictionary_has_key(pagesPerDTBTable, dtbKey)) {
+		pthread_mutex_unlock(&filesLock);
+		free(dtbKey);
 		return ITS_A_TRAP;
 	}
 	t_pages* paginas = dictionary_get(pagesPerDTBTable, dtbKey);
+	pthread_mutex_unlock(&filesLock);
 	free(dtbKey);
 	int pageNumber = logicalAddress / cantLineasPorFrame;
 	char* pageKey = string_itoa(pageNumber);
@@ -116,11 +133,14 @@ int readData_TPI(void** target, int logicalAddress, int dtbID) {
 
 int closeFile_TPI(int dtbID, int logicalAddress) {
 	char* dtbKey = string_itoa(dtbID);
+	pthread_mutex_lock(&filesLock);
 	if (!dictionary_has_key(pagesPerDTBTable, dtbKey)) {
+		pthread_mutex_unlock(&filesLock);
 		free(dtbKey);
 		return ITS_A_TRAP;
 	}
 	t_pages* paginas = dictionary_get(pagesPerDTBTable, dtbKey);
+	pthread_mutex_unlock(&filesLock);
 	free(dtbKey);
 	int pageNumber = logicalAddress / cantLineasPorFrame;
 	char* pageKey = string_itoa(pageNumber);
@@ -138,11 +158,14 @@ int closeFile_TPI(int dtbID, int logicalAddress) {
 
 int closeDTBFiles_TPI(int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
+	pthread_mutex_lock(&filesLock);
 	if (!dictionary_has_key(pagesPerDTBTable, dtbKey)) {
+		pthread_mutex_unlock(&filesLock);
 		free(dtbKey);
 		return ITS_A_TRAP;
 	}
 	t_pages* paginas = dictionary_remove(pagesPerDTBTable, dtbKey);
+	pthread_mutex_unlock(&filesLock);
 	free(dtbKey);
 	void dictionaryDestroyer(void* data){
 		t_pages_per_file* file = data;
@@ -156,14 +179,18 @@ int closeDTBFiles_TPI(int dtbID) {
 
 int dump_TPI(int dtbID) {
 	char* dtbKey = string_itoa(dtbID);
-	if (!dictionary_has_key(pagesPerDTBTable, dtbKey))
-		return -ITS_A_TRAP;
-
+	pthread_mutex_lock(&filesLock);
+	if (!dictionary_has_key(pagesPerDTBTable, dtbKey)){
+		pthread_mutex_unlock(&filesLock);
+		return ITS_A_TRAP;
+	}
 	t_pages* paginas = dictionary_get(pagesPerDTBTable, dtbKey);
+	pthread_mutex_unlock(&filesLock);
 	free(dtbKey);
 //	Logger_Log(LOG_INFO, "G.DT %d", dtbID);
 	Logger_Log(LOG_INFO, "Número próxima página %d", paginas->nextPageNumber);
 	int i = 0;
+	loggLines = false;
 	void pageDumper(char* key, void * data) {
 		t_pages_per_file* pages = data;
 		int offset = 0;
@@ -171,13 +198,12 @@ int dump_TPI(int dtbID) {
 		Logger_Log(LOG_INFO,
 				"Archivo número %d : Página inicial = %d : Cantidad de páginas usadas = %d",
 				i, pages->firstPage, pages->numberOfPages);
-		char* buffer = malloc(tamanioFrame);
+		char* buffer = calloc(1, tamanioFrame + 1);
 		Logger_Log(LOG_INFO, "Contenido Archivo %d", i);
 		while (offset < pages->numberOfPages) {
 			frameNumber = getFrameOfPage(pages->firstPage + offset, dtbID);
 			Logger_Log(LOG_INFO, "Página número %d está en frame %d", pages->firstPage + offset, frameNumber);
 //			Logger_Log(LOG_INFO, "Contenido  %d",  pages->firstPage + offset);
-			void* buffer = calloc(1, tamanioFrame + 1);
 			readFrame(buffer,frameNumber);
 			Logger_Log(LOG_INFO, "Contenido\n%s", buffer);
 			offset++;
@@ -185,6 +211,7 @@ int dump_TPI(int dtbID) {
 		free(buffer);
 	}
 	dictionary_iterator(paginas->pagesPerFiles, pageDumper);
+	loggLines = true;
 	return 1;
 
 }
@@ -213,14 +240,20 @@ int addressTranslation_TPI(int logicalAddress, int dtbID) {
 }
 
 void updateIPTable(int frameNumber, int pageNumber, int dtbID) {
+	pthread_mutex_lock(&iptLock);
 	IPTable[frameNumber].dtbId = dtbID;
 	IPTable[frameNumber].page = pageNumber;
+	pthread_mutex_unlock(&iptLock);
 }
 
 int getFrameOfPage(int page, int dtbID) {
 	for (int i = 0; i < cantFrames; i++) {
-		if (IPTable[i].dtbId == dtbID && IPTable[i].page == page)
+		pthread_mutex_lock(&iptLock);
+		if (IPTable[i].dtbId == dtbID && IPTable[i].page == page) {
+			pthread_mutex_unlock(&iptLock);
 			return i;
+		}
+		pthread_mutex_unlock(&iptLock);
 	}
 	return ITS_A_TRAP;
 }

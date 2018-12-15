@@ -313,6 +313,8 @@ void FM9_Flush(void* data) {
 			realSize += sizeLine;
 			offset += tamanioLinea;
 		}
+		realData = realloc(realData, realSize + 1);
+		((char*)realData)[realSize] = 0;
 		Logger_Log(LOG_INFO, "FM9::Flush -> Tamaño real del archivo son %d bytes. El contenido es:\n%s", realSize, realData);
 		free(buffer);
 		//Falta mandar las cosas de a transfersizes

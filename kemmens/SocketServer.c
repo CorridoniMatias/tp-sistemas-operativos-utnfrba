@@ -91,7 +91,7 @@ void SocketServer_ListenForConnection(SocketServer_ActionsListeners actions)
 	ServerClient* currclient;
 	//Si recibimos una funcion para manejar el procesamiento del input por linea se lo pasamos a readline.
 	if(actions.OnConsoleInputReceived != 0)
-		rl_callback_handler_install("> ", (rl_vcpfunc_t*) actions.OnConsoleInputReceived);
+		rl_callback_handler_install("> ", actions.OnConsoleInputReceived);
 
 
 	while(1)
@@ -112,12 +112,10 @@ void SocketServer_ListenForConnection(SocketServer_ActionsListeners actions)
 			FD_SET(currclient->socketID, &descriptores_clientes); //Registramos al cliente como un descriptor valido
 		}
 		pthread_mutex_unlock(&connections_lock);
-
 		//Bloqueamos hasta que llegue algo.
 		sel = select( max_fd + STDIN + 1 // la cantidad va a ser max_fd + STDIN + 1 porque todos los sockets que nos lleguen tanto del teclado como de red tienen que entrar
 							, &descriptores_clientes // Le pasamos los descriptores.
 							, NULL , NULL , NULL); //Queremos que nuestro select bloquee indefinidamente, sino le pasamos un timeout.
-
 		/*
 		 * La razon por la cual cada vez que empieza el while hay que volver a inicializar los descriptores es que
 		 * cuando un cliente se va queda el socket abierto y como valido en la lista de FDs entonces el select siempre se va a desbloquear
@@ -278,8 +276,10 @@ void SocketServer_ListenForConnection(SocketServer_ActionsListeners actions)
 				}
 
 			}
-			if((currconn == -1 || connlistsize == 0) && actions.OnConsoleInputReceived != NULL) //Input de teclado
-					rl_callback_read_char(); //Readline nos hace el favor de ir acumulando los chars hasta recibir <enter>, ahi le manda la linea a consoleInputHandle.
+//			if((currconn == -1 || connlistsize == 0) && actions.OnConsoleInputReceived != NULL){ //Input de teclado{
+			if (FD_ISSET(STDIN, &descriptores_clientes) && actions.OnConsoleInputReceived != NULL){
+				rl_callback_read_char(); //Readline nos hace el favor de ir acumulando los chars hasta recibir <enter>, ahi le manda la linea a consoleInputHandle.
+			}
 		}
 		if(closeAll == 1)
 			break;

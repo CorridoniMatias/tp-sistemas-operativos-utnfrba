@@ -51,6 +51,7 @@ void Comms_DAM_AbrirFinished(void* arriveData)
 	//Solo debe actualizar los archivos abiertos del DTB cuando se lo desbloquee, no pisarlos todos
 	nextToUnlock->appendOFs = true;
 	nextToUnlock->openedFilesUpdate = dictionary_create();
+	nextToUnlock->increaseIO = true;
 	declare_and_init(logicalAddress,uint32_t,*((uint32_t*)params->parts[2]))
 	dictionary_putMAESTRO(nextToUnlock->openedFilesUpdate, (char*)(params->parts[1]), logicalAddress, LogicalAddressDestroyer);
 
@@ -88,6 +89,7 @@ void Comms_DAM_CrearBorrarFlushFinished(void* arriveData)
 	//Solo debe actualizar (sin nada) los archivos abiertos del DTB cuando se lo desbloquee, no pisarlos todos
 	nextToUnlock->appendOFs = true;
 	nextToUnlock->openedFilesUpdate = dictionary_create();
+	nextToUnlock->increaseIO = true;
 
 	//Meto ese struct a la cola de DTBs a desbloquear, cuidando la mutua exclusion; cambio la tarea de PCP
 	pthread_mutex_lock(&mutexToBeUnlocked);
@@ -209,19 +211,19 @@ void Comms_CPU_DTBAtDAM(void* arriveData)
 	BlockableInfo* nextToBlock = malloc(sizeof(BlockableInfo));
 	nextToBlock->id = *((uint32_t*)(params->parts[0]));
 	nextToBlock->newProgramCounter = *((uint32_t*)(params->parts[1]));
-	printf("\n\n\n\n\nprogram counter recibido en safa=%d\n\n\n\n\n",nextToBlock->newProgramCounter);
+//	printf("\n\n\n\n\nprogram counter recibido en safa=%d\n\n\n\n\n",nextToBlock->newProgramCounter);
 	nextToBlock->quantumRemainder = *((uint32_t*)(params->parts[2]));
 	//nextToBlock->dummyComeback = false;
 	uint32_t ofa = *((uint32_t*)(params->parts[3]));
 	nextToBlock->dummyComeback = false;
-	printf("\n\ncant archivos=%d\n\n",ofa);
+//	printf("\n\ncant archivos=%d\n\n",ofa);
 	nextToBlock->openedFilesUpdate = BuildDictionary(params->parts[4], ofa);
 
 	//Libero la CPU que me aviso y la pongo como desocupada
 	FreeCPU(cpuSocket);
 	if(params->count == 6){
 		pthread_mutex_lock(&tableMutex);
-		printf("\n\nlock tablemutex adquirido nuevamente\n\n");
+//		printf("\n\nlock tablemutex adquirido nuevamente\n\n");
 		//Obtengo los datos de ese recurso, y disminuyo en uno sus instancias libres
 		ResourceStatus* waited = dictionary_get(resources, (char*)params->parts[5]);
 		if (!waited) {
@@ -229,10 +231,10 @@ void Comms_CPU_DTBAtDAM(void* arriveData)
 			Logger_Log(LOG_ERROR, "SAFA::COMMS->El DTB a bloquear pidio un recurso que después no se encontro");
 			return;
 		}
-		pthread_mutex_unlock(&tableMutex);
 		uint32_t* newWaiter = (uint32_t*) malloc(sizeof(uint32_t));
 		*newWaiter = nextToBlock->id;
 		queue_push(waited->waiters, newWaiter);
+		pthread_mutex_unlock(&tableMutex);
 		Logger_Log(LOG_DEBUG, "SAFA::RESOURCES->El DTB de id %d esta esperando el recurso %s", *newWaiter, (char*)params->parts[5]);
 	}
 	//Meto ese struct a la cola de DTBs a desbloquear, cuidando la mutua exclusion; cambio la tarea de PCP
@@ -269,7 +271,7 @@ void Comms_CPU_OutOfQuantum(void* arriveData)
 	uint32_t ofa = *((uint32_t*)(params->parts[2]));
 	nextToUnlock->openedFilesUpdate = BuildDictionary(params->parts[3], ofa);
 	nextToUnlock->overwritePC = true;
-
+	nextToUnlock->increaseIO = false;
 	//Libero la CPU que me aviso y la pongo como desocupada
 	FreeCPU(cpuSocket);
 

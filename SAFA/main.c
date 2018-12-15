@@ -23,7 +23,7 @@ ThreadPool* threadPool;
  */
 void *CommandIAm (int argC, char** args, char* callingLine, void* extraData)
 {
-	printf("\nculo:%s\n", callingLine);
+//	printf("\nculo:%s\n", callingLine);
 	if(argC == 1)
 	{
 		if(string_equals_ignore_case(args[1], "dam"))
@@ -33,10 +33,10 @@ void *CommandIAm (int argC, char** args, char* callingLine, void* extraData)
 		}
 		else if(string_equals_ignore_case(args[1], "cpu"))
 		{
-			printf("cpu socket = %d\n",*((int*)extraData));
+//			printf("cpu socket = %d\n",*((int*)extraData));
 			AddCPU((int*)extraData);
-			printf("llego cpu\n");
-			printf("%d\n",CPUsCount());
+//			printf("llego cpu\n");
+//			printf("%d\n",CPUsCount());
 		}
 
 		if(CPUsCount() > 0 && elDiego != -1)
@@ -105,50 +105,50 @@ void onPacketArrived(int socketID, int message_type, void* data)
 	switch(message_type)
 	{
 		case MESSAGETYPE_DAM_SAFA_DUMMY:
-			run->runnable = (void*)Comms_DAM_DummyFinished;
+			run->runnable = Comms_DAM_DummyFinished;
 			break;
 
 		case MESSAGETYPE_DAM_SAFA_ABRIR:
-			run->runnable = (void*)Comms_DAM_AbrirFinished;
+			run->runnable = Comms_DAM_AbrirFinished;
 			break;
 
 		case MESSAGETYPE_DAM_SAFA_CREAR:
 		case MESSAGETYPE_DAM_SAFA_BORRAR:
 		case MESSAGETYPE_DAM_SAFA_FLUSH:
-			run->runnable = (void*)Comms_DAM_CrearBorrarFlushFinished;
+			run->runnable = Comms_DAM_CrearBorrarFlushFinished;
 			break;
 
 		case MESSAGETYPE_DAM_SAFA_ERR:
-			run->runnable = (void*)Comms_DAM_IOError;
+			run->runnable = Comms_DAM_IOError;
 			break;
 
 		case MESSAGETYPE_CPU_EOFORABORT:
-			run->runnable = (void*)Comms_CPU_ErrorOrEOF;
+			run->runnable = Comms_CPU_ErrorOrEOF;
 			break;
 
 		case MESSAGETYPE_CPU_BLOCKDUMMY:
-			run->runnable = (void*)Comms_CPU_DummyAtDAM;
+			run->runnable = Comms_CPU_DummyAtDAM;
 			break;
 
 		case MESSAGETYPE_CPU_BLOCKDTB:
-			run->runnable = (void*)Comms_CPU_DTBAtDAM;
+			run->runnable = Comms_CPU_DTBAtDAM;
 			break;
 
 		case MESSAGETYPE_CPU_EOQUANTUM:
-			run->runnable = (void*)Comms_CPU_OutOfQuantum;
+			run->runnable = Comms_CPU_OutOfQuantum;
 			break;
 
 		case  MESSAGETYPE_CPU_WAIT:
-			run->runnable = (void*)Comms_CPU_WaitResource;
+			run->runnable = Comms_CPU_WaitResource;
 			break;
 
 		case MESSAGETYPE_CPU_SIGNAL:
-			run->runnable = (void*)Comms_CPU_SignalResource;
+			run->runnable = Comms_CPU_SignalResource;
 			break;
 
 		case MESSAGETYPE_STRING:
 		{
-			printf("%s",(char*)data);
+//			printf("%s",(char*)data);
 			declare_and_init(p_socketfd, int, socketID);
 			ThreadedCommandInterpreter((char*)data, (void*)p_socketfd);
 			free(run);

@@ -5,6 +5,7 @@
 #include <commons/collections/dictionary.h>
 #include "Paging.h"
 #include "FM9Errors.h"
+#include <pthread.h>
 
 typedef struct {
 	int firstPage;
@@ -30,6 +31,8 @@ typedef struct{
  * son una t_pages_per_file con la pagina inicial y la cantidad de páginas.
  */
 t_dictionary* pagesPerDTBTable;
+pthread_mutex_t iptLock;
+pthread_mutex_t filesLock;
 
 //Requerimiento: Inicializa la variable IPTable
 /*

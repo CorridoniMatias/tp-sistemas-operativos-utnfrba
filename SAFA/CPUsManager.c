@@ -21,20 +21,20 @@ void AddCPU(int* socketID)
 
 void FreeCPU(int socketID)
 {
-	printf("\n\nanalizando socket=%d\n\n",socketID);
+//	printf("\n\nanalizando socket=%d\n\n",socketID);
 
 	CPU* counter;
 //	CPU* toModify;
 	pthread_mutex_lock(&mutexCPUs);
 	int size = CPUsCount();
 
-	printf("\n\nsize=%d\n\n",size);
+//	printf("\n\nsize=%d\n\n",size);
 	for(int i = 0; i < size; i++)
 	{
 		counter = list_get(cpus, i);
 		if(counter->socket == socketID)
 		{
-			printf("\n\ncpu =%d libre socket=%d\n\n",i,counter->socket);
+//			printf("\n\ncpu =%d libre socket=%d\n\n",i,counter->socket);
 //			toModify = list_remove(cpus, i);		//Saco el CPU buscado de la lista, lo marco como desocupado,
 //			toModify = list_get(cpus, i);
 			counter->busy = false;					//y lo vuelvo a poner en la lista de CPUs
@@ -102,11 +102,11 @@ bool ExistsIdleCPU()
 
 	bool exists;
 	pthread_mutex_lock(&mutexCPUs);
-	void it(void* data){
-		CPU* c= data;
-		printf("\n\nsocket = %d --- busy = %d\n\n",c->socket,c->busy);
-	}
-	list_iterate(cpus,it);
+//	void it(void* data){
+//		CPU* c= data;
+////		printf("\n\nsocket = %d --- busy = %d\n\n",c->socket,c->busy);
+//	}
+//	list_iterate(cpus,it);
 	exists = list_any_satisfy(cpus, IsIdle);
 	pthread_mutex_unlock(&mutexCPUs);
 	if(!exists)
